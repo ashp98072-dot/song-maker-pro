@@ -33,6 +33,7 @@ import { LazyRouteBoundary } from "@/components/LazyRouteBoundary";
 import { ChunkLoadErrorBoundary } from "@/components/ChunkLoadErrorBoundary";
 import { AppDebugHost } from "@/debug/AppDebugHost";
 import { getRenderDiagStage } from "@/renderDiag";
+import { isPublicAppPath } from "@/utils/publicAppPaths";
 
 const SongViewPage = lazy(() => import("@/pages/SongViewPage"));
 const ContinuousSetlistPage = lazy(() => import("@/pages/ContinuousSetlistPage"));
@@ -72,10 +73,12 @@ function LayoutShellNoNavbar() {
 const AuthManager = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoading, userName, isGuest } = useApp();
+  const { isLoading, userName, isGuest, loginAsGuest } = useApp();
   const [isInitializing, setIsInitializing] = useState(true);
   const diagStage = getRenderDiagStage();
   const diagRouteBypass = diagStage < 99 && diagStage >= 2;
+  const onPublicPath = isPublicAppPath(location.pathname);
+  const needsPublicGuest = !userName && !isGuest && onPublicPath;
 
   useEffect(() => {
     if (diagRouteBypass) {
@@ -107,7 +110,11 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        navigate("/login", { replace: true });
+        if (isPublicAppPath(window.location.pathname)) {
+          loginAsGuest();
+        } else {
+          navigate("/login", { replace: true });
+        }
       } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         if (location.pathname === "/login") {
           navigate("/", { replace: true });
@@ -119,7 +126,11 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
       window.clearTimeout(failOpen);
       subscription.unsubscribe();
     };
-  }, [diagRouteBypass, navigate, location.pathname]);
+  }, [diagRouteBypass, navigate, location.pathname, loginAsGuest]);
+
+  useEffect(() => {
+    if (needsPublicGuest) loginAsGuest();
+  }, [needsPublicGuest, loginAsGuest]);
 
   useEffect(() => {
     if (diagRouteBypass) return;
@@ -131,11 +142,20 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
     if (currentPath.startsWith("/auth/")) return;
 
     if (isAuthenticated && currentPath === "/login") {
-      navigate("/", { replace: true });
+      const from = (location.state as { from?: string } | null)?.from;
+      const dest =
+        typeof from === 'string' && from.startsWith('/') && from !== '/login' ? from : '/';
+      navigate(dest, { replace: true });
+      return;
+    }
+
+    if (!isAuthenticated && onPublicPath) {
+      loginAsGuest();
+      return;
     }
 
     if (!isAuthenticated && currentPath !== "/login") {
-      navigate("/login", { replace: true });
+      navigate("/login", { replace: true, state: { from: currentPath } });
     }
   }, [
     diagRouteBypass,
@@ -145,6 +165,9 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
     isGuest,
     navigate,
     location.pathname,
+    location.state,
+    onPublicPath,
+    loginAsGuest,
   ]);
 
   useEffect(() => {
@@ -157,7 +180,7 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
   }
 
-  if (isLoading || isInitializing) {
+  if (isLoading || isInitializing || needsPublicGuest) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

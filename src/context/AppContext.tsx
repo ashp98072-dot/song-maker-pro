@@ -121,9 +121,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         Array.isArray(appRows) ? appRows.map((a: any) => [a.song_id, a]) : []
       );
 
-      if (data && !error && Array.isArray(data)) {
+      let cloudRows = data && !error && Array.isArray(data) ? data : [];
+
+      // Guests / anon often hit RLS empty — public SEO RPC still has the catalog.
+      if (!cloudRows.length) {
+        try {
+          const { fetchSongsViaSeoCatalog } = await import('@/utils/songSlug');
+          const seoSongs = await fetchSongsViaSeoCatalog();
+          if (seoSongs.length) {
+            setSongs((prev) => {
+              const existingIds = new Set(prev.map((s) => s.id));
+              const incoming = seoSongs.filter((s) => !existingIds.has(s.id));
+              return incoming.length ? [...incoming, ...prev] : prev;
+            });
+            return;
+          }
+        } catch (seoErr) {
+          console.warn('SEO catalog hydrate failed:', seoErr);
+        }
+      }
+
+      if (cloudRows.length) {
         setSongs(prev => {
-          const cloudSongsMap = new Map<string, any>(data.map((us) => [us.song_id, us]));
+          const cloudSongsMap = new Map<string, any>(cloudRows.map((us) => [us.song_id, us]));
           const updatedExisting = prev.map(originalSong => {
             const globalVersion = cloudSongsMap.get(originalSong.id);
             const adminOverride = appMap.get(originalSong.id);
@@ -151,7 +171,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
 
           const existingIds = new Set(updatedExisting.map(s => s.id));
-          const newSongsFromCloud: Song[] = data
+          const newSongsFromCloud: Song[] = cloudRows
             .filter((us) => !existingIds.has(us.song_id))
             .map(cloudRowToSong);
 

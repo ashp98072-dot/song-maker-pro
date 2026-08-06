@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import VisitedSongsRegistrar from '@/pwa/VisitedSongsRegistrar';
@@ -11,16 +11,19 @@ import { DirectorSessionConflictDialog } from '@/features/director-session/compo
 import { JoinSessionConflictDialog } from '@/features/director-session/components/JoinSessionConflictDialog';
 import { FollowerJoinAwaitingOverlay } from '@/features/director-session/components/FollowerJoinAwaitingOverlay';
 import { SimpleLiveSyncProvider, SimpleLiveResumeBanner } from '@/features/simple-live-sync';
+import { isPublicAppPath } from '@/utils/publicAppPaths';
 
 export default function AppLayout() {
   const { userName } = useApp();
+  const location = useLocation();
   const layoutAuthBypass = (() => {
     const s = getRenderDiagStage();
     return s < 99 && s >= 2;
   })();
 
-  if (!layoutAuthBypass && !userName) return <Navigate to="/login" replace />;
-
+  if (!layoutAuthBypass && !userName && !isPublicAppPath(location.pathname)) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
   const main = (
     <main className="min-h-screen bg-background">
       <VisitedSongsRegistrar />

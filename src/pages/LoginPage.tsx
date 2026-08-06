@@ -1,6 +1,6 @@
 import { Music, Mail, Lock, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -18,9 +18,15 @@ const signupSchema = credentialsSchema.extend({
 
 type Mode = 'login' | 'signup';
 
+function safeReturnPath(from: unknown): string {
+  return typeof from === 'string' && from.startsWith('/') && from !== '/login' ? from : '/';
+}
+
 export default function LoginPage() {
   const { loginAsGuest } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = safeReturnPath((location.state as { from?: string } | null)?.from);
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,13 +36,13 @@ export default function LoginPage() {
   // Verificación de seguridad: Si ya hay sesión, no deberíamos estar aquí
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate('/', { replace: true });
+      if (session) navigate(returnTo, { replace: true });
     });
-  }, [navigate]);
+  }, [navigate, returnTo]);
 
   const handleGuest = () => {
     loginAsGuest();
-    navigate('/', { replace: true });
+    navigate(returnTo, { replace: true });
   };
 
   const handleGoogle = async () => {
@@ -74,7 +80,7 @@ export default function LoginPage() {
         
         if (data.session) {
           toast.success('Bienvenido de vuelta');
-          navigate('/', { replace: true });
+          navigate(returnTo, { replace: true });
         }
       } else {
         const parsed = signupSchema.safeParse({ email, password, displayName });
@@ -102,7 +108,7 @@ export default function LoginPage() {
           setPassword('');
         } else if (data.session) {
           toast.success('¡Cuenta creada con éxito!');
-          navigate('/', { replace: true });
+          navigate(returnTo, { replace: true });
         }
       }
     } catch (err: any) {

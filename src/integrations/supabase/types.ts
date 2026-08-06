@@ -451,6 +451,16 @@ export type Database = {
         Args: { p_code: string }
         Returns: Database["public"]["Tables"]["live_sessions"]["Row"][]
       }
+      seo_song_catalog: {
+        Args: { p_limit?: number }
+        Returns: {
+          song_id: string
+          title: string
+          artist: string
+          chords: string
+          created_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

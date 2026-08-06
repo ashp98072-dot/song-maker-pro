@@ -96,9 +96,42 @@ async function fetchSongFromDatabaseById(songId: string): Promise<Song | null> {
   return userSongRowToSong(data);
 }
 
+type SeoCatalogRow = {
+  song_id: string;
+  title: string | null;
+  artist: string | null;
+  chords: string | null;
+};
+
+function seoRowToSong(row: SeoCatalogRow): Song {
+  return {
+    id: String(row.song_id),
+    title: row.title || 'Canción',
+    artist: row.artist || 'Artista desconocido',
+    originalKey: 'C',
+    originalGender: 'male',
+    scaleMode: 'major',
+    lyrics: '',
+    chords: row.chords || '',
+    key: 'C',
+  };
+}
+
+/** Public catalog via SECURITY DEFINER RPC (works for anon / guests). */
+export async function fetchSongsViaSeoCatalog(limit = 5000): Promise<Song[]> {
+  const { data, error } = await supabase.rpc('seo_song_catalog', { p_limit: limit });
+  if (error || !Array.isArray(data) || !data.length) return [];
+  const byId = new Map<string, Song>();
+  for (const row of data as SeoCatalogRow[]) {
+    if (!row?.song_id || byId.has(String(row.song_id))) continue;
+    byId.set(String(row.song_id), seoRowToSong(row));
+  }
+  return [...byId.values()];
+}
+
 /**
  * Resolves a song by numeric id or slug.
- * Uses in-memory catalog first, then Supabase (user_songs) as fallback.
+ * Uses in-memory catalog first, then Supabase (user_songs), then seo_song_catalog RPC.
  */
 export async function getSongFromSlugOrId(
   slugOrId: string,
@@ -111,11 +144,13 @@ export async function getSongFromSlugOrId(
   if (catalogId) {
     const fromCatalog = catalog.find((s) => s.id === catalogId);
     if (fromCatalog) return fromCatalog;
-    return fetchSongFromDatabaseById(catalogId);
+    const fromDb = await fetchSongFromDatabaseById(catalogId);
+    if (fromDb) return fromDb;
   }
 
   if (isNumericSongId(trimmed)) {
-    return fetchSongFromDatabaseById(trimmed);
+    const fromDb = await fetchSongFromDatabaseById(trimmed);
+    if (fromDb) return fromDb;
   }
 
   const { data, error } = await supabase
@@ -123,9 +158,14 @@ export async function getSongFromSlugOrId(
     .select('song_id, title, artist, key, bpm, chords, youtube_url')
     .limit(1000);
 
-  if (error || !data?.length) return null;
+  if (!error && data?.length) {
+    const mapped = data.map(userSongRowToSong);
+    const resolvedId = resolveSongIdFromRouteParam(trimmed, mapped);
+    if (resolvedId) return mapped.find((s) => s.id === resolvedId) ?? null;
+  }
 
-  const mapped = data.map(userSongRowToSong);
-  const resolvedId = resolveSongIdFromRouteParam(trimmed, mapped);
-  return resolvedId ? mapped.find((s) => s.id === resolvedId) ?? null : null;
+  const seoSongs = await fetchSongsViaSeoCatalog();
+  if (!seoSongs.length) return null;
+  const seoId = resolveSongIdFromRouteParam(trimmed, seoSongs);
+  return seoId ? seoSongs.find((s) => s.id === seoId) ?? null : null;
 }
