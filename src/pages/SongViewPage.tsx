@@ -139,6 +139,7 @@ import { WorshipFloatingDock } from '@/features/mobile-worship';
 import { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobileControlsChrome';
 import { MobileControlsRestoreFab } from '@/features/mobile-worship/components/MobileControlsRestoreFab';
 import { TeleprompterLivePill } from '@/features/mobile-worship/components/TeleprompterLivePill';
+import { RelatedSongsSection } from '@/features/song-discovery/RelatedSongsSection';
 import { getRenderDiagStage } from '@/renderDiag';
 
 const YouTubeQuickPicker = lazy(() => {
@@ -2458,6 +2459,10 @@ export default function SongViewPage() {
               onSmartYoutubeClick={handleSmartYoutubeClick}
             />
             </div>
+          )}
+
+          {song && !mobileTeleprompter && !isEditing && (
+            <RelatedSongsSection song={song} catalog={songs} />
           )}
         </div>
 

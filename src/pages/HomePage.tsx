@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Search, Users } from 'lucide-react';
-import { matchesSearch } from '@/utils/textNormalize';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SongCard from '@/components/SongCard';
 import { motion } from 'framer-motion';
@@ -15,6 +14,10 @@ import {
   useSimpleLiveSyncOptional,
 } from '@/features/simple-live-sync';
 import { navigateAfterSimpleLiveJoin } from '@/features/simple-live-sync/navigateAfterSimpleLiveJoin';
+import {
+  browseCatalogSongs,
+  browseSectionLabel,
+} from '@/features/song-discovery/browseSongs';
 
 export default function HomePage() {
   useEffect(() => {
@@ -27,26 +30,32 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const spectator = useSpectatorSession();
   const simpleLive = useSimpleLiveSyncOptional();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
   const autoJoinTried = useRef(false);
 
-  const filtered = useMemo(() => {
-    if (!search) {
-      // Muestra populares + las recién agregadas por usuarios (isNew)
-      const visible = songs.filter(s => s.isPopular || s.isNew);
-      // Las nuevas primero
-      return visible.sort((a, b) => {
-        if (a.isNew && !b.isNew) return -1;
-        if (!a.isNew && b.isNew) return 1;
-        return 0;
-      });
-    }
-    return songs.filter(s => matchesSearch(s.title, search) || matchesSearch(s.artist, search));
-  }, [songs, search]);
+  const filtered = useMemo(() => browseCatalogSongs(songs, search), [songs, search]);
+  const sectionLabel = useMemo(() => browseSectionLabel(songs, search), [songs, search]);
 
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q != null && q !== search) setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL only
+  }, [searchParams]);
+
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    const next = new URLSearchParams(searchParams);
+    if (value.trim()) next.set('q', value.trim());
+    else next.delete('q');
+    // Keep join params out — already cleared by auto-join
+    next.delete('join');
+    next.delete('codigo');
+    next.delete('code');
+    setSearchParams(next, { replace: true });
+  };
   const handleJoinSession = async (raw?: string) => {
     const trimmed = (raw ?? joinCode).trim();
     if (trimmed.length < 4) {
@@ -111,7 +120,7 @@ export default function HomePage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <div className="relative flex-1 max-w-2xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => onSearchChange(e.target.value)}
             placeholder="Buscar canciones por título o artista..."
             className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
         </div>
@@ -147,7 +156,12 @@ export default function HomePage() {
         </motion.div>
       )}
 
-      <h2 className="text-lg font-bold font-display text-foreground mb-4">{search ? 'Resultados' : 'Canciones Populares y Recién Agregadas'}</h2>
+      <h2 className="text-lg font-bold font-display text-foreground mb-4">
+        {sectionLabel}
+        {!search.trim() && songs.length > 0 ? (
+          <span className="ml-2 text-sm font-normal text-muted-foreground">({songs.length})</span>
+        ) : null}
+      </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(song => <SongCard key={song.id} song={song} />)}

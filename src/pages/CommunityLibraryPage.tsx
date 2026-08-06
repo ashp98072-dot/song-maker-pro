@@ -1,10 +1,14 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Search, Globe, Plus, Eye, Star, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Song } from '@/types/music';
 import { toast } from 'sonner';
 import { matchesSearch } from '@/utils/textNormalize';
+import { browseCatalogSongs } from '@/features/song-discovery/browseSongs';
+import { getSongPath } from '@/utils/songSlug';
+import SongCard from '@/components/SongCard';
 
 const COMMUNITY_STORAGE_KEY = 'worship-community-songs';
 const COMMUNITY_RATINGS_KEY = 'worship-community-ratings';
@@ -52,20 +56,26 @@ export default function CommunityLibraryPage() {
   const communitySongs = useMemo(() => getCommunityLibrary(), []);
   
   const filtered = useMemo(() => {
-    const all = [...communitySongs].sort((a, b) => {
+    const published = [...communitySongs].sort((a, b) => {
       const rA = ratings[a.id]?.stars || 0;
       const rB = ratings[b.id]?.stars || 0;
       const vA = ratings[a.id]?.verified ? 1 : 0;
       const vB = ratings[b.id]?.verified ? 1 : 0;
       return (vB - vA) || (rB - rA);
     });
-    if (!search) return all;
-    return all.filter(s =>
-      matchesSearch(s.title, search) ||
-      matchesSearch(s.artist, search) ||
-      matchesSearch(s.originalKey, search)
-    );
-  }, [communitySongs, search, ratings]);
+    if (published.length > 0) {
+      if (!search) return published;
+      return published.filter(s =>
+        matchesSearch(s.title, search) ||
+        matchesSearch(s.artist, search) ||
+        matchesSearch(s.originalKey, search)
+      );
+    }
+    // Fallback: global cloud catalog when nobody published to local community yet
+    return browseCatalogSongs(songs, search);
+  }, [communitySongs, search, ratings, songs]);
+
+  const usingGlobalCatalog = communitySongs.length === 0;
 
   const isInMyRepertoire = (songId: string) => songs.some(s => s.id === songId || s.title === communitySongs.find(cs => cs.id === songId)?.title);
 
@@ -109,7 +119,11 @@ export default function CommunityLibraryPage() {
           <Globe className="w-6 h-6 text-gold" />
           <h1 className="text-2xl font-bold font-display text-foreground">Biblioteca Comunitaria</h1>
         </div>
-        <p className="text-muted-foreground text-sm">Descubre canciones compartidas por otros músicos. Las mejor calificadas aparecen primero.</p>
+        <p className="text-muted-foreground text-sm">
+          {usingGlobalCatalog
+            ? 'Explora el catálogo compartido. Busca por título o artista.'
+            : 'Descubre canciones compartidas por otros músicos. Las mejor calificadas aparecen primero.'}
+        </p>
       </motion.div>
 
       <div className="relative mb-8">
@@ -149,11 +163,14 @@ export default function CommunityLibraryPage() {
         <div className="text-center py-16">
           <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground mb-2">
-            {search ? 'No se encontraron canciones con ese criterio.' : 'La biblioteca comunitaria está vacía.'}
+            {search ? 'No se encontraron canciones con ese criterio.' : 'La biblioteca está vacía.'}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Publica tus canciones marcándolas como "Pública" al agregarlas.
-          </p>
+        </div>
+      ) : usingGlobalCatalog ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((song) => (
+            <SongCard key={song.id} song={song} />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -162,7 +179,9 @@ export default function CommunityLibraryPage() {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground truncate">{song.title}</h3>
+                    <Link to={getSongPath(song, songs)} className="font-semibold text-foreground truncate hover:text-gold">
+                      {song.title}
+                    </Link>
                     {ratings[song.id]?.verified && <CheckCircle className="w-4 h-4 text-[hsl(var(--success))] shrink-0" />}
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
