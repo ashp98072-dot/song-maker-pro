@@ -20,6 +20,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import LoginPage from "@/pages/LoginPage";
 import AuthCallback from "@/pages/AuthCallback";
 import HomePage from "@/pages/HomePage";
+import JoinLivePage from "@/pages/JoinLivePage";
 import FavoritesPage from "@/pages/FavoritesPage";
 import ListsPage from "@/pages/ListsPage";
 import ListDetailPage from "@/pages/ListDetailPage";
@@ -286,6 +287,7 @@ function ProductionApp() {
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/dashboard" element={<Navigate to="/" replace />} />
+                  <Route path="/unirse/:code" element={<JoinLivePage />} />
                   <Route
                     path="/cancion/:songIdentifier"
                     element={

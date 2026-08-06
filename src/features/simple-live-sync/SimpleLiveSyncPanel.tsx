@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Radio, Users, Wifi } from 'lucide-react';
+import { Copy, QrCode, Radio, Share2, Users, Wifi } from 'lucide-react';
 import { toast } from 'sonner';
 import { normalizeSessionCode } from '@/features/director-session/types';
 import type { ViewMode } from '@/types/music';
+import { shareNative } from '@/utils/shareNative';
 import { useSimpleLiveSync } from './SimpleLiveSyncContext';
 import type { SimpleLiveState } from './types';
+import { buildLiveJoinUrl, liveJoinQrImageUrl } from './liveJoinUrl';
 
 type Props = {
   songId: string;
@@ -55,10 +57,12 @@ export function SimpleLiveSyncPanel({
 
   const [joinInput, setJoinInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const lastAppliedRef = useRef('');
   const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const listKey = useMemo(() => (listSongIds ?? []).join(','), [listSongIds]);
+  const joinUrl = code ? buildLiveJoinUrl(code) : '';
 
   // Director: debounced publish (avoids spam on rapid prop churn)
   useEffect(() => {
@@ -148,6 +152,7 @@ export function SimpleLiveSyncPanel({
     try {
       await leave();
       setJoinInput('');
+      setShowQr(false);
     } finally {
       setBusy(false);
     }
@@ -157,6 +162,21 @@ export function SimpleLiveSyncPanel({
     if (!code) return;
     void navigator.clipboard.writeText(code);
     toast.success('Código copiado');
+  };
+
+  const shareJoin = async () => {
+    if (!code || !joinUrl) return;
+    await shareNative({
+      title: 'Worship Transpose en vivo',
+      text: `Únete a la sesión ${code}`,
+      url: joinUrl,
+    });
+  };
+
+  const copyJoinLink = () => {
+    if (!joinUrl) return;
+    void navigator.clipboard.writeText(joinUrl);
+    toast.success('Enlace de unión copiado');
   };
 
   const isDirector = role === 'director';
@@ -174,9 +194,20 @@ export function SimpleLiveSyncPanel({
           />
           <span className="truncate font-mono tracking-widest text-gold">{code}</span>
           {isDirector && (
-            <span className="shrink-0 text-muted-foreground">
-              {connectedCount} online
-            </span>
+            <>
+              <span className="shrink-0 text-muted-foreground">
+                {connectedCount} online
+              </span>
+              <button
+                type="button"
+                onClick={() => void shareJoin()}
+                className="shrink-0 rounded-lg border border-white/10 p-1.5 text-gold hover:bg-secondary/60"
+                aria-label="Compartir enlace de unión"
+                title="Compartir"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+              </button>
+            </>
           )}
           {isFollower && (
             <label className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
@@ -256,10 +287,50 @@ export function SimpleLiveSyncPanel({
               type="button"
               onClick={copyCode}
               className="p-3 bg-gold/10 rounded-full text-gold hover:bg-gold/20 transition-all"
+              aria-label="Copiar código"
             >
               <Copy className="w-5 h-5" />
             </button>
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => void shareJoin()}
+              className="flex items-center justify-center gap-2 rounded-xl border border-gold/30 bg-gold/10 py-2.5 text-sm font-bold text-gold hover:bg-gold/20"
+            >
+              <Share2 className="h-4 w-4" />
+              Compartir
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowQr((v) => !v)}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-secondary/40 py-2.5 text-sm font-bold text-foreground hover:bg-secondary/70"
+            >
+              <QrCode className="h-4 w-4" />
+              {showQr ? 'Ocultar QR' : 'Mostrar QR'}
+            </button>
+          </div>
+
+          {showQr && joinUrl && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white p-3">
+              <img
+                src={liveJoinQrImageUrl(joinUrl, 200)}
+                alt={`QR para unirse a ${code}`}
+                width={200}
+                height={200}
+                className="rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={copyJoinLink}
+                className="text-[11px] font-medium text-neutral-700 underline"
+              >
+                Copiar enlace
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-[10px] font-bold px-1">
             <span className="text-muted-foreground flex items-center gap-1">
               <Users className="w-4 h-4 text-gold" />

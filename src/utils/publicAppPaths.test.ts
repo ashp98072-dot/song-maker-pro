@@ -7,6 +7,7 @@ describe('isPublicAppPath', () => {
     expect(isPublicAppPath('/cancion/123')).toBe(true);
     expect(isPublicAppPath('/comunidad')).toBe(true);
     expect(isPublicAppPath('/comunidad/foo')).toBe(true);
+    expect(isPublicAppPath('/unirse/AB12')).toBe(true);
   });
 
   it('blocks private app routes', () => {
@@ -15,5 +16,6 @@ describe('isPublicAppPath', () => {
     expect(isPublicAppPath('/favoritos')).toBe(false);
     expect(isPublicAppPath('/listas')).toBe(false);
     expect(isPublicAppPath('/cancion')).toBe(false);
+    expect(isPublicAppPath('/unirse')).toBe(false);
   });
 });

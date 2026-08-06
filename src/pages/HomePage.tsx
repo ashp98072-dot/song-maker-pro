@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Search, Users } from 'lucide-react';
 import { matchesSearch } from '@/utils/textNormalize';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SongCard from '@/components/SongCard';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -10,7 +10,11 @@ import { getRenderDiagStage } from '@/renderDiag';
 import { FEATURES } from '@/config/features';
 import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
 import { sessionJoinBlockedMessage } from '@/features/director-session/utils/checkSessionActive';
-import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import {
+  parseJoinCodeFromSearch,
+  useSimpleLiveSyncOptional,
+} from '@/features/simple-live-sync';
+import { navigateAfterSimpleLiveJoin } from '@/features/simple-live-sync/navigateAfterSimpleLiveJoin';
 
 export default function HomePage() {
   useEffect(() => {
@@ -20,12 +24,14 @@ export default function HomePage() {
 
   const { userName, songs } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const spectator = useSpectatorSession();
   const simpleLive = useSimpleLiveSyncOptional();
   const [search, setSearch] = useState('');
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
+  const autoJoinTried = useRef(false);
 
   const filtered = useMemo(() => {
     if (!search) {
@@ -41,8 +47,8 @@ export default function HomePage() {
     return songs.filter(s => matchesSearch(s.title, search) || matchesSearch(s.artist, search));
   }, [songs, search]);
 
-  const handleJoinSession = async () => {
-    const trimmed = joinCode.trim();
+  const handleJoinSession = async (raw?: string) => {
+    const trimmed = (raw ?? joinCode).trim();
     if (trimmed.length < 4) {
       toast.error('Código de sesión inválido (mínimo 4 caracteres)');
       return;
@@ -66,37 +72,33 @@ export default function HomePage() {
     toast.error(sessionJoinBlockedMessage(result));
   };
 
+  // Deep link: /?join=CODE
+  useEffect(() => {
+    const fromQuery = parseJoinCodeFromSearch(searchParams.toString());
+    if (!fromQuery || autoJoinTried.current) return;
+    if (FEATURES.SIMPLE_LIVE_SYNC && !simpleLive) return;
+    autoJoinTried.current = true;
+    setJoinCode(fromQuery);
+    setShowJoinSession(true);
+    setSearchParams({}, { replace: true });
+    void handleJoinSession(fromQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep link
+  }, [searchParams, simpleLive]);
+
   // After simple-live join from home, open the director song/list once.
   useEffect(() => {
     if (!pendingSimpleNav || !simpleLive) return;
     const state = simpleLive.lastState;
     if (!state) return;
 
-    if (state.viewMode === 'continuous' && state.listId) {
-      setPendingSimpleNav(false);
-      navigate(`/setlist/${state.listId}/live`, {
-        state: {
-          listId: state.listId,
-          listSongIds: state.listSongIds,
-          joinSessionCode: state.sessionCode,
-          initialSongId: state.songId ?? undefined,
-          initialIndex: state.currentIndex,
-          currentIndex: state.currentIndex,
-        },
-      });
-      return;
-    }
-
-    if (!state.songId) return;
-    setPendingSimpleNav(false);
-    navigate(`/cancion/${state.songId}`);
+    const moved = navigateAfterSimpleLiveJoin(navigate, state, songs);
+    if (moved) setPendingSimpleNav(false);
   }, [
     pendingSimpleNav,
-    simpleLive?.lastState?.songId,
-    simpleLive?.lastState?.listId,
-    simpleLive?.lastState?.viewMode,
+    simpleLive?.lastState,
     navigate,
     simpleLive,
+    songs,
   ]);
 
   return (
@@ -134,7 +136,7 @@ export default function HomePage() {
                 className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase font-mono tracking-widest"
               />
               <button
-                onClick={handleJoinSession}
+                onClick={() => void handleJoinSession()}
                 disabled={joinCode.length < 4}
                 className="px-4 py-2 rounded-lg gold-gradient text-primary-foreground text-sm font-semibold disabled:opacity-50"
               >
