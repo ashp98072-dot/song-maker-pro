@@ -3,6 +3,8 @@
  * Humans still get the SPA.
  */
 
+import { buildSongSlug, loadSeoCatalog } from './_seoCatalog';
+
 export const config = { runtime: 'edge' };
 
 const SITE_NAME = 'Worship Transpose';
@@ -11,26 +13,7 @@ const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://
   ''
 );
 
-function slugifySongTitle(title) {
-  return (
-    (title ?? '')
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'cancion'
-  );
-}
-
-function buildSongSlug(song, allSongs) {
-  const base = slugifySongTitle(song.title);
-  const same = allSongs.filter((s) => slugifySongTitle(s.title) === base);
-  if (same.length > 1) return `${base}-${song.id}`;
-  return base;
-}
-
-function escapeHtml(s) {
+function escapeHtml(s: string) {
   return String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -38,7 +21,7 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-function chordsToLyricsPreview(chords, maxLen = 2500) {
+function chordsToLyricsPreview(chords: string, maxLen = 2500) {
   const lines = (chords || '')
     .split('\n')
     .map((line) =>
@@ -54,7 +37,7 @@ function chordsToLyricsPreview(chords, maxLen = 2500) {
   return `${text.slice(0, maxLen).trim()}…`;
 }
 
-function buildTitle(title, artist) {
+function buildTitle(title: string, artist: string) {
   const t = title.trim() || 'Canción';
   const a = artist?.trim();
   return a
@@ -62,7 +45,7 @@ function buildTitle(title, artist) {
     : `${t} - Letra y acordes | ${SITE_NAME}`;
 }
 
-function buildDescription(title, artist) {
+function buildDescription(title: string, artist: string) {
   const t = title.trim() || 'Canción';
   const a = artist?.trim();
   return a
@@ -70,38 +53,7 @@ function buildDescription(title, artist) {
     : `Letra y acordes de «${t}». Transpone el tono, ensaya y comparte en vivo con ${SITE_NAME}.`;
 }
 
-async function loadSongs() {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    '';
-  if (!url || !key) return [];
-
-  const endpoint = `${url.replace(/\/$/, '')}/rest/v1/user_songs?select=song_id,title,artist,chords,updated_at&order=updated_at.desc&limit=5000`;
-  const res = await fetch(endpoint, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const byId = new Map();
-  for (const row of data || []) {
-    if (!row?.song_id || byId.has(row.song_id)) continue;
-    byId.set(row.song_id, {
-      id: row.song_id,
-      title: row.title || 'Canción',
-      artist: row.artist || '',
-      chords: row.chords || '',
-    });
-  }
-  return [...byId.values()];
-}
-
-function findSong(catalog, slug) {
+function findSong(catalog: { id: string; title: string }[], slug: string) {
   if (!slug) return null;
   if (/^\d+$/.test(slug)) {
     return catalog.find((s) => s.id === slug) || null;
@@ -109,12 +61,16 @@ function findSong(catalog, slug) {
   return catalog.find((s) => buildSongSlug(s, catalog) === slug) || null;
 }
 
-function renderHtml(song, slug) {
+function renderHtml(
+  song: { id: string; title: string; artist: string; chords: string },
+  slug: string,
+  catalog: { id: string; title: string }[]
+) {
   const title = song.title || 'Canción';
   const artist = song.artist || '';
   const pageTitle = buildTitle(title, artist);
   const description = buildDescription(title, artist);
-  const path = `/cancion/${slug || buildSongSlug(song, [song])}`;
+  const path = `/cancion/${slug || buildSongSlug(song, catalog)}`;
   const url = `${SITE_URL}${path}`;
   const lyrics = chordsToLyricsPreview(song.chords);
   const jsonLd = {
@@ -181,28 +137,36 @@ function renderHtml(song, slug) {
 </html>`;
 }
 
-export default async function handler(req) {
+export default async function handler(req: Request) {
   const incoming = new URL(req.url);
   const slug = (incoming.searchParams.get('slug') || '').trim();
-  const catalog = await loadSongs();
+  const catalogResult = await loadSeoCatalog({ withChords: true });
+  const catalog = catalogResult.songs;
   const song = findSong(catalog, slug);
 
   if (!song) {
     const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>Canción no encontrada | ${SITE_NAME}</title><meta name="robots" content="noindex"/></head><body><h1>Canción no encontrada</h1><p><a href="${SITE_URL}/">Volver a ${SITE_NAME}</a></p></body></html>`;
     return new Response(html, {
       status: 404,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Seo-Song-Count': String(catalog.length),
+        'X-Seo-Source': catalogResult.source,
+      },
     });
   }
 
-  const canonicalSlug = buildSongSlug(song, catalog);
-  const html = renderHtml(song, canonicalSlug);
+  const full = catalog.find((s) => s.id === song.id)!;
+  const canonicalSlug = buildSongSlug(full, catalog);
+  const html = renderHtml(full, canonicalSlug, catalog);
   return new Response(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400',
       'X-Robots-Tag': 'index,follow',
+      'X-Seo-Song-Count': String(catalog.length),
+      'X-Seo-Source': catalogResult.source,
     },
   });
 }

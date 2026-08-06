@@ -1,7 +1,8 @@
 /**
  * Dynamic sitemap.xml — Vercel Edge Function.
- * Env: SUPABASE_URL or VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (preferred) or anon key.
  */
+
+import { buildSongSlug, loadSeoCatalog } from './_seoCatalog';
 
 export const config = { runtime: 'edge' };
 
@@ -10,55 +11,7 @@ const SITE_URL = (process.env.SITE_URL || process.env.VITE_SITE_URL || 'https://
   ''
 );
 
-function slugifySongTitle(title) {
-  return (
-    (title ?? '')
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'cancion'
-  );
-}
-
-function buildSongSlug(song, allSongs) {
-  const base = slugifySongTitle(song.title);
-  const same = allSongs.filter((s) => slugifySongTitle(s.title) === base);
-  if (same.length > 1) return `${base}-${song.id}`;
-  return base;
-}
-
-async function loadCatalog() {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    '';
-  if (!url || !key) return [];
-
-  const endpoint = `${url.replace(/\/$/, '')}/rest/v1/user_songs?select=song_id,title,updated_at&order=updated_at.desc&limit=5000`;
-  const res = await fetch(endpoint, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
-  });
-  if (!res.ok) {
-    console.warn('[api/sitemap] supabase error', res.status, await res.text());
-    return [];
-  }
-  const data = await res.json();
-  const byId = new Map();
-  for (const row of data || []) {
-    if (!row?.song_id || byId.has(row.song_id)) continue;
-    byId.set(row.song_id, { id: row.song_id, title: row.title || 'Canción' });
-  }
-  return [...byId.values()];
-}
-
-function escapeXml(s) {
+function escapeXml(s: string) {
   return String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -67,14 +20,15 @@ function escapeXml(s) {
 }
 
 export default async function handler() {
-  const catalog = await loadCatalog();
+  const catalog = await loadSeoCatalog({ withChords: false });
+  const songs = catalog.songs;
+
   const staticPaths = [
     { loc: `${SITE_URL}/`, changefreq: 'weekly', priority: '1.0' },
     { loc: `${SITE_URL}/comunidad`, changefreq: 'weekly', priority: '0.8' },
-    { loc: `${SITE_URL}/favoritos`, changefreq: 'monthly', priority: '0.4' },
   ];
-  const songPaths = catalog.map((song) => ({
-    loc: `${SITE_URL}/cancion/${buildSongSlug(song, catalog)}`,
+  const songPaths = songs.map((song) => ({
+    loc: `${SITE_URL}/cancion/${buildSongSlug(song, songs)}`,
     changefreq: 'weekly',
     priority: '0.9',
   }));
@@ -99,6 +53,9 @@ ${urls
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'X-Seo-Song-Count': String(songs.length),
+      'X-Seo-Source': catalog.source,
+      ...(catalog.hasServiceRole ? {} : { 'X-Seo-Hint': 'set SUPABASE_SERVICE_ROLE_KEY or apply seo_song_catalog RPC' }),
     },
   });
 }
