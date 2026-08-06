@@ -1904,6 +1904,7 @@ export default function SongViewPage() {
 
   const worshipDockVisible =
     !!song && isMobileViewport && !isMobileStageActive && !isEditing;
+  const mobileTeleprompter = worshipDockVisible && controlsHidden;
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -2202,7 +2203,7 @@ export default function SongViewPage() {
       onPointerDown={isMobileStageActive ? bumpControls : undefined}
     >
       {/* Banner liveNote del Director */}
-      {viewMode === 'continuous' && (
+      {viewMode === 'continuous' && !mobileTeleprompter && (
         <button
           type="button"
           onClick={handleExitContinuous}
@@ -2212,8 +2213,9 @@ export default function SongViewPage() {
         </button>
       )}
 
-      {(sessionConnection ||
-        (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle')) && (
+      {!mobileTeleprompter &&
+        (sessionConnection ||
+          (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle')) && (
         <div
           className={`sticky top-2 z-40 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-semibold uppercase tracking-wider ${
             (sessionConnection?.role ?? simpleLive?.role) === 'director'
@@ -2247,7 +2249,7 @@ export default function SongViewPage() {
         </div>
       )}
 
-      {liveNote && (
+      {liveNote && !mobileTeleprompter && (
         <div className="sticky top-2 z-40 mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-500/40 backdrop-blur animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2 text-amber-300">
             <span className="text-[10px] font-black uppercase tracking-widest opacity-70">📢 Director</span>
@@ -2262,6 +2264,7 @@ export default function SongViewPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* LEFT COLUMN — Song content */}
         <div className="flex-1">
+          {!mobileTeleprompter && (
           <div className="flex flex-wrap items-center gap-2 mb-4">
           {isMobileViewport && (
             <MobileStageToggle
@@ -2295,9 +2298,10 @@ export default function SongViewPage() {
             )}
           </div>
           </div>
+          )}
 
           {/* Navegación de setlist — ARRIBA */}
-          {incomingListSongIds && (
+          {incomingListSongIds && !mobileTeleprompter && (
             <SetlistNav
               currentSongId={song.id}
               listSongIds={incomingListSongIds}
@@ -2307,12 +2311,15 @@ export default function SongViewPage() {
             />
           )}
 
-              <div className="mb-6">
+              <div className={mobileTeleprompter ? 'mb-3' : 'mb-6'}>
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold font-display text-foreground">{song.title}</h1>
-                <p className="text-muted-foreground">{song.artist}</p>
+                <h1 className={`font-bold font-display text-foreground ${mobileTeleprompter ? 'text-lg' : 'text-2xl'}`}>{song.title}</h1>
+                {!mobileTeleprompter && (
+                  <p className="text-muted-foreground">{song.artist}</p>
+                )}
               </div>
+              {!mobileTeleprompter && (
               <div className="flex gap-2">
                 {isAdmin && isEditing ? (
                   <>
@@ -2328,6 +2335,7 @@ export default function SongViewPage() {
                 <button onClick={handleShare} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground"><Share2 className="w-5 h-5" /></button>
                 <button onClick={handlePdf} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground" title="Exportar PDF"><Printer className="w-5 h-5" /></button>
               </div>
+              )}
             </div>
           </div>
 
@@ -2340,7 +2348,7 @@ export default function SongViewPage() {
             </div>
           ) : (
             <>
-              {!isTeleprompter && (
+              {!isTeleprompter && !mobileTeleprompter && (
               <div className="mobile-stage-hide flex items-center gap-2 mb-4 flex-wrap">
                 {/* Tamaño de fuente — vista normal */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border" title="Tamaño de letra">
@@ -2358,7 +2366,7 @@ export default function SongViewPage() {
                 </div>
               </div>
               )}
-              {sessionConnection?.role === 'director' && song && !isLyricsOnlyPreference && (
+              {sessionConnection?.role === 'director' && song && !isLyricsOnlyPreference && !mobileTeleprompter && (
                 <SectionQuickNav
                   chords={song.chords}
                   activeAnchorId={activeSectionAnchor}
@@ -2393,7 +2401,7 @@ export default function SongViewPage() {
               </div>
 
               {/* Navegación de setlist — JUSTO DEBAJO de letra/acordes para acceso rápido del director */}
-              {incomingListSongIds && (
+              {incomingListSongIds && !mobileTeleprompter && (
                 <div className="mt-4">
                   <SetlistNav
                     currentSongId={song.id}
@@ -2408,7 +2416,7 @@ export default function SongViewPage() {
           )}
 
           {/* Bottom toolbar */}
-          {!isEditing && (
+          {!isEditing && !mobileTeleprompter && (
             <div className="mobile-stage-hide flex flex-wrap items-center gap-3 mt-4">
               <RehearsalAutoScrollToolbar
                 autoScrolling={autoScrolling}
@@ -2453,7 +2461,7 @@ export default function SongViewPage() {
         </div>
 
         {/* RIGHT COLUMN — Transpose panel (oculto en teleprompter / solo letra local) */}
-        {!isTeleprompter && !isLyricsOnlyPreference && (
+        {!isTeleprompter && !isLyricsOnlyPreference && !mobileTeleprompter && (
         <div className="mobile-stage-hide lg:w-80 shrink-0">
           <div className="glass-card p-5 sticky top-20 space-y-4">
             <TransposePanel

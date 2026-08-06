@@ -5,6 +5,7 @@ import { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobi
 describe('useMobileControlsChrome', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    delete document.documentElement.dataset.mobileTeleprompter;
   });
 
   it('persists hide preference in sessionStorage', () => {
@@ -18,6 +19,7 @@ describe('useMobileControlsChrome', () => {
 
     expect(result.current.controlsHidden).toBe(true);
     expect(sessionStorage.getItem('worship-mobile-controls-hidden')).toBe('1');
+    expect(document.documentElement.dataset.mobileTeleprompter).toBe('1');
 
     act(() => {
       result.current.showControls();
@@ -25,5 +27,6 @@ describe('useMobileControlsChrome', () => {
 
     expect(result.current.controlsHidden).toBe(false);
     expect(sessionStorage.getItem('worship-mobile-controls-hidden')).toBeNull();
+    expect(document.documentElement.dataset.mobileTeleprompter).toBeUndefined();
   });
 });

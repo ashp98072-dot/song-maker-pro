@@ -136,14 +136,11 @@
   }
 }
 
-/* Móvil: ocultar controles = teleprompter limpio (sin panel inferior) */
-@media (max-width: 768px) {
-  .continuous-setlist-root.has-live-bar {
-    --continuous-session-bar: 4.75rem;
-  }
-
+/* Móvil ≤1023: ocultar controles = teleprompter limpio (letra + FAB) */
+@media (max-width: 1023px) {
   .continuous-setlist-root.is-teleprompter-hidden .continuous-setlist-scroll {
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
   }
 
   .continuous-setlist-root.is-teleprompter-hidden.has-dock {
@@ -154,7 +151,17 @@
     --continuous-session-bar: 0px;
   }
 
-  .continuous-setlist-root.is-teleprompter-hidden .continuous-session-panel.is-live-bar {
-    display: none;
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-session-panel.is-live-bar,
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-exit-btn,
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-toolbar,
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-teleprompter-chrome,
+  .continuous-setlist-root.is-teleprompter-hidden .section-quick-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .continuous-setlist-root.has-live-bar {
+    --continuous-session-bar: 4.75rem;
   }
 }

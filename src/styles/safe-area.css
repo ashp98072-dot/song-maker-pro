@@ -87,4 +87,18 @@
   .continuous-setlist-root.has-dock:has([data-continuous-dock-minimal]) .continuous-setlist-scroll {
     --continuous-dock-height: 4.25rem;
   }
+
+  /* Mobile teleprompter: lyrics + minimal FAB only (no navbar / resume banner) */
+  html[data-mobile-teleprompter] .app-navbar-safe,
+  html[data-mobile-teleprompter] [data-simple-live-resume-banner] {
+    display: none !important;
+  }
+
+  html[data-mobile-teleprompter] .continuous-setlist-scroll {
+    height: 100dvh;
+  }
+
+  html[data-mobile-teleprompter] .continuous-setlist-root.is-fullscreen .continuous-setlist-scroll {
+    height: 100dvh;
+  }
 }

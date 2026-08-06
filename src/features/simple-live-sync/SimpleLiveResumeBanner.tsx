@@ -27,7 +27,10 @@ export function SimpleLiveResumeBanner() {
   };
 
   return (
-    <div className="sticky top-0 z-40 border-b border-emerald-500/30 bg-emerald-950/90 px-4 py-2.5 text-emerald-50 backdrop-blur">
+    <div
+      data-simple-live-resume-banner
+      className="sticky top-0 z-40 border-b border-emerald-500/30 bg-emerald-950/90 px-4 py-2.5 text-emerald-50 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-sm font-medium">
           <Radio className="h-4 w-4 shrink-0 text-emerald-300" />

@@ -353,6 +353,9 @@ export default function ContinuousSetlistPage() {
   }, [hideControlsBase, isMobile]);
   const mobileTeleprompter = isMobile && controlsHidden;
   const dockUiVisible = showDock && !mobileTeleprompter;
+  const scrollerSettings = mobileTeleprompter
+    ? { ...settings, stickyTitles: false }
+    : settings;
 
   useWakeLock(isFullscreen || settings.stageMode);
 
@@ -2822,20 +2825,21 @@ export default function ContinuousSetlistPage() {
         onClick={handleExitContinuous}
         className="continuous-exit-btn"
         aria-label="Salir de continuo"
+        hidden={mobileTeleprompter}
       >
         Salir de continuo
       </button>
 
-      {isFollower && !followDirector && (
-        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5 hidden sm:block">
+      {isFollower && !followDirector && !mobileTeleprompter && (
+        <div className="continuous-teleprompter-chrome sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5 hidden sm:block">
           <p className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-200">
             Siguiendo desactivado — sigues conectado; navegación y scroll no se sincronizan hasta que lo reactives.
           </p>
         </div>
       )}
 
-      {isFollower && !FEATURES.SIMPLE_LIVE_SYNC && (
-        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5">
+      {isFollower && !FEATURES.SIMPLE_LIVE_SYNC && !mobileTeleprompter && (
+        <div className="continuous-teleprompter-chrome sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5">
           <label className="flex items-center justify-between gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs">
             <span className="font-medium text-blue-200">
               {followDirector ? 'Seguir al director' : 'Dejar de seguir al director'}
@@ -2850,49 +2854,53 @@ export default function ContinuousSetlistPage() {
         </div>
       )}
 
-      <ContinuousSetlistToolbar
-        listId={listId}
-        listName={list.name}
-        onBack={handleExitContinuous}
-        syncMode
-        hideChrome={settings.hideChrome}
-        stageMode={settings.stageMode}
-        ultraContrast={settings.ultraContrast}
-        largeSpacing={settings.largeSpacing}
-        isFullscreen={isFullscreen}
-        showSession={showSession}
-        onToggleStage={() => toggle('stageMode')}
-        onToggleUltraContrast={() => toggle('ultraContrast')}
-        onToggleLargeSpacing={() => toggle('largeSpacing')}
-        onToggleHideChrome={() => toggle('hideChrome')}
-        onToggleFullscreen={() => setIsFullscreen((f) => !f)}
-        onToggleSession={() => setShowSession((s) => !s)}
-        onFontSmaller={() => patch({ fontSize: Math.max(14, settings.fontSize - 1) })}
-        onFontLarger={() => patch({ fontSize: Math.min(28, settings.fontSize + 1) })}
-      />
-
-      <div
-        className={
-          isFullscreen
-            ? 'fixed top-12 left-3 z-[110]'
-            : 'sticky top-10 z-20 mx-auto max-w-4xl px-4 py-1.5'
-        }
-      >
-        <SongViewPreferenceToggle
-          preference={songViewPreference}
-          onChange={setSongViewPreference}
+      {!mobileTeleprompter && (
+        <ContinuousSetlistToolbar
+          listId={listId}
+          listName={list.name}
+          onBack={handleExitContinuous}
+          syncMode
+          hideChrome={settings.hideChrome}
+          stageMode={settings.stageMode}
+          ultraContrast={settings.ultraContrast}
+          largeSpacing={settings.largeSpacing}
+          isFullscreen={isFullscreen}
+          showSession={showSession}
+          onToggleStage={() => toggle('stageMode')}
+          onToggleUltraContrast={() => toggle('ultraContrast')}
+          onToggleLargeSpacing={() => toggle('largeSpacing')}
+          onToggleHideChrome={() => toggle('hideChrome')}
+          onToggleFullscreen={() => setIsFullscreen((f) => !f)}
+          onToggleSession={() => setShowSession((s) => !s)}
+          onFontSmaller={() => patch({ fontSize: Math.max(14, settings.fontSize - 1) })}
+          onFontLarger={() => patch({ fontSize: Math.min(28, settings.fontSize + 1) })}
         />
-      </div>
+      )}
 
-      {liveNote && (
-        <div className="sticky top-12 z-20 mx-auto max-w-4xl px-4 py-2">
+      {!mobileTeleprompter && (
+        <div
+          className={
+            isFullscreen
+              ? 'continuous-teleprompter-chrome fixed top-12 left-3 z-[110]'
+              : 'continuous-teleprompter-chrome sticky top-10 z-20 mx-auto max-w-4xl px-4 py-1.5'
+          }
+        >
+          <SongViewPreferenceToggle
+            preference={songViewPreference}
+            onChange={setSongViewPreference}
+          />
+        </div>
+      )}
+
+      {liveNote && !mobileTeleprompter && (
+        <div className="continuous-teleprompter-chrome sticky top-12 z-20 mx-auto max-w-4xl px-4 py-2">
           <p className="text-sm text-amber-300 bg-amber-500/15 border border-amber-500/40 rounded-lg px-3 py-2">
             {liveNote}
           </p>
         </div>
       )}
 
-      {isDirector && currentSong && !isLyricsOnlyPreference && (
+      {isDirector && currentSong && !isLyricsOnlyPreference && !mobileTeleprompter && (
         <SectionQuickNav
           chords={currentSong.chords}
           activeAnchorId={directorSectionAnchor || visibility.currentSection}
@@ -2905,7 +2913,7 @@ export default function ContinuousSetlistPage() {
           entries={entries}
           windowStart={windowStart}
           windowEnd={windowEnd}
-          settings={settings}
+          settings={scrollerSettings}
           activeSongId={isDirector ? visibility.currentSongId : ''}
           activeSectionAnchor={directorSectionAnchor || visibility.currentSection}
           transposeRevision={transposeRevision}
@@ -3013,7 +3021,7 @@ export default function ContinuousSetlistPage() {
       </div>
 
       <MobileControlsRestoreFab
-        visible={isMobile && dockUiVisible && controlsHidden}
+        visible={isMobile && showDock && controlsHidden}
         onShow={showControls}
       />
 
