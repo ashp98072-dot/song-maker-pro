@@ -18,13 +18,7 @@ export function buildDbRpcFollowerNavTarget(
   resolveSongId?: (recovery: SessionRecoveryState) => string | null
 ): DbRpcNavTarget | null {
   const enriched = enrichRecoveryForNavigation(recovery);
-  const songId =
-    resolveSongId?.(enriched) ??
-    enriched.songId ??
-    (enriched.listSongIds.length > 0
-      ? enriched.listSongIds[Math.max(0, enriched.currentIndex ?? 0)] ??
-        enriched.listSongIds[0]
-      : null);
+  const songId = resolveForceNavSongId(enriched, resolveSongId);
 
   const resolved = resolveSharedViewMode(
     enriched.viewMode,
@@ -107,14 +101,17 @@ function resolveForceNavSongId(
   enriched: SessionRecoveryState,
   resolveSongId?: (recovery: SessionRecoveryState) => string | null
 ): string | null {
-  return (
+  const raw =
     resolveSongId?.(enriched) ??
     enriched.songId ??
     (enriched.listSongIds.length > 0
       ? enriched.listSongIds[Math.max(0, enriched.currentIndex ?? 0)] ??
         enriched.listSongIds[0]
-      : null)
-  );
+      : null);
+  if (!raw) return null;
+  // Reject local list Date.now() ids used as song paths.
+  if (/^\d{12,14}$/.test(raw.trim())) return null;
+  return raw;
 }
 
 export function resolveEmergencyFollowerPath(

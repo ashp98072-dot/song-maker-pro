@@ -1915,6 +1915,40 @@ export default function SongViewPage() {
       return <FollowerDirectorSyncLoader />;
     }
 
+    // Follower landed on a missing/private song — do not spin forever.
+    if (liveIsFollower) {
+      return (
+        <div className="container px-4 py-12 text-center space-y-4">
+          <p className="text-muted-foreground">
+            No se pudo cargar la canción del director (puede ser local o aún no sincronizada).
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => spectator.requestFollowerCurrentState()}
+              className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted"
+            >
+              Reintentar sincronización
+            </button>
+            <button
+              type="button"
+              onClick={() => spectator.cancelFollowerConnection()}
+              className="rounded-lg bg-destructive/90 px-4 py-2 text-sm text-destructive-foreground"
+            >
+              Cancelar conexión
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="text-gold hover:underline text-sm"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="container px-4 py-12 text-center">
         <p className="text-muted-foreground">Canción no encontrada</p>

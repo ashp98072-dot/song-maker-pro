@@ -144,3 +144,29 @@ $$;
 
 REVOKE ALL ON FUNCTION public.activate_live_session(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.activate_live_session(text) TO authenticated;
+
+-- Allow followers to read the latest session row even if is_active failed to flip
+-- (director create can leave inactive rows after UUID / RPC errors).
+DROP FUNCTION IF EXISTS public.get_live_session_by_code(text);
+
+CREATE OR REPLACE FUNCTION public.get_live_session_by_code(p_code text)
+RETURNS SETOF public.live_sessions
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT *
+  FROM public.live_sessions
+  WHERE upper(trim(code)) = upper(trim(p_code))
+  ORDER BY
+    is_active DESC,
+    updated_at DESC
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_live_session_by_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_live_session_by_code(text) TO anon, authenticated;
+
+COMMENT ON FUNCTION public.get_live_session_by_code(text) IS
+  'Returns newest live_sessions row for a join code (prefers is_active=true).';

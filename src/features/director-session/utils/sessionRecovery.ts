@@ -61,10 +61,14 @@ function normalizeGenderShift(raw: string | null | undefined): SharedSessionGend
 
 export function mapLiveSessionRow(row: LiveSessionRow): SessionRecoveryState {
   const listSongIds = parseListSongIds(row.list_song_ids);
+  const rawSongId = row.song_id?.trim() || null;
+  // Epoch-millis ids are local list ids — never treat them as song_id.
+  const songId =
+    rawSongId && !/^\d{12,14}$/.test(rawSongId) ? rawSongId : null;
   const base: SessionRecoveryState = {
     code: row.code,
     directorId: row.director_id,
-    songId: row.song_id,
+    songId,
     listSongIds,
     listId: row.list_id,
     semitones: row.semitones ?? 0,
@@ -247,13 +251,14 @@ export async function getLiveSessionByCode(code: string): Promise<LiveSessionRow
   }
 
   if (row && row.is_active === false) {
-    console.error('[RPC_CALL] is_active is FALSE even after activation attempt', {
+    console.warn('[RPC_CALL] live session row is inactive — still returning for follower nav', {
       code: normalized,
       is_active: false,
-      message: 'getLiveSessionByCode row has is_active=false',
-      row,
+      song_id: row.song_id,
+      list_id: row.list_id,
     });
-    return null;
+    // Do not return null: inactive rows still unblock the awaiting overlay when
+    // director create failed to flip is_active (e.g. prior UUID list_id errors).
   }
 
   if (!row) {

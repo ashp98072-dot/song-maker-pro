@@ -1513,14 +1513,27 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   );
 
   const resolveFollowerSongIdForNav = useCallback((recovery: SessionRecoveryState): string | null => {
-    if (recovery.songId) return recovery.songId;
+    const asSong = (id: string | null | undefined) => {
+      if (!id) return null;
+      const trimmed = id.trim();
+      // Local list ids used Date.now() — never navigate to /cancion/{timestamp}.
+      if (/^\d{12,14}$/.test(trimmed)) return null;
+      return trimmed;
+    };
+
+    const fromRecovery = asSong(recovery.songId);
+    if (fromRecovery) return fromRecovery;
+
     const remote = lastRemoteStateRef.current;
-    if (remote?.currentSongId) return remote.currentSongId;
-    const v3SongId = getFollowV3State().currentSongId;
-    if (v3SongId) return v3SongId;
+    const fromRemote = asSong(remote?.currentSongId);
+    if (fromRemote) return fromRemote;
+
+    const fromV3 = asSong(getFollowV3State().currentSongId);
+    if (fromV3) return fromV3;
+
     if (recovery.listSongIds.length > 0) {
       const idx = Math.max(0, recovery.currentIndex ?? 0);
-      return recovery.listSongIds[idx] ?? recovery.listSongIds[0] ?? null;
+      return asSong(recovery.listSongIds[idx] ?? recovery.listSongIds[0]);
     }
     return null;
   }, []);
@@ -1755,6 +1768,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
 
       const navKey = buildJoinNavigationKey(normalized, recovery, target);
       if (!forceNav && navKey && lastJoinNavigationKeyRef.current === navKey) {
+        setFollowerAwaitingDirector(false);
+        awaitingFirstBroadcastRef.current = false;
         logJoinNavFinal('skipped-nav-key-dedupe', { navKey });
         return true;
       }

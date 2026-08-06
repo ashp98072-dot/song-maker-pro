@@ -33,7 +33,8 @@ export function resolveSongIdFromRouteParam(
   if (!param) return null;
   const trimmed = param.trim();
   if (isNumericSongId(trimmed)) {
-    return songs.find((s) => s.id === trimmed)?.id ?? trimmed;
+    // Only resolve when the id exists in catalog — avoid treating list Date.now() ids as songs.
+    return songs.find((s) => s.id === trimmed)?.id ?? null;
   }
   const match = songs.find((s) => buildSongSlug(s, songs) === trimmed);
   return match?.id ?? null;
