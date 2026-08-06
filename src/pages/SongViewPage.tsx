@@ -138,6 +138,7 @@ import { ChunkLoadErrorBoundary } from '@/components/ChunkLoadErrorBoundary';
 import { WorshipFloatingDock } from '@/features/mobile-worship';
 import { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobileControlsChrome';
 import { MobileControlsRestoreFab } from '@/features/mobile-worship/components/MobileControlsRestoreFab';
+import { TeleprompterLivePill } from '@/features/mobile-worship/components/TeleprompterLivePill';
 import { getRenderDiagStage } from '@/renderDiag';
 
 const YouTubeQuickPicker = lazy(() => {
@@ -2568,6 +2569,20 @@ export default function SongViewPage() {
         )}
       </div>
     </div>
+    <TeleprompterLivePill
+      visible={mobileTeleprompter}
+      role={
+        (FEATURES.SIMPLE_LIVE_SYNC ? simpleLive?.role : sessionConnection?.role) ?? 'idle'
+      }
+      connected={
+        FEATURES.SIMPLE_LIVE_SYNC
+          ? simpleLive?.status === 'connected'
+          : !!sessionConnection
+      }
+      connecting={FEATURES.SIMPLE_LIVE_SYNC && simpleLive?.status === 'connecting'}
+      followDirector={followDirector}
+      onTap={showControls}
+    />
     <MobileControlsRestoreFab
       visible={worshipDockVisible && controlsHidden}
       onShow={showControls}

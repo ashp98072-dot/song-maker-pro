@@ -98,6 +98,7 @@ import { useIsMobileViewport } from '@/features/mobile-stage/hooks/useIsMobileVi
 import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
 import { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobileControlsChrome';
 import { MobileControlsRestoreFab } from '@/features/mobile-worship/components/MobileControlsRestoreFab';
+import { TeleprompterLivePill } from '@/features/mobile-worship/components/TeleprompterLivePill';
 import {
   loadContinuousPersisted,
   saveContinuousPersisted,
@@ -3019,6 +3020,21 @@ export default function ContinuousSetlistPage() {
         />
         )}
       </div>
+
+      <TeleprompterLivePill
+        visible={mobileTeleprompter}
+        role={
+          (FEATURES.SIMPLE_LIVE_SYNC ? simpleLive?.role : sessionConnection?.role) ?? 'idle'
+        }
+        connected={
+          FEATURES.SIMPLE_LIVE_SYNC
+            ? simpleLive?.status === 'connected'
+            : !!sessionConnection
+        }
+        connecting={FEATURES.SIMPLE_LIVE_SYNC && simpleLive?.status === 'connecting'}
+        followDirector={followDirector}
+        onTap={showControls}
+      />
 
       <MobileControlsRestoreFab
         visible={isMobile && showDock && controlsHidden}

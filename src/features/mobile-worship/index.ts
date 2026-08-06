@@ -5,6 +5,7 @@ export { DockButton } from '@/features/mobile-worship/components/DockButton';
 export { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
 export { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobileControlsChrome';
 export { MobileControlsRestoreFab } from '@/features/mobile-worship/components/MobileControlsRestoreFab';
+export { TeleprompterLivePill } from '@/features/mobile-worship/components/TeleprompterLivePill';
 export { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
 export { useLongPress } from '@/features/mobile-worship/hooks/useLongPress';
 export { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
