@@ -5,7 +5,22 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|pwa/|offline\\.html|favicon\\.png|robots\\.txt|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js).*)",
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/cancion/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex(bot|images)?|facebookexternalhit|facebot|twitterbot|linkedinbot|discordbot|whatsapp|telegrambot|applebot|semrushbot|ahrefsbot|dotbot|petalbot|bytespider).*"
+        }
+      ],
+      "destination": "/api/song-prerender?slug=:slug"
+    },
+    {
+      "source": "/((?!api/|assets/|pwa/|offline\\.html|favicon\\.png|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js).*)",
       "destination": "/index.html"
     }
   ],

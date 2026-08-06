@@ -65,6 +65,40 @@ if (!catalog.length && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_
   }
 }
 
+// Fallback: Vite public anon key (works if RLS allows public SELECT on user_songs)
+if (
+  !catalog.length &&
+  (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) &&
+  (process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY)
+) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    );
+    const { data, error } = await supabase
+      .from('user_songs')
+      .select('song_id, title')
+      .order('updated_at', { ascending: false })
+      .limit(5000);
+    if (error) {
+      console.warn('[sitemap] anon fetch failed:', error.message);
+    } else if (data?.length) {
+      const byId = new Map();
+      for (const row of data) {
+        if (!byId.has(row.song_id)) {
+          byId.set(row.song_id, { id: row.song_id, title: row.title || 'Canción' });
+        }
+      }
+      catalog = [...byId.values()];
+      console.log(`[sitemap] loaded ${catalog.length} songs via anon key`);
+    }
+  } catch (err) {
+    console.warn('[sitemap] anon client unavailable:', err?.message ?? err);
+  }
+}
+
 const staticPaths = [
   { loc: `${siteUrl}/`, changefreq: 'weekly', priority: '1.0' },
   { loc: `${siteUrl}/comunidad`, changefreq: 'weekly', priority: '0.7' },

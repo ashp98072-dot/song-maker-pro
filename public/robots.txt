@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# Song pages + app
+Allow: /cancion/
+Allow: /comunidad
+
 Sitemap: https://worshiptranspose.com/sitemap.xml
