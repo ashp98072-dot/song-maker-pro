@@ -2,6 +2,7 @@ import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'reac
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
+import { SimpleLiveSyncPanel, type SimpleLiveState } from '@/features/simple-live-sync';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';
@@ -2136,6 +2137,24 @@ export default function ContinuousSetlistPage() {
     ]
   );
 
+  const handleSimpleRemoteState = useCallback(
+    (state: SimpleLiveState) => {
+      handleSharedSessionUpdate({
+        sessionId: state.sessionCode,
+        currentSongId: state.songId,
+        currentIndex: state.currentIndex,
+        listId: state.listId,
+        listSongIds: state.listSongIds,
+        customSemitones: state.semitones,
+        genderShift: state.genderShift,
+        viewMode: state.viewMode,
+        sharedSectionAnchor: state.sectionAnchor ?? undefined,
+        updatedAt: state.updatedAt,
+      });
+    },
+    [handleSharedSessionUpdate]
+  );
+
   useEffect(() => {
     const onForceIndex = (ev: Event) => {
       const detail = (ev as CustomEvent<ForceContinuousIndexDetail>).detail;
@@ -2862,7 +2881,20 @@ export default function ContinuousSetlistPage() {
         />
       </div>
 
-      <div className={showSession ? 'continuous-session-panel' : 'sr-only h-0 overflow-hidden'} aria-hidden={!showSession}>
+      <div className={showSession || FEATURES.SIMPLE_LIVE_SYNC ? 'continuous-session-panel' : 'sr-only h-0 overflow-hidden'} aria-hidden={!showSession && !FEATURES.SIMPLE_LIVE_SYNC}>
+        {FEATURES.SIMPLE_LIVE_SYNC ? (
+          <SimpleLiveSyncPanel
+            songId={currentSong?.id ?? visibility.currentSongId ?? ''}
+            semitones={currentSong ? effectiveSemitones : 0}
+            viewMode="continuous"
+            genderShift={genderShift || 'original'}
+            currentIndex={visibility.currentSongIndex}
+            listId={listId}
+            listSongIds={resolvedSongIds.length > 0 ? resolvedSongIds : songIds}
+            sharedSectionAnchor={directorSectionAnchor}
+            onRemoteState={handleSimpleRemoteState}
+          />
+        ) : (
         <DirectorSession
           songId={currentSong?.id ?? visibility.currentSongId ?? ''}
           semitones={currentSong ? effectiveSemitones : 0}
@@ -2925,6 +2957,7 @@ export default function ContinuousSetlistPage() {
           onDirectorSessionEstablished={handleDirectorSessionEstablished}
           onRequestSharedSessionPublish={handleRequestSharedSessionPublish}
         />
+        )}
       </div>
 
       <MobileControlsRestoreFab

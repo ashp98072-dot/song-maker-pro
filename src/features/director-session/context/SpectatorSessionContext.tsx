@@ -1475,6 +1475,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   }, [liveSessionCode, liveFollowerCode, setReconnectingWithStatus, requestRealtimeReconnect]);
 
   const refreshDetection = useCallback(async () => {
+    if (FEATURES.SIMPLE_LIVE_SYNC) return;
+
     const statusNow = liveSessionStatusRef.current;
     if (isJoinBlockedByStatus(statusNow)) {
       sessionUiLog({
@@ -1502,6 +1504,15 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     }
 
     const director = await fetchActiveDirectorSession();
+    // Re-check after await — beginDirectorSession may have moved idle→joining.
+    if (isJoinBlockedByStatus(liveSessionStatusRef.current)) {
+      sessionUiLog({
+        status: liveSessionStatusRef.current,
+        bannerVisible: false,
+        reason: 'refreshDetection aborted after await — join in progress',
+      });
+      return;
+    }
     if (director) {
       setDetected({
         code: director.code,
@@ -1514,6 +1525,9 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     }
 
     const follower = await detectAvailableSpectatorSession();
+    if (isJoinBlockedByStatus(liveSessionStatusRef.current)) {
+      return;
+    }
     if (follower) {
       setDetected({
         code: follower.code,
@@ -1537,6 +1551,13 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     void (async () => {
+      if (FEATURES.SIMPLE_LIVE_SYNC) {
+        clearPendingJoin();
+        clearAllLiveSessionLocalState();
+        console.log('[GHOST_SESSIONS] skipped — SIMPLE_LIVE_SYNC');
+        return;
+      }
+
       const auth = await resolveAuthenticatedDirector();
       if (!auth.ok) return;
 
@@ -2635,6 +2656,14 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   const restorePersistedSession = useCallback(async () => {
     try {
       isHydratingRef.current = true;
+
+      // Clean-room sync: never auto-restore legacy sessions (avoids reconnect lock loops).
+      if (FEATURES.SIMPLE_LIVE_SYNC) {
+        clearPendingJoin();
+        clearAllLiveSessionLocalState();
+        sessionRestoreLog('skipped — SIMPLE_LIVE_SYNC (no auto-restore)');
+        return;
+      }
 
       // Break join loops: emergency home left a flag + stale persistence.
       let syncErrorMsg: string | null = null;
@@ -4786,7 +4815,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     <SpectatorSessionContext.Provider value={value}>
       <LiveSessionChannelContext.Provider value={channelContextValue}>
         <SessionRenderErrorBoundary label="live-session">
-          <LiveSessionChannelHost />
+          {!FEATURES.SIMPLE_LIVE_SYNC && <LiveSessionChannelHost />}
           {children}
         </SessionRenderErrorBoundary>
       </LiveSessionChannelContext.Provider>

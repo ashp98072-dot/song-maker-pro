@@ -30,6 +30,7 @@ import SetlistNav from '@/components/SetlistNav';
 import type { DirectorSessionConnection, SharedSessionState } from '@/features/director-session/types';
 import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
 import { FollowerDirectorSyncLoader } from '@/features/director-session/components/FollowerDirectorSyncLoader';
+import { SimpleLiveSyncPanel, type SimpleLiveState } from '@/features/simple-live-sync';
 import { shouldApplyRemoteSectionAnchor } from '@/features/director-session/utils/shouldApplyRemoteSectionAnchor';
 import { useSessionOriginMismatch } from '@/features/director-session/hooks/useSessionOriginMismatch';
 import { useReportSessionPageContext } from '@/features/director-session/hooks/useReportSessionPageContext';
@@ -1676,6 +1677,23 @@ export default function SongViewPage() {
     logSongviewBlock,
   ]);
 
+  const handleSimpleRemoteState = useCallback(
+    (state: SimpleLiveState) => {
+      handleSharedSessionUpdate({
+        sessionId: state.sessionCode,
+        currentSongId: state.songId,
+        currentIndex: state.currentIndex,
+        listId: state.listId,
+        listSongIds: state.listSongIds,
+        customSemitones: state.semitones,
+        genderShift: state.genderShift,
+        viewMode: state.viewMode,
+        sharedSectionAnchor: state.sectionAnchor ?? undefined,
+        updatedAt: state.updatedAt,
+      });
+    },
+    [handleSharedSessionUpdate]
+  );
 
   useEffect(() => {
     console.log('[SongViewPage] mounted');
@@ -2462,6 +2480,19 @@ export default function SongViewPage() {
               )}
             </div>
             
+            {FEATURES.SIMPLE_LIVE_SYNC ? (
+              <SimpleLiveSyncPanel
+                songId={song.id}
+                semitones={effectiveSemitones}
+                viewMode={viewMode}
+                genderShift={genderShift}
+                currentIndex={listSongIndex >= 0 ? listSongIndex : 0}
+                listId={incomingListId}
+                listSongIds={incomingListSongIds}
+                sharedSectionAnchor={activeSectionAnchor}
+                onRemoteState={handleSimpleRemoteState}
+              />
+            ) : (
             <DirectorSession
               songId={song.id}
               semitones={effectiveSemitones}
@@ -2497,6 +2528,7 @@ export default function SongViewPage() {
               onFollowDirectorChange={handleFollowDirectorChange}
               showFollowDirectorToggle={sessionConnection?.role === 'follower'}
             />
+            )}
           </div>
         </div>
         )}

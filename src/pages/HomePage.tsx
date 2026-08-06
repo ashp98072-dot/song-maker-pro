@@ -7,8 +7,10 @@ import SongCard from '@/components/SongCard';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { getRenderDiagStage } from '@/renderDiag';
+import { FEATURES } from '@/config/features';
 import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
 import { sessionJoinBlockedMessage } from '@/features/director-session/utils/checkSessionActive';
+import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 
 export default function HomePage() {
   useEffect(() => {
@@ -18,10 +20,12 @@ export default function HomePage() {
 
   const { userName, songs } = useApp();
   const navigate = useNavigate();
-  const { joinWithCode } = useSpectatorSession();
+  const spectator = useSpectatorSession();
+  const simpleLive = useSimpleLiveSyncOptional();
   const [search, setSearch] = useState('');
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search) {
@@ -43,7 +47,14 @@ export default function HomePage() {
       toast.error('Código de sesión inválido (mínimo 4 caracteres)');
       return;
     }
-    const result = await joinWithCode(trimmed);
+
+    if (FEATURES.SIMPLE_LIVE_SYNC && simpleLive) {
+      const ok = await simpleLive.joinAsFollower(trimmed);
+      if (ok) setPendingSimpleNav(true);
+      return;
+    }
+
+    const result = await spectator.joinWithCode(trimmed);
     if (result === true) return;
     if (result === 'conflict') return;
     if (result === 'busy') {
@@ -54,6 +65,15 @@ export default function HomePage() {
     if (result !== 'query_error') return;
     toast.error(sessionJoinBlockedMessage(result));
   };
+
+  // After simple-live join from home, open the director song once.
+  useEffect(() => {
+    if (!pendingSimpleNav || !simpleLive) return;
+    const songId = simpleLive.lastState?.songId;
+    if (!songId) return;
+    setPendingSimpleNav(false);
+    navigate(`/cancion/${songId}`);
+  }, [pendingSimpleNav, simpleLive?.lastState?.songId, navigate, simpleLive]);
 
   return (
     <div className="container px-4 py-6 max-w-6xl">
