@@ -18,6 +18,11 @@ import {
   browseCatalogSongs,
   browseSectionLabel,
 } from '@/features/song-discovery/browseSongs';
+import { CatalogFilterBar } from '@/features/song-discovery/CatalogFilterBar';
+import {
+  buildLocalFacets,
+  filterCommunitySongs,
+} from '@/features/community';
 
 export default function HomePage() {
   useEffect(() => {
@@ -31,31 +36,79 @@ export default function HomePage() {
   const spectator = useSpectatorSession();
   const simpleLive = useSimpleLiveSyncOptional();
   const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [keyFilter, setKeyFilter] = useState<string | null>(
+    () => searchParams.get('tono') || null
+  );
+  const [artist, setArtist] = useState<string | null>(
+    () => searchParams.get('artista') || null
+  );
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
   const autoJoinTried = useRef(false);
 
-  const filtered = useMemo(() => browseCatalogSongs(songs, search), [songs, search]);
-  const sectionLabel = useMemo(() => browseSectionLabel(songs, search), [songs, search]);
+  const facets = useMemo(() => buildLocalFacets(songs), [songs]);
+
+  const filtered = useMemo(() => {
+    const hasFacet = !!(keyFilter || artist);
+    if (search.trim() || hasFacet) {
+      return filterCommunitySongs(songs, {
+        search,
+        key: keyFilter,
+        artist,
+      }).slice(0, 120);
+    }
+    return browseCatalogSongs(songs, '');
+  }, [songs, search, keyFilter, artist]);
+
+  const sectionLabel = useMemo(() => {
+    if (keyFilter || artist) return 'Resultados filtrados';
+    return browseSectionLabel(songs, search);
+  }, [songs, search, keyFilter, artist]);
 
   useEffect(() => {
     const q = searchParams.get('q');
     if (q != null && q !== search) setSearch(q);
+    setKeyFilter(searchParams.get('tono') || null);
+    setArtist(searchParams.get('artista') || null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL only
   }, [searchParams]);
 
-  const onSearchChange = (value: string) => {
-    setSearch(value);
+  const syncUrl = (nextSearch: string, nextKey: string | null, nextArtist: string | null) => {
     const next = new URLSearchParams(searchParams);
-    if (value.trim()) next.set('q', value.trim());
+    if (nextSearch.trim()) next.set('q', nextSearch.trim());
     else next.delete('q');
-    // Keep join params out — already cleared by auto-join
+    if (nextKey) next.set('tono', nextKey);
+    else next.delete('tono');
+    if (nextArtist) next.set('artista', nextArtist);
+    else next.delete('artista');
     next.delete('join');
     next.delete('codigo');
     next.delete('code');
     setSearchParams(next, { replace: true });
   };
+
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    syncUrl(value, keyFilter, artist);
+  };
+
+  const onKeyChange = (key: string | null) => {
+    setKeyFilter(key);
+    syncUrl(search, key, artist);
+  };
+
+  const onArtistChange = (value: string | null) => {
+    setArtist(value);
+    syncUrl(search, keyFilter, value);
+  };
+
+  const clearFilters = () => {
+    setKeyFilter(null);
+    setArtist(null);
+    syncUrl(search, null, null);
+  };
+
   const handleJoinSession = async (raw?: string) => {
     const trimmed = (raw ?? joinCode).trim();
     if (trimmed.length < 4) {
@@ -76,12 +129,10 @@ export default function HomePage() {
       toast.error('Ya hay una unión en curso. Espera un momento.');
       return;
     }
-    // joinWithCode already toasts on precheck failure; avoid duplicate for known reasons.
     if (result !== 'query_error') return;
     toast.error(sessionJoinBlockedMessage(result));
   };
 
-  // Deep link: /?join=CODE
   useEffect(() => {
     const fromQuery = parseJoinCodeFromSearch(searchParams.toString());
     if (!fromQuery || autoJoinTried.current) return;
@@ -94,7 +145,6 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep link
   }, [searchParams, simpleLive]);
 
-  // After simple-live join from home, open the director song/list once.
   useEffect(() => {
     if (!pendingSimpleNav || !simpleLive) return;
     const state = simpleLive.lastState;
@@ -117,29 +167,48 @@ export default function HomePage() {
         <p className="text-muted-foreground text-sm">¿Qué canción vamos a transponer hoy?</p>
       </motion.div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1 max-w-2xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={e => onSearchChange(e.target.value)}
-            placeholder="Buscar canciones por título o artista..."
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+          <input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar por título, artista o tono..."
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+          />
         </div>
         <button
-          onClick={() => setShowJoinSession(s => !s)}
+          onClick={() => setShowJoinSession((s) => !s)}
           className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border text-muted-foreground hover:text-gold hover:border-gold transition-colors text-sm font-medium shrink-0"
         >
           <Users className="w-4 h-4" /> Unirse a Sesión
         </button>
       </div>
 
+      {songs.length > 0 && (
+        <CatalogFilterBar
+          keys={facets.keys}
+          artists={facets.artists}
+          keyFilter={keyFilter}
+          artist={artist}
+          onKeyChange={onKeyChange}
+          onArtistChange={onArtistChange}
+          onClear={clearFilters}
+        />
+      )}
+
       {showJoinSession && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="mb-6"
+        >
           <div className="glass-card p-4 max-w-md">
             <p className="text-sm text-muted-foreground mb-2">Ingresa el código del director:</p>
             <div className="flex gap-2">
               <input
                 value={joinCode}
-                onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="Ej: A1B2C3"
                 maxLength={6}
                 className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase font-mono tracking-widest"
@@ -158,16 +227,24 @@ export default function HomePage() {
 
       <h2 className="text-lg font-bold font-display text-foreground mb-4">
         {sectionLabel}
-        {!search.trim() && songs.length > 0 ? (
-          <span className="ml-2 text-sm font-normal text-muted-foreground">({songs.length})</span>
-        ) : null}
+        <span className="ml-2 text-sm font-normal text-muted-foreground">
+          ({filtered.length}
+          {!search.trim() && !keyFilter && !artist && songs.length > filtered.length
+            ? ` de ${songs.length}`
+            : ''}
+          )
+        </span>
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(song => <SongCard key={song.id} song={song} />)}
+        {filtered.map((song) => (
+          <SongCard key={song.id} song={song} />
+        ))}
       </div>
 
-      {filtered.length === 0 && <p className="text-muted-foreground text-center py-12">No se encontraron canciones.</p>}
+      {filtered.length === 0 && (
+        <p className="text-muted-foreground text-center py-12">No se encontraron canciones.</p>
+      )}
     </div>
   );
 }

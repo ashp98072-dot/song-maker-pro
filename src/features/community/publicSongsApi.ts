@@ -142,7 +142,7 @@ export function buildLocalFacets(songs: Song[]): CommunityFacets {
   return {
     genres: [...genres].sort((a, b) => a.localeCompare(b, 'es')),
     keys: [...keys].sort((a, b) => a.localeCompare(b, 'es')),
-    artists: [...artists].sort((a, b) => a.localeCompare(b, 'es')).slice(0, 80),
+    artists: [...artists].sort((a, b) => a.localeCompare(b, 'es')),
     total: songs.length,
   };
 }

@@ -22,6 +22,7 @@ import {
   type CommunityGenreId,
   type PublicListRow,
 } from '@/features/community';
+import { CatalogFilterBar } from '@/features/song-discovery/CatalogFilterBar';
 
 const COMMUNITY_RATINGS_KEY = 'worship-community-ratings';
 
@@ -52,30 +53,6 @@ export async function publishSongToLibrary(
     genre: opts?.genre ?? 'adoracion',
     isCover: opts?.isCover,
   });
-}
-
-function Chip({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-        active
-          ? 'bg-gold/15 border-gold text-gold'
-          : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
-      }`}
-    >
-      {label}
-    </button>
-  );
 }
 
 export default function CommunityLibraryPage() {
@@ -382,68 +359,19 @@ export default function CommunityLibraryPage() {
         )
       ) : (
         <>
-      <div className="space-y-3 mb-8">
-        {source === 'public' && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 font-bold">
-              Género
-            </span>
-            <Chip active={!genre} label="Todos" onClick={() => setGenre(null)} />
-            {genreChips.map((id) => (
-              <Chip
-                key={id}
-                active={genre === id}
-                label={genreLabel(id)}
-                onClick={() => setGenre(genre === id ? null : id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {facets.keys.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 font-bold">
-              Tono
-            </span>
-            <Chip active={!keyFilter} label="Todos" onClick={() => setKeyFilter(null)} />
-            {facets.keys.slice(0, 24).map((k) => (
-              <Chip
-                key={k}
-                active={keyFilter === k}
-                label={k}
-                onClick={() => setKeyFilter(keyFilter === k ? null : k)}
-              />
-            ))}
-          </div>
-        )}
-
-        {facets.artists.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 font-bold">
-              Artista
-            </span>
-            <Chip active={!artist} label="Todos" onClick={() => setArtist(null)} />
-            {facets.artists.slice(0, 20).map((a) => (
-              <Chip
-                key={a}
-                active={artist === a}
-                label={a}
-                onClick={() => setArtist(artist === a ? null : a)}
-              />
-            ))}
-          </div>
-        )}
-
-        {hasFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-xs text-gold hover:underline font-medium"
-          >
-            Limpiar filtros
-          </button>
-        )}
-      </div>
+      <CatalogFilterBar
+        keys={facets.keys}
+        artists={facets.artists}
+        keyFilter={keyFilter}
+        artist={artist}
+        onKeyChange={setKeyFilter}
+        onArtistChange={setArtist}
+        onClear={clearFilters}
+        genres={source === 'public' ? genreChips : undefined}
+        genre={source === 'public' ? genre : null}
+        onGenreChange={source === 'public' ? setGenre : undefined}
+        genreLabel={genreLabel}
+      />
 
       {previewSong && (
         <div
