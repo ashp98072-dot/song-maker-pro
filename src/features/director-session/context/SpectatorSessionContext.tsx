@@ -43,7 +43,7 @@ import {
   type PersistDirectorLiveSessionInput,
 } from '@/features/director-session/utils/persistDirectorLiveSession';
 import { getSongPathById } from '@/utils/songSlug';
-import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
+import { deactivateAllMyPreviousSessions, protectDirectorLiveSessionCode, getProtectedDirectorLiveSessionCode } from '@/features/director-session/utils/ghostSessionCleanup';
 import { resolveAuthenticatedDirector } from '@/features/director-session/utils/liveSessionAuth';
 import { dispatchSpectatorSessionLeave } from '@/features/director-session/utils/spectatorSessionEvents';
 import {
@@ -763,6 +763,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       rpcPersisted?: boolean;
     }) => {
       const normalized = normalizeSessionCode(params.code);
+      protectDirectorLiveSessionCode(normalized);
       transitionSessionStatus('joining', 'beginDirectorSession');
       sessionOriginRef.current = params.origin;
       newSessionRef.current = Boolean(params.isNew);
@@ -803,6 +804,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
 
   const failDirectorStart = useCallback((message: string, reason?: string) => {
     sessionProviderLog('session start failed', { message, reason });
+    protectDirectorLiveSessionCode(null);
     transitionSessionStatus('idle', `failDirectorStart: ${reason ?? message}`);
     newSessionRef.current = false;
     setLiveIsDirector(false);
@@ -844,9 +846,11 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
 
     if (code) {
       publishSharedSessionEnd(code);
+      protectDirectorLiveSessionCode(null);
       await deactivateLiveSessionRow(code);
       clearAllLiveSessionLocalState(code);
     } else {
+      protectDirectorLiveSessionCode(null);
       clearAllLiveSessionLocalState();
     }
     if (!opts?.silent) toast.info('Transmisión finalizada');
@@ -1452,16 +1456,20 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       const auth = await resolveAuthenticatedDirector();
       if (!auth.ok) return;
 
+      // Re-read immediately before mutate — create may have raced ahead of this effect.
       const persisted = readLiveSessionPersistence();
-      const localDirectorActive =
-        persisted?.role === 'director' &&
-        persisted.connected &&
-        Boolean(persisted.sessionCode);
+      const keepCode =
+        (persisted?.role === 'director' &&
+          persisted.connected &&
+          persisted.sessionCode) ||
+        getProtectedDirectorLiveSessionCode();
 
-      if (localDirectorActive) {
-        console.log('[GHOST_SESSIONS] skip startup cleanup — local director persistence', {
-          code: persisted?.sessionCode,
+      if (keepCode) {
+        protectDirectorLiveSessionCode(keepCode);
+        console.log('[GHOST_SESSIONS] startup cleanup keeps director code', {
+          code: keepCode,
         });
+        await deactivateAllMyPreviousSessions(keepCode);
         return;
       }
 

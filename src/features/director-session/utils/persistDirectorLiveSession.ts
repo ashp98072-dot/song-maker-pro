@@ -8,6 +8,7 @@ import { normalizeSessionCode } from '@/features/director-session/types';
 import {
   activateLiveSessionViaRpc,
   deactivateLiveSessionRow,
+  forceUpdateAndVerifyLiveSessionActive,
   verifyLiveSessionActiveState,
   type LiveSessionActiveVerify,
 } from '@/features/director-session/utils/liveSessionActive';
@@ -15,8 +16,12 @@ import {
   resolveAuthenticatedDirector,
   type AuthDirectorResult,
 } from '@/features/director-session/utils/liveSessionAuth';
-import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
+import {
+  deactivateAllMyPreviousSessions,
+  protectDirectorLiveSessionCode,
+} from '@/features/director-session/utils/ghostSessionCleanup';
 import { asUuidOrNull } from '@/utils/asUuidOrNull';
+import { writeLiveSessionPersistence } from '@/features/director-session/utils/liveSessionPersistence';
 
 export type { AuthDirectorResult };
 export { resolveAuthenticatedDirector, requireAuthenticatedDirector } from '@/features/director-session/utils/liveSessionAuth';
@@ -249,6 +254,25 @@ export function scheduleLiveSessionActiveAssertion(
 /**
  * Session creation: auth → close previous sessions → RPC upsert only → verify.
  */
+function markDirectorCreateLocally(
+  code: string,
+  sessionOrigin?: PersistDirectorLiveSessionInput['sessionOrigin']
+): void {
+  protectDirectorLiveSessionCode(code);
+  writeLiveSessionPersistence({
+    role: 'director',
+    sessionCode: code,
+    connected: true,
+    passiveMode: false,
+    directorAwayFromScope: false,
+  });
+  if (sessionOrigin) {
+    writeStoredLiveSession(code, 'director', sessionOrigin);
+  } else {
+    writeStoredLiveSession(code, 'director');
+  }
+}
+
 export async function createDirectorLiveSessionRpc(
   input: PersistDirectorLiveSessionInput
 ): Promise<CreateDirectorLiveSessionResult> {
@@ -259,18 +283,25 @@ export async function createDirectorLiveSessionRpc(
     return { ok: false, code, error: auth.message, reason: 'not_authenticated' };
   }
 
+  // Protect before any ghost cleanup so a racing startup wipe cannot set is_active=false.
+  markDirectorCreateLocally(code, input.sessionOrigin);
   await deactivateAllMyPreviousSessions(code);
 
   const first = await upsertDirectorLiveSessionViaRpc(input, auth.userId);
   if (first.ok) {
-    scheduleLiveSessionActiveAssertion(code);
-    if (input.sessionOrigin) {
-      writeStoredLiveSession(code, 'director', input.sessionOrigin);
+    const forced = await forceUpdateAndVerifyLiveSessionActive(code);
+    if (forced) {
+      scheduleLiveSessionActiveAssertion(code);
+      markDirectorCreateLocally(code, input.sessionOrigin);
+      return { ok: true, code };
     }
-    return { ok: true, code };
+    console.warn('[LIVE_SESSION] create upsert ok but force-activate verify failed — retrying', {
+      code,
+    });
   }
 
   if (first.reason === 'not_authenticated') {
+    protectDirectorLiveSessionCode(null);
     return { ok: false, code, error: first.error, reason: 'not_authenticated' };
   }
 
@@ -281,16 +312,17 @@ export async function createDirectorLiveSessionRpc(
 
   await activateLiveSessionViaRpc(code);
   const second = await upsertDirectorLiveSessionViaRpc(input, auth.userId);
+  const forced = await forceUpdateAndVerifyLiveSessionActive(code);
   const verify = await verifyAndLogLiveSessionActive(code, 'create-RPC-second-pass');
 
   scheduleLiveSessionActiveAssertion(code);
 
-  if (second.ok && verify.is_active === true) {
-    if (input.sessionOrigin) {
-      writeStoredLiveSession(code, 'director', input.sessionOrigin);
-    }
+  if (forced && verify.is_active === true) {
+    markDirectorCreateLocally(code, input.sessionOrigin);
     return { ok: true, code };
   }
+
+  protectDirectorLiveSessionCode(null);
 
   const error =
     second.error ??

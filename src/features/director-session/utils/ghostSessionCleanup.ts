@@ -2,6 +2,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { normalizeSessionCode } from '@/features/director-session/types';
 import { resolveAuthenticatedDirector } from '@/features/director-session/utils/liveSessionAuth';
 
+/** In-flight / live director code that must not be wiped by ghost cleanup. */
+let protectedDirectorSessionCode: string | null = null;
+
+/** Protect a director session code from `deactivateAllMyPreviousSessions` races. */
+export function protectDirectorLiveSessionCode(code: string | null | undefined): void {
+  const normalized = code ? normalizeSessionCode(code) : '';
+  protectedDirectorSessionCode = normalized.length >= 4 ? normalized : null;
+}
+
+export function getProtectedDirectorLiveSessionCode(): string | null {
+  return protectedDirectorSessionCode;
+}
+
+function resolveKeepCode(keepCode?: string | null): string | null {
+  const explicit = keepCode ? normalizeSessionCode(keepCode) : '';
+  if (explicit.length >= 4) return explicit;
+  return protectedDirectorSessionCode;
+}
+
 /**
  * Deactivates all active live_sessions for the current director.
  * @param keepCode Optional session code to keep active (e.g. current live session).
@@ -14,7 +33,7 @@ export async function deactivateAllMyPreviousSessions(keepCode?: string): Promis
     return 0;
   }
 
-  const normalizedKeep = keepCode ? normalizeSessionCode(keepCode) : null;
+  const normalizedKeep = resolveKeepCode(keepCode);
   let deactivated = 0;
 
   const { data: rpcCount, error: rpcError } = await supabase.rpc(
@@ -53,6 +72,7 @@ export async function deactivateAllMyPreviousSessions(keepCode?: string): Promis
   console.log('[GHOST_SESSIONS]', {
     deactivated,
     keepCode: normalizedKeep,
+    protectedCode: protectedDirectorSessionCode,
     directorId: auth.userId,
   });
 

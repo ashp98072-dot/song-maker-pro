@@ -1,23 +1,5 @@
--- Fix live session create failures on production:
--- 1) list_id was UUID but clients send local Date.now() ids → 400
--- 2) activate_live_session / upsert RPCs may be missing → 404
--- Run in Supabase SQL Editor if migrations were not applied.
-
--- Allow non-UUID list ids (local lists) while keeping UUID cloud ids as text.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'live_sessions'
-      AND column_name = 'list_id'
-      AND data_type = 'uuid'
-  ) THEN
-    ALTER TABLE public.live_sessions
-      ALTER COLUMN list_id TYPE text USING list_id::text;
-  END IF;
-END $$;
+-- Claim abandoned (inactive) session codes on director create, and always flip is_active=true.
+-- Fixes join failures where a row exists with is_active=false after ghost cleanup races.
 
 CREATE OR REPLACE FUNCTION public.upsert_activate_director_live_session(p_payload jsonb)
 RETURNS public.live_sessions
@@ -99,6 +81,7 @@ BEGIN
     follow_director = EXCLUDED.follow_director,
     session_origin = COALESCE(EXCLUDED.session_origin, live_sessions.session_origin),
     updated_at = now()
+  -- Own rows always; orphan inactive codes can be claimed.
   WHERE live_sessions.director_id = v_uid
      OR live_sessions.is_active = false
   RETURNING * INTO v_row;
@@ -108,6 +91,7 @@ BEGIN
     SET
       director_id = v_uid,
       is_active = true,
+      song_id = COALESCE(NULLIF(p_payload->>'song_id', ''), song_id),
       updated_at = now()
     WHERE code = v_code
       AND (director_id = v_uid OR is_active = false)
@@ -124,59 +108,3 @@ $$;
 
 REVOKE ALL ON FUNCTION public.upsert_activate_director_live_session(jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.upsert_activate_director_live_session(jsonb) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.activate_live_session(p_code text)
-RETURNS public.live_sessions
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_row public.live_sessions;
-  v_uid uuid := auth.uid();
-  v_code text := upper(trim(p_code));
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'activate_live_session requires authenticated user';
-  END IF;
-
-  UPDATE public.live_sessions
-  SET
-    is_active = true,
-    updated_at = now()
-  WHERE code = v_code
-    AND director_id = v_uid
-  RETURNING * INTO v_row;
-
-  RETURN v_row;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.activate_live_session(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.activate_live_session(text) TO authenticated;
-
--- Allow followers to read the latest session row even if is_active failed to flip
--- (director create can leave inactive rows after UUID / RPC errors).
-DROP FUNCTION IF EXISTS public.get_live_session_by_code(text);
-
-CREATE OR REPLACE FUNCTION public.get_live_session_by_code(p_code text)
-RETURNS SETOF public.live_sessions
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-STABLE
-AS $$
-  SELECT *
-  FROM public.live_sessions
-  WHERE upper(trim(code)) = upper(trim(p_code))
-  ORDER BY
-    is_active DESC,
-    updated_at DESC
-  LIMIT 1;
-$$;
-
-REVOKE ALL ON FUNCTION public.get_live_session_by_code(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_live_session_by_code(text) TO anon, authenticated;
-
-COMMENT ON FUNCTION public.get_live_session_by_code(text) IS
-  'Returns newest live_sessions row for a join code (prefers is_active=true).';

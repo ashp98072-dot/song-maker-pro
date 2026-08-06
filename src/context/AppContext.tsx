@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { AppState, Song, SongList } from '@/types/music';
 import { SAMPLE_SONGS } from '@/data/songs';
 import { supabase } from '@/integrations/supabase/client';
-import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
 import { toast } from 'sonner';
 import { loadVisitedSongsCache, mergeVisitedSongsIntoSongs } from '@/pwa/visitedSongsCache';
 
@@ -229,9 +228,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFavorites([]);
         setIsLoading(false);
       } else {
-        if (event === 'SIGNED_IN' && session?.user) {
-          void deactivateAllMyPreviousSessions();
-        }
+        // Do NOT deactivate live_sessions on SIGNED_IN — that event also fires on
+        // session restore / other tabs and was wiping active director sessions
+        // (is_active=false while the UI still showed a join code).
         syncUser(session);
       }
     });

@@ -43,7 +43,7 @@ import {
   resolveAuthenticatedDirector,
   type PersistDirectorLiveSessionInput,
 } from '@/features/director-session/utils/persistDirectorLiveSession';
-import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
+import { deactivateAllMyPreviousSessions, protectDirectorLiveSessionCode } from '@/features/director-session/utils/ghostSessionCleanup';
 import {
   activateLiveSessionRow,
   deactivateLiveSessionRow,
@@ -710,6 +710,7 @@ export default function DirectorSession({
       await deactivateAllMyPreviousSessions();
 
       const code = generateSessionCode();
+      protectDirectorLiveSessionCode(code);
       const origin = buildSessionOrigin({
         songId,
         listId,
@@ -727,6 +728,7 @@ export default function DirectorSession({
       directorSessionLog('session created RPC', { code, rpcResult }, { always: true });
 
       if (!rpcResult.ok) {
+        protectDirectorLiveSessionCode(null);
         if (isLiveSessionAuthError(rpcResult)) {
           if (userName && !isGuest) {
             toast.error(`Error de autenticación en el servidor: ${rpcResult.error ?? 'sesión no válida'}`);
