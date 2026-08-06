@@ -2560,6 +2560,38 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     try {
       isHydratingRef.current = true;
 
+      // Break join loops: emergency home left a flag + stale persistence.
+      let syncErrorMsg: string | null = null;
+      try {
+        syncErrorMsg = sessionStorage.getItem('follower_sync_error');
+      } catch {
+        /* ignore */
+      }
+      const urlSyncError =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).has('follower_sync_error');
+      if (syncErrorMsg || urlSyncError) {
+        clearPendingJoin();
+        clearAllLiveSessionLocalState();
+        resetFollowV3State();
+        try {
+          sessionStorage.removeItem('follower_sync_error');
+        } catch {
+          /* ignore */
+        }
+        if (urlSyncError && typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('follower_sync_error');
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+        toast.error(
+          syncErrorMsg ||
+            'No se pudo sincronizar con el director. Vuelve a unirte con el código.'
+        );
+        sessionRestoreLog('skipped restore — follower sync error flag cleared');
+        return;
+      }
+
       const pending = readPendingJoin();
       const persisted = readLiveSessionPersistence();
       const stored = readStoredLiveSession();
@@ -2592,7 +2624,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
 
       if (!restoreToastShownRef.current) {
         restoreToastShownRef.current = true;
-        if (!isOwner && (storedRole === 'follower' || pending)) {
+        if (!isOwner && pending) {
           toast.info('Reconectando a sesión...');
         } else if (isOwner) {
           toast.info('Sesión activa detectada');
@@ -2615,22 +2647,28 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         return;
       }
 
-      if (storedRole === 'follower' || pending) {
+      // Explicit pending join (user just entered a code) — auto join once.
+      if (pending) {
         await withJoinInFlight(
           joinInFlightRef,
           'restorePersistedSession',
           liveSessionStatusRef.current,
           async () => {
-            transitionSessionStatus('joining', 'restorePersistedSession follower auto');
-            sessionRestoreLog('follower reconnect auto navigate', { code, pending: !!pending });
+            transitionSessionStatus('joining', 'restorePersistedSession pending join');
+            sessionRestoreLog('follower pending join auto', { code });
             sessionOriginRef.current = stored?.origin ?? sessionOriginRef.current;
             if (persisted?.passiveMode) setPassiveListenMode(true);
             if (persisted?.followDirector === false) writeFollowDirector(false);
             const active = await abortFollowerJoinIfSessionInactive(
               code,
-              'restorePersistedSession'
+              'restorePersistedSession-pending'
             );
-            if (!active) return;
+            if (!active) {
+              clearPendingJoin();
+              clearAllLiveSessionLocalState(code);
+              return;
+            }
+            clearPendingJoin();
             beginFollowerSession(code);
             setActiveJoinCode(code);
             setSessionConnected(true);
@@ -2642,32 +2680,41 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
               dbRecovery: recovery,
               sessionOrigin: sessionOriginRef.current,
             });
-            followRecoveryLog({
-              source: resolved.source,
-              code,
-              currentIndex: resolved.recovery?.currentIndex ?? null,
-              songId: resolved.recovery?.songId ?? null,
-              reason: 'restore-persisted',
-            });
-
             if (resolved.recovery && readFollowDirector()) {
               await navigateFollowerToDirectorState(code, {
-                source: 'restore-persisted',
+                source: 'restore-pending',
                 recovery: resolved.recovery,
                 recoverySource: resolved.source,
                 force: true,
               });
-            } else if (resolved.recovery) {
-              sessionRestoreLog('follower restore — navigation skipped (followDirector off)');
-            } else {
-              followRecoveryFailed({ code, reason: 'restore-persisted no recovery' });
             }
-
             sessionLog('reconnected', { code, role: 'follower' });
-            toast.success('Sesión restaurada');
             setIsReconnecting(false);
           }
         );
+        return;
+      }
+
+      // Persisted follower without pending: banner only (no auto-join loop).
+      if (storedRole === 'follower') {
+        const activeCheck = await querySessionActive(code);
+        if (!activeCheck.active || !recovery) {
+          sessionRestoreLog('follower persisted stale — clearing', {
+            code,
+            reason: activeCheck.reason,
+            hasRecovery: !!recovery,
+          });
+          clearAllLiveSessionLocalState(code);
+          clearPendingJoin();
+          return;
+        }
+        sessionRestoreLog('follower persisted — banner only (no auto-join)', { code });
+        sessionOriginRef.current = stored?.origin ?? null;
+        setDetected({ code, recovery, role: 'follower' });
+        transitionSessionStatus('detected', 'restorePersistedSession follower banner');
+        setActiveJoinCode(code);
+        sessionBannerLog('restored active session', { code, role: 'follower' });
+        setIsReconnecting(false);
         return;
       }
 
@@ -2678,7 +2725,9 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       }
     } catch (error) {
       console.error('[LiveSession] restore failed', error);
+      clearPendingJoin();
       clearLiveSessionPersistence();
+      clearAllLiveSessionLocalState();
     } finally {
       isHydratingRef.current = false;
       const st = liveSessionStatusRef.current;
@@ -2686,7 +2735,13 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         void refreshDetection();
       }
     }
-  }, [beginFollowerSession, navigateFollowerToDirectorState, transitionSessionStatus, refreshDetection]);
+  }, [
+    beginFollowerSession,
+    navigateFollowerToDirectorState,
+    transitionSessionStatus,
+    refreshDetection,
+    abortFollowerJoinIfSessionInactive,
+  ]);
 
   useEffect(() => {
     if (hasRestoredRef.current) return;
@@ -3041,6 +3096,9 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     followerAwaitingDirectorRef.current = false;
     awaitingFirstBroadcastRef.current = false;
     setFollowerAwaitingDirector(false);
+    clearPendingJoin();
+    resetFollowV3State();
+    clearAllLiveSessionLocalState(liveFollowerCode || undefined);
     try {
       sessionStorage.setItem(
         'follower_sync_error',
@@ -3049,9 +3107,15 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     } catch {
       /* ignore */
     }
-    console.error('[EMERGENCY_NAV]', { source, path: '/', reason: 'overlay-10s-timeout' });
+    console.error('[EMERGENCY_NAV]', {
+      source,
+      path: '/',
+      reason: 'overlay-10s-timeout',
+      clearedLocalState: true,
+    });
+    // Hard navigate after clearing persistence so restore cannot auto-rejoin.
     window.location.replace('/?follower_sync_error=1');
-  }, []);
+  }, [liveFollowerCode]);
 
   const rpcOverlayPollTick = useCallback(
     async (source: string): Promise<boolean> => {

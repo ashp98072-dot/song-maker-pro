@@ -5,6 +5,7 @@ import { clearLiveSessionPersistence } from '@/features/director-session/utils/l
 import { clearSessionRecoveryStorage } from '@/features/director-session/utils/sessionRecovery';
 import { dispatchSessionHardClear } from '@/features/director-session/utils/sessionHardClearEvents';
 import { clearSpectatorSessionOptOut } from '@/features/director-session/utils/spectatorSessionOptOut';
+import { clearPendingJoin } from '@/features/director-session/utils/pendingJoinStorage';
 import { sessionRecoveryLog } from '@/features/director-session/utils/sessionRecoveryLog';
 
 /**
@@ -17,9 +18,16 @@ export function clearAllLiveSessionLocalState(sessionCode?: string): void {
   clearContinuousListSyncStorage();
   clearSpectatorSessionOptOut();
   clearManualExitContinuous();
+  clearPendingJoin();
 
   if (sessionCode) {
     unregisterDirectorBroadcastChannel(sessionCode);
+  }
+
+  try {
+    sessionStorage.removeItem('follower_sync_error');
+  } catch {
+    /* ignore */
   }
 
   sessionRecoveryLog('hard cleanup local session state', { sessionCode });
