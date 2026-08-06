@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { FEATURES } from '@/config/features';
 import {
   fetchActiveDirectorSession,
   type ActiveDirectorSession,
@@ -34,8 +35,14 @@ export function useSessionOriginMismatch(
 
   const [active, setActive] = useState<ActiveDirectorSession | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const simpleMode = FEATURES.SIMPLE_LIVE_SYNC;
 
   useEffect(() => {
+    // Simple live sync owns session lifecycle — never fetch/deactivate via this dialog.
+    if (simpleMode) {
+      setActive(null);
+      return;
+    }
     let cancelled = false;
     void (async () => {
       const director = await fetchActiveDirectorSession();
@@ -44,11 +51,12 @@ export function useSessionOriginMismatch(
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.key, page.songId, page.listId]);
+  }, [simpleMode, location.pathname, location.key, page.songId, page.listId]);
 
   const origin = useMemo(
-    () => (active ? inferSessionOriginFromRecovery(active.recovery) : null),
-    [active]
+    () =>
+      !simpleMode && active ? inferSessionOriginFromRecovery(active.recovery) : null,
+    [simpleMode, active]
   );
 
   const inScope = useMemo(
@@ -56,7 +64,8 @@ export function useSessionOriginMismatch(
     [origin, page]
   );
 
-  const open = !!active && !!origin && !inScope && !dismissed && !sessionConnected;
+  const open =
+    !simpleMode && !!active && !!origin && !inScope && !dismissed && !sessionConnected;
 
   const label = origin ? sessionOriginLabel(origin) : '';
 
@@ -87,11 +96,12 @@ export function useSessionOriginMismatch(
   }, [location.pathname, origin, inScope]);
 
   const volverASesion = useCallback(() => {
+    if (simpleMode) return;
     continuarSesionDirector();
-  }, [continuarSesionDirector]);
+  }, [simpleMode, continuarSesionDirector]);
 
   const redirectHere = useCallback(() => {
-    if (!active || !page.songId) return;
+    if (simpleMode || !active || !page.songId) return;
     void redirectSessionHere({
       songId: page.songId,
       listId: page.listId,
@@ -99,14 +109,15 @@ export function useSessionOriginMismatch(
       listName: page.listName,
     });
     setDismissed(true);
-  }, [active, page, redirectSessionHere]);
+  }, [simpleMode, active, page, redirectSessionHere]);
 
   const cerrarSesion = useCallback(() => {
+    if (simpleMode) return;
     void cerrarSesionDirector();
     setDismissed(true);
-  }, [cerrarSesionDirector]);
+  }, [simpleMode, cerrarSesionDirector]);
 
-  const allowAutoReconnect = !open && (origin ? inScope : true);
+  const allowAutoReconnect = simpleMode ? false : !open && (origin ? inScope : true);
 
   return {
     open,

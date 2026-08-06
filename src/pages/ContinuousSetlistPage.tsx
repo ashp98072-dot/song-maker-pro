@@ -207,7 +207,8 @@ export default function ContinuousSetlistPage() {
     return [];
   });
   const [liveSessionSongIds, setLiveSessionSongIds] = useState<string[]>([]);
-  const sessionCodeForFetch = joinSessionCode ?? readStoredLiveSession()?.code ?? '';
+  const sessionCodeForFetch =
+    joinSessionCode ?? simpleLive?.code ?? readStoredLiveSession()?.code ?? '';
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -2657,10 +2658,13 @@ export default function ContinuousSetlistPage() {
   const awaitingDirectorList =
     !!listId &&
     resolvedSongIds.length === 0 &&
-    (!!joinSessionCode || !!sessionConnection || !!sessionCodeForFetch);
+    (!!joinSessionCode ||
+      !!sessionConnection ||
+      !!sessionCodeForFetch ||
+      simpleLive?.role === 'follower');
 
   const followerAwaitingListOrIndex =
-    liveIsFollower &&
+    (liveIsFollower || simpleLive?.role === 'follower') &&
     !!listId &&
     (resolvedSongIds.length === 0 ||
       entries.length === 0 ||
@@ -2669,9 +2673,18 @@ export default function ContinuousSetlistPage() {
         (landing.hasPendingLanding() || landing.isLandingInProgress())));
 
   const wrapFollower = (node: JSX.Element) =>
-    liveIsFollower ? <FollowerContinuousShell>{node}</FollowerContinuousShell> : node;
+    liveIsFollower || simpleLive?.role === 'follower' ? (
+      <FollowerContinuousShell>{node}</FollowerContinuousShell>
+    ) : (
+      node
+    );
 
-  if (liveIsFollower && (followerAwaitingDirector || followerAwaitingListOrIndex)) {
+  // Legacy awaiting overlays can trap simple followers forever (Spectator never sets liveIsFollower).
+  if (
+    !FEATURES.SIMPLE_LIVE_SYNC &&
+    liveIsFollower &&
+    (followerAwaitingDirector || followerAwaitingListOrIndex)
+  ) {
     return wrapFollower(
       <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch} />
     );

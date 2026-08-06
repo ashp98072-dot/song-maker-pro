@@ -66,14 +66,38 @@ export default function HomePage() {
     toast.error(sessionJoinBlockedMessage(result));
   };
 
-  // After simple-live join from home, open the director song once.
+  // After simple-live join from home, open the director song/list once.
   useEffect(() => {
     if (!pendingSimpleNav || !simpleLive) return;
-    const songId = simpleLive.lastState?.songId;
-    if (!songId) return;
+    const state = simpleLive.lastState;
+    if (!state) return;
+
+    if (state.viewMode === 'continuous' && state.listId) {
+      setPendingSimpleNav(false);
+      navigate(`/setlist/${state.listId}/live`, {
+        state: {
+          listId: state.listId,
+          listSongIds: state.listSongIds,
+          joinSessionCode: state.sessionCode,
+          initialSongId: state.songId ?? undefined,
+          initialIndex: state.currentIndex,
+          currentIndex: state.currentIndex,
+        },
+      });
+      return;
+    }
+
+    if (!state.songId) return;
     setPendingSimpleNav(false);
-    navigate(`/cancion/${songId}`);
-  }, [pendingSimpleNav, simpleLive?.lastState?.songId, navigate, simpleLive]);
+    navigate(`/cancion/${state.songId}`);
+  }, [
+    pendingSimpleNav,
+    simpleLive?.lastState?.songId,
+    simpleLive?.lastState?.listId,
+    simpleLive?.lastState?.viewMode,
+    navigate,
+    simpleLive,
+  ]);
 
   return (
     <div className="container px-4 py-6 max-w-6xl">

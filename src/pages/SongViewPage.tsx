@@ -177,7 +177,8 @@ export default function SongViewPage() {
     followerAwaitingDirector,
     setFollowDirectorPreference,
   } = spectator;
-  const isFollowerSpectator = sessionConnection?.role === 'follower';
+  const isFollowerSpectator =
+    sessionConnection?.role === 'follower' || simpleLive?.role === 'follower';
   /** Store-driven song id only while spectator is actively following (V3). */
   const isFollowOwner = isFollowV3SpectatorActive(liveIsFollower);
   const followSongId = useFollowV3Song();
@@ -282,7 +283,13 @@ export default function SongViewPage() {
   );
 
   const isDirectorSession =
-    liveIsDirector && sessionConnection?.role === 'director' && !!sessionConnection?.sessionCode;
+    (liveIsDirector &&
+      sessionConnection?.role === 'director' &&
+      !!sessionConnection?.sessionCode) ||
+    simpleLive?.role === 'director';
+  const simpleSessionCode = simpleLive?.code ?? null;
+  const effectiveSessionCode =
+    sessionConnection?.sessionCode ?? simpleSessionCode ?? null;
 
   const directorFollowV3Source = useMemo(() => {
     if (!isDirectorSession) return null;
@@ -1327,7 +1334,12 @@ export default function SongViewPage() {
           return;
         }
 
-        if (wantsContinuous && sessionConnection?.role === 'follower') {
+        if (wantsContinuous && (sessionConnection?.role === 'follower' || simpleLive?.role === 'follower')) {
+          // Simple sync: go to continuous live page so index/scroll stay in sync.
+          if (FEATURES.SIMPLE_LIVE_SYNC && remoteListSongIds.length > 1) {
+            navigateFollowerToLive(remoteListSongIds);
+            return;
+          }
           followViewmodeLog({
             reason: 'follower preferred view retained',
             context: 'shared-session-update',
@@ -1526,6 +1538,7 @@ export default function SongViewPage() {
       effectiveJoinCode,
       sessionConnection?.sessionCode,
       sessionConnection?.role,
+      simpleLive?.role,
       getChordScrollRoot,
       getSongViewFollowGuard,
       navigateFollowerSongOnly,

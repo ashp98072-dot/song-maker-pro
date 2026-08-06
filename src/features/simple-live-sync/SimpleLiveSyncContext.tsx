@@ -17,7 +17,10 @@ import {
   resolveAuthenticatedDirector,
 } from '@/features/director-session/utils/persistDirectorLiveSession';
 import { deactivateLiveSessionRow } from '@/features/director-session/utils/liveSessionActive';
-import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
+import {
+  deactivateAllMyPreviousSessions,
+  protectDirectorLiveSessionCode,
+} from '@/features/director-session/utils/ghostSessionCleanup';
 import {
   querySessionActive,
   sessionJoinBlockedMessage,
@@ -403,6 +406,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
 
       await deactivateAllMyPreviousSessions();
       const newCode = generateSimpleSessionCode();
+      protectDirectorLiveSessionCode(newCode);
       const persistInput = {
         sessionCode: newCode,
         currentSongId: input.songId,
@@ -420,8 +424,11 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
         followDirector: true,
       };
 
-      const rpc = await createDirectorLiveSessionRpc(persistInput);
+      const rpc = await createDirectorLiveSessionRpc(persistInput, {
+        localMark: 'protect-only',
+      });
       if (!rpc.ok) {
+        protectDirectorLiveSessionCode(null);
         setStatus('idle');
         setError(rpc.error ?? 'create failed');
         toast.error(rpc.error ?? 'No se pudo crear la sesión');
@@ -519,17 +526,21 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
     const check = await querySessionActive(hint.code);
     if (!check.active) {
       // Try to recreate/activate via RPC with last known empty-ish state
-      const rpc = await createDirectorLiveSessionRpc({
-        sessionCode: hint.code,
-        currentSongId: lastStateRef.current?.songId ?? null,
-        listId: lastStateRef.current?.listId ?? null,
-        listSongIds: lastStateRef.current?.listSongIds ?? [],
-        viewMode: lastStateRef.current?.viewMode ?? 'musician',
-        currentIndex: lastStateRef.current?.currentIndex ?? 0,
-        customSemitones: lastStateRef.current?.semitones ?? 0,
-        followDirector: true,
-      });
+      const rpc = await createDirectorLiveSessionRpc(
+        {
+          sessionCode: hint.code,
+          currentSongId: lastStateRef.current?.songId ?? null,
+          listId: lastStateRef.current?.listId ?? null,
+          listSongIds: lastStateRef.current?.listSongIds ?? [],
+          viewMode: lastStateRef.current?.viewMode ?? 'musician',
+          currentIndex: lastStateRef.current?.currentIndex ?? 0,
+          customSemitones: lastStateRef.current?.semitones ?? 0,
+          followDirector: true,
+        },
+        { localMark: 'protect-only' }
+      );
       if (!rpc.ok) {
+        protectDirectorLiveSessionCode(null);
         setStatus('idle');
         rememberHint(null);
         toast.error('La sesión ya no está activa');
@@ -579,6 +590,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
     }
 
     await teardownChannel();
+    protectDirectorLiveSessionCode(null);
     rememberHint(null);
     resetLocal();
     clearPendingJoin();

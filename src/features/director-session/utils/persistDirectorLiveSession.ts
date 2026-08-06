@@ -262,9 +262,11 @@ export function scheduleLiveSessionActiveAssertion(
  */
 function markDirectorCreateLocally(
   code: string,
-  sessionOrigin?: PersistDirectorLiveSessionInput['sessionOrigin']
+  sessionOrigin?: PersistDirectorLiveSessionInput['sessionOrigin'],
+  mode: 'full' | 'protect-only' = 'full'
 ): void {
   protectDirectorLiveSessionCode(code);
+  if (mode === 'protect-only') return;
   writeLiveSessionPersistence({
     role: 'director',
     sessionCode: code,
@@ -279,10 +281,20 @@ function markDirectorCreateLocally(
   }
 }
 
+export type CreateDirectorLiveSessionOptions = {
+  /**
+   * `protect-only`: keep ghost-cleanup protect, skip legacy localStorage
+   * (used by SIMPLE_LIVE_SYNC so restore loops cannot revive).
+   */
+  localMark?: 'full' | 'protect-only';
+};
+
 export async function createDirectorLiveSessionRpc(
-  input: PersistDirectorLiveSessionInput
+  input: PersistDirectorLiveSessionInput,
+  options?: CreateDirectorLiveSessionOptions
 ): Promise<CreateDirectorLiveSessionResult> {
   const code = normalizeSessionCode(input.sessionCode);
+  const localMark = options?.localMark ?? 'full';
 
   const auth = await resolveAuthenticatedDirector();
   if (!auth.ok) {
@@ -290,7 +302,7 @@ export async function createDirectorLiveSessionRpc(
   }
 
   // Protect before any ghost cleanup so a racing startup wipe cannot set is_active=false.
-  markDirectorCreateLocally(code, input.sessionOrigin);
+  markDirectorCreateLocally(code, input.sessionOrigin, localMark);
   await deactivateAllMyPreviousSessions(code);
 
   const first = await upsertDirectorLiveSessionViaRpc(input, auth.userId);
@@ -298,7 +310,7 @@ export async function createDirectorLiveSessionRpc(
     const forced = await forceUpdateAndVerifyLiveSessionActive(code);
     if (forced) {
       scheduleLiveSessionActiveAssertion(code);
-      markDirectorCreateLocally(code, input.sessionOrigin);
+      markDirectorCreateLocally(code, input.sessionOrigin, localMark);
       return { ok: true, code };
     }
     console.warn('[LIVE_SESSION] create upsert ok but force-activate verify failed — retrying', {
@@ -324,7 +336,7 @@ export async function createDirectorLiveSessionRpc(
   scheduleLiveSessionActiveAssertion(code);
 
   if (forced && verify.is_active === true) {
-    markDirectorCreateLocally(code, input.sessionOrigin);
+    markDirectorCreateLocally(code, input.sessionOrigin, localMark);
     return { ok: true, code };
   }
 

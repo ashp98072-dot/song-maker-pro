@@ -31,6 +31,8 @@ export const SIMPLE_LIVE_REQUEST_EVENT = 'simple-live-request' as const;
 export const SIMPLE_LIVE_HINT_KEY = 'wt_simple_live_hint';
 
 export function simpleLiveChannelName(code: string): string {
+  // Must match Supabase realtime authorization (`worship-session-%` in migration.sql).
+  // Dual-stack risk is mitigated by not mounting LiveSessionChannelHost under SIMPLE_LIVE_SYNC.
   return `worship-session-${normalizeSessionCode(code)}`;
 }
 
