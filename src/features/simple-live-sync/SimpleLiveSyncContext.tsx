@@ -120,15 +120,20 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roleRef = useRef<SimpleLiveRole>('idle');
+  const statusRef = useRef<SimpleLiveStatus>('idle');
   const codeRef = useRef<string | null>(null);
   const lastStateRef = useRef<SimpleLiveState | null>(null);
   const lastPublishKeyRef = useRef('');
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const presenceKeyRef = useRef('director');
+  const resumeInFlightRef = useRef(false);
 
   useEffect(() => {
     roleRef.current = role;
   }, [role]);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   useEffect(() => {
     codeRef.current = code;
   }, [code]);
@@ -575,6 +580,22 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
   const dismissResumable = useCallback(() => {
     rememberHint(null);
   }, [rememberHint]);
+
+  // Mid-service WiFi drop: if we were in a live role and come back online, reconnect once.
+  // Cold boot stays manual via SimpleLiveResumeBanner (role === idle).
+  useEffect(() => {
+    const onOnline = () => {
+      if (roleRef.current === 'idle') return;
+      if (statusRef.current === 'connected' || statusRef.current === 'connecting') return;
+      if (resumeInFlightRef.current) return;
+      resumeInFlightRef.current = true;
+      void resumeSession().finally(() => {
+        resumeInFlightRef.current = false;
+      });
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [resumeSession]);
 
   const leave = useCallback(async () => {
     const currentCode = codeRef.current;

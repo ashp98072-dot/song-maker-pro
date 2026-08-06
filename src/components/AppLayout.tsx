@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import VisitedSongsRegistrar from '@/pwa/VisitedSongsRegistrar';
+import SetlistOfflinePrefetcher from '@/pwa/SetlistOfflinePrefetcher';
 import { getRenderDiagStage } from '@/renderDiag';
 import { FEATURES } from '@/config/features';
 import { SpectatorSessionProvider } from '@/features/director-session/context/SpectatorSessionContext';
@@ -27,6 +28,7 @@ export default function AppLayout() {
   const main = (
     <main className="min-h-screen bg-background">
       <VisitedSongsRegistrar />
+      <SetlistOfflinePrefetcher />
       <Navbar />
       {FEATURES.SIMPLE_LIVE_SYNC ? (
         <SimpleLiveResumeBanner />

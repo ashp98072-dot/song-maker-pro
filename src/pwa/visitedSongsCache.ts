@@ -3,7 +3,8 @@ import type { Song } from '@/types/music';
 const DB_NAME = 'worship-transpose-pwa';
 const DB_VERSION = 1;
 const STORE = 'visited-songs';
-const MAX_ENTRIES = 24;
+/** Enough for a typical Sunday setlist + recent visits. */
+const MAX_ENTRIES = 64;
 
 type CachedSong = Song & { visitedAt: number };
 
@@ -22,6 +23,21 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
+async function trimCache(db: IDBDatabase): Promise<void> {
+  const all = await loadVisitedSongsCache();
+  if (all.length <= MAX_ENTRIES) return;
+
+  const sorted = [...all].sort((a, b) => (b.visitedAt ?? 0) - (a.visitedAt ?? 0));
+  const toRemove = sorted.slice(MAX_ENTRIES);
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    for (const s of toRemove) store.delete(s.id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function cacheVisitedSong(song: Song): Promise<void> {
   if (!song.id || !song.chords) return;
   try {
@@ -34,21 +50,33 @@ export async function cacheVisitedSong(song: Song): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+    await trimCache(db);
+  } catch (e) {
+    console.warn('[PWA] cacheVisitedSong:', e);
+  }
+}
 
-    const all = await loadVisitedSongsCache();
-    if (all.length <= MAX_ENTRIES) return;
-
-    const sorted = [...all].sort((a, b) => (b.visitedAt ?? 0) - (a.visitedAt ?? 0));
-    const toRemove = sorted.slice(MAX_ENTRIES);
+/** Prefetch a setlist pack for offline worship (chords required). */
+export async function cacheSongsForOffline(songs: Song[]): Promise<number> {
+  const eligible = songs.filter((s) => s?.id && s.chords);
+  if (!eligible.length) return 0;
+  try {
+    const db = await openDb();
+    const now = Date.now();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
       const store = tx.objectStore(STORE);
-      for (const s of toRemove) store.delete(s.id);
+      for (const song of eligible) {
+        store.put({ ...song, visitedAt: now } satisfies CachedSong);
+      }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+    await trimCache(db);
+    return eligible.length;
   } catch (e) {
-    console.warn('[PWA] cacheVisitedSong:', e);
+    console.warn('[PWA] cacheSongsForOffline:', e);
+    return 0;
   }
 }
 
@@ -86,3 +114,5 @@ export function mergeVisitedSongsIntoSongs(prev: Song[], cached: CachedSong[]): 
   }
   return Array.from(map.values());
 }
+
+export const VISITED_SONGS_MAX_ENTRIES = MAX_ENTRIES;
