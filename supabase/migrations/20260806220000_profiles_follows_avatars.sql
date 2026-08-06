@@ -1,4 +1,49 @@
--- Profiles RLS + avatars storage + follow graph for community social.
+-- Profiles + follows + avatars (safe for production schemas without user_id).
+-- Many projects use profiles.id = auth.users.id; we add/sync user_id for the app.
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  display_name text,
+  avatar_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_name text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at timestamptz;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
+-- If legacy rows used id as the auth user id, copy into user_id.
+UPDATE public.profiles
+SET user_id = id
+WHERE user_id IS NULL
+  AND id IS NOT NULL
+  AND EXISTS (SELECT 1 FROM auth.users u WHERE u.id = profiles.id);
+
+-- Drop orphan nulls that can't be mapped (optional: keep them without user_id).
+-- Ensure FK when possible.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'profiles_user_id_fkey'
+  ) THEN
+    BEGIN
+      ALTER TABLE public.profiles
+        ADD CONSTRAINT profiles_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE;
+    EXCEPTION WHEN others THEN
+      RAISE NOTICE 'profiles_user_id_fkey skipped: %', SQLERRM;
+    END;
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_user_id_uidx
+  ON public.profiles (user_id)
+  WHERE user_id IS NOT NULL;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
@@ -24,8 +69,6 @@ CREATE POLICY "profiles_update_own"
   TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS profiles_user_id_uidx ON public.profiles (user_id);
 
 CREATE TABLE IF NOT EXISTS public.user_follows (
   follower_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
@@ -62,7 +105,6 @@ CREATE POLICY "user_follows_delete_own"
   TO authenticated
   USING (auth.uid() = follower_id);
 
--- Public avatars bucket (idempotent-ish).
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'avatars',
@@ -102,6 +144,10 @@ CREATE POLICY "avatars_owner_update"
   FOR UPDATE
   TO authenticated
   USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  )
+  WITH CHECK (
     bucket_id = 'avatars'
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
