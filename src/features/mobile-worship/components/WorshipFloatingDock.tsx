@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { MoreHorizontal, Play, Pause, RotateCcw } from 'lucide-react';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { useIsLandscape } from '@/features/mobile-stage/hooks/useIsMobileViewport';
-import { readViewportSnapshot } from '@/features/mobile-stage/hooks/mobileViewportSync';
 import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
 import { DockButton } from '@/features/mobile-worship/components/DockButton';
@@ -98,33 +96,6 @@ export function WorshipFloatingDock({
     autoScrolling,
     isFullscreen,
   });
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-
-    const blockers: string[] = [];
-    if (!mobileViewport) blockers.push('mobileViewport=false');
-    if (!visible) blockers.push('pageVisible=false');
-    if (controlsHidden) blockers.push('controlsHidden=true');
-    if (!dockEnabled) blockers.push('dockEnabled=false');
-    if (!dockVisible) blockers.push('dockVisible=false (translateY/shell)');
-
-    if (blockers.length > 0) {
-      console.log('[MobileDock] visibility reason', blockers.join(', '));
-    } else {
-      console.log('[MobileDock] visibility reason', 'shown');
-    }
-
-    console.log('[MobileDock] WorshipFloatingDock', {
-      mobileViewport,
-      pageVisible: visible,
-      controlsHidden,
-      dockEnabled,
-      dockVisible,
-      landscapeDock,
-      snapshot: readViewportSnapshot(),
-    });
-  }, [mobileViewport, visible, controlsHidden, dockEnabled, dockVisible, landscapeDock]);
 
   if (!isMobile || !visible || controlsHidden) return null;
 
