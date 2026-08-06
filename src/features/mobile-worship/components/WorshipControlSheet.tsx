@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RehearsalAutoScrollToolbar } from '@/features/rehearsal/components/RehearsalTools';
 import { RehearsalTools } from '@/features/rehearsal/components/RehearsalTools';
 import type { WorshipControlSheetProps } from '@/features/mobile-worship/types';
+import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
 import { VOCAL_REGISTERS } from '@/utils/vocalRange';
 
@@ -28,7 +29,13 @@ const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 
 const SEMITONE_PRESETS = [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6] as const;
 
-export function WorshipControlSheet({ open, onOpenChange, onHideControls, ...props }: WorshipControlSheetProps) {
+export function WorshipControlSheet({
+  open,
+  onOpenChange,
+  onHideControls,
+  serviceModeInput,
+  ...props
+}: WorshipControlSheetProps) {
   const {
     song,
     displayKey,
@@ -94,6 +101,20 @@ export function WorshipControlSheet({ open, onOpenChange, onHideControls, ...pro
               </button>
             ) : null}
           </div>
+          {onHideControls && serviceModeInput ? (
+            <div className="mt-3 lg:hidden">
+              <WorshipServiceModeButton
+                hideControls={() => {
+                  onOpenChange(false);
+                  onHideControls();
+                }}
+                input={serviceModeInput}
+              />
+              <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+                En vivo + teleprompter + enlace para la banda
+              </p>
+            </div>
+          ) : null}
         </SheetHeader>
 
         <Tabs defaultValue="music" className="flex-1 flex flex-col min-h-0">

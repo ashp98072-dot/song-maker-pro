@@ -47,6 +47,9 @@ export interface WorshipFloatingDockProps {
   onResetTranspose: () => void;
   onToggleAutoScroll: () => void;
 
+  /** One-tap live + teleprompter + share (Modo culto). */
+  serviceModeInput?: import('@/features/mobile-worship/utils/worshipServiceMode').WorshipServiceModeInput | null;
+
   sheet: Omit<WorshipControlSheetProps, 'open' | 'onOpenChange'>;
 }
 
@@ -54,6 +57,7 @@ export interface WorshipControlSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onHideControls?: () => void;
+  serviceModeInput?: import('@/features/mobile-worship/utils/worshipServiceMode').WorshipServiceModeInput | null;
 
   song: Song;
   displayKey: string;

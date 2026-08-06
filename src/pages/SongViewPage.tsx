@@ -2598,6 +2598,21 @@ export default function SongViewPage() {
       scrollRef={scrollRef}
       controlsHidden={controlsHidden}
       onHideControls={hideControls}
+      serviceModeInput={
+        song
+          ? {
+              songId: song.id,
+              semitones: effectiveSemitones,
+              viewMode,
+              genderShift:
+                genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',
+              currentIndex: incomingListSongIds?.indexOf(song.id) ?? 0,
+              listId: incomingListId ?? null,
+              listSongIds: incomingListSongIds ?? [],
+              sectionAnchor: activeSectionAnchor ?? null,
+            }
+          : null
+      }
       displayKey={displayKey || displayOriginalKey}
       genderShift={genderShift}
       customSemitones={customSemitones}

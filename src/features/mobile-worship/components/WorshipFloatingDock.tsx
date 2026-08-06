@@ -6,8 +6,10 @@ import { QuickTransposeControls } from '@/features/mobile-worship/components/Qui
 import { DockButton } from '@/features/mobile-worship/components/DockButton';
 import { WorshipControlSheet } from '@/features/mobile-worship/components/WorshipControlSheet';
 import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
+import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import type { WorshipFloatingDockProps } from '@/features/mobile-worship/types';
+import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
 
 function DockActionButtons({
   autoScrolling,
@@ -17,6 +19,7 @@ function DockActionButtons({
   sheetOpen,
   layout,
   onHideControls,
+  serviceModeInput,
 }: {
   autoScrolling: boolean;
   onResetTranspose: () => void;
@@ -25,6 +28,7 @@ function DockActionButtons({
   sheetOpen: boolean;
   layout: 'horizontal' | 'vertical';
   onHideControls?: () => void;
+  serviceModeInput?: WorshipServiceModeInput | null;
 }) {
   const wrapClass =
     layout === 'vertical'
@@ -33,6 +37,16 @@ function DockActionButtons({
 
   return (
     <div className={wrapClass}>
+      {onHideControls && serviceModeInput ? (
+        <WorshipServiceModeButton
+          compact
+          hideControls={onHideControls}
+          input={serviceModeInput}
+          onStarted={() => {
+            /* sheet closed by hide */
+          }}
+        />
+      ) : null}
       {onHideControls ? <MobileHideControlsButton compact onHide={onHideControls} /> : null}
       <DockButton
         onClick={() => {
@@ -82,6 +96,7 @@ export function WorshipFloatingDock({
   onGenderSelect,
   onResetTranspose,
   onToggleAutoScroll,
+  serviceModeInput = null,
   sheet,
 }: WorshipFloatingDockProps) {
   const isLandscape = useIsLandscape();
@@ -147,6 +162,7 @@ export function WorshipFloatingDock({
               sheetOpen={sheetOpen}
               layout="vertical"
               onHideControls={onHideControls ? handleHide : undefined}
+              serviceModeInput={serviceModeInput}
             />
           </div>
         </div>
@@ -155,6 +171,7 @@ export function WorshipFloatingDock({
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           onHideControls={onHideControls ? handleHide : undefined}
+          serviceModeInput={serviceModeInput}
         />
       </>
     );
@@ -174,6 +191,7 @@ export function WorshipFloatingDock({
               sheetOpen={sheetOpen}
               layout="horizontal"
               onHideControls={onHideControls ? handleHide : undefined}
+              serviceModeInput={serviceModeInput}
             />
           </div>
         </FloatingDockShell>
@@ -183,6 +201,7 @@ export function WorshipFloatingDock({
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         onHideControls={onHideControls ? handleHide : undefined}
+        serviceModeInput={serviceModeInput}
       />
     </>
   );

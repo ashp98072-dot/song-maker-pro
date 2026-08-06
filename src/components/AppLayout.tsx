@@ -3,6 +3,7 @@ import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import VisitedSongsRegistrar from '@/pwa/VisitedSongsRegistrar';
 import SetlistOfflinePrefetcher from '@/pwa/SetlistOfflinePrefetcher';
+import { PwaInstallBanner } from '@/pwa/PwaInstallBanner';
 import { getRenderDiagStage } from '@/renderDiag';
 import { FEATURES } from '@/config/features';
 import { SpectatorSessionProvider } from '@/features/director-session/context/SpectatorSessionContext';
@@ -30,6 +31,7 @@ export default function AppLayout() {
       <VisitedSongsRegistrar />
       <SetlistOfflinePrefetcher />
       <Navbar />
+      <PwaInstallBanner />
       {FEATURES.SIMPLE_LIVE_SYNC ? (
         <SimpleLiveResumeBanner />
       ) : (
