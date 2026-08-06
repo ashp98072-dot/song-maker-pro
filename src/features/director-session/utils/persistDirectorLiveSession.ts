@@ -169,11 +169,15 @@ export async function upsertDirectorLiveSessionViaRpc(
 
   const payload = buildRpcUpsertPayload(code, input);
 
-  console.log('[LIVE_SESSION_RPC_PAYLOAD]', {
-    rpc: 'upsert_activate_director_live_session',
-    directorId: userId,
-    payload,
-  });
+  if (import.meta.env.DEV) {
+    console.log('[LIVE_SESSION_RPC_PAYLOAD]', {
+      rpc: 'upsert_activate_director_live_session',
+      directorId: userId,
+      code,
+      song_id: payload.song_id ?? null,
+      list_id: payload.list_id ?? null,
+    });
+  }
 
   const { data, error } = await supabase.rpc('upsert_activate_director_live_session', {
     p_payload: payload,
@@ -185,14 +189,16 @@ export async function upsertDirectorLiveSessionViaRpc(
     director_id?: string;
   } | null;
 
-  console.log('[LIVE_SESSION_RPC_RESULT]', {
-    rpc: 'upsert_activate_director_live_session',
-    code,
-    error: error
-      ? { message: error.message, code: error.code, details: error.details, hint: error.hint }
-      : null,
-    row: row ?? null,
-  });
+  if (error || row?.is_active !== true) {
+    console.log('[LIVE_SESSION_RPC_RESULT]', {
+      rpc: 'upsert_activate_director_live_session',
+      code,
+      error: error
+        ? { message: error.message, code: error.code, details: error.details, hint: error.hint }
+        : null,
+      row: row ?? null,
+    });
+  }
 
   if (error) {
     const verify = await verifyAndLogLiveSessionActive(code, 'RPC-upsert-error');

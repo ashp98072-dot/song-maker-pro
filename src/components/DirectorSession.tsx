@@ -45,7 +45,6 @@ import {
 } from '@/features/director-session/utils/persistDirectorLiveSession';
 import { deactivateAllMyPreviousSessions, protectDirectorLiveSessionCode } from '@/features/director-session/utils/ghostSessionCleanup';
 import {
-  activateLiveSessionRow,
   deactivateLiveSessionRow,
 } from '@/features/director-session/utils/liveSessionActive';
 
@@ -882,22 +881,12 @@ export default function DirectorSession({
     }
   }, [isOutOfSessionScope]);
 
-  // Mantiene is_active=true cada 5s mientras el director tiene sesión abierta.
-  useEffect(() => {
-    if (!isDirector || !sessionCode) return;
-    void activateLiveSessionRow(sessionCode);
-    const keepActive = window.setInterval(() => {
-      void activateLiveSessionRow(sessionCode);
-    }, 5000);
-    return () => window.clearInterval(keepActive);
-  }, [isDirector, sessionCode]);
-
-  // Sync de campos de navegación en BD (debounce separado del heartbeat de is_active).
+  // DB field sync while directing (is_active keep-alive lives in LiveSessionChannelHost).
   useEffect(() => {
     if (!isDirector || !sessionCode) return;
     const syncFields = window.setInterval(() => {
       void persistSession(sessionCode, true);
-    }, 10000);
+    }, 15000);
     return () => window.clearInterval(syncFields);
   }, [isDirector, sessionCode, persistSession]);
 

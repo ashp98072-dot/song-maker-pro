@@ -2744,7 +2744,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         return;
       }
 
-      // Persisted follower without pending: banner only (no auto-join loop).
+      // Persisted follower with an active DB session: rejoin once per boot (hasRestoredRef).
+      // Force-home / inactive abort clear local state first, so this does not loop.
       if (storedRole === 'follower') {
         const activeCheck = await querySessionActive(code);
         if (!activeCheck.active || !recovery) {
@@ -2757,13 +2758,48 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
           clearPendingJoin();
           return;
         }
-        sessionRestoreLog('follower persisted — banner only (no auto-join)', { code });
-        sessionOriginRef.current = stored?.origin ?? null;
-        setDetected({ code, recovery, role: 'follower' });
-        transitionSessionStatus('detected', 'restorePersistedSession follower banner');
-        setActiveJoinCode(code);
-        sessionBannerLog('restored active session', { code, role: 'follower' });
-        setIsReconnecting(false);
+
+        await withJoinInFlight(
+          joinInFlightRef,
+          'restorePersistedSession',
+          liveSessionStatusRef.current,
+          async () => {
+            transitionSessionStatus('joining', 'restorePersistedSession follower rejoin');
+            sessionRestoreLog('follower persisted — auto rejoin active session', { code });
+            sessionOriginRef.current = stored?.origin ?? sessionOriginRef.current;
+            if (persisted?.passiveMode) setPassiveListenMode(true);
+            if (persisted?.followDirector === false) writeFollowDirector(false);
+
+            beginFollowerSession(code);
+            setActiveJoinCode(code);
+            setSessionConnected(true);
+
+            const remote = lastRemoteStateRef.current;
+            const resolved = resolveFollowerRecovery({
+              code,
+              remote,
+              dbRecovery: recovery,
+              sessionOrigin: sessionOriginRef.current,
+            });
+            followRecoveryLog({
+              source: resolved.source,
+              code,
+              currentIndex: resolved.recovery?.currentIndex ?? null,
+              songId: resolved.recovery?.songId ?? null,
+              reason: 'restore-persisted-rejoin',
+            });
+
+            if (resolved.recovery && readFollowDirector()) {
+              await navigateFollowerToDirectorState(code, {
+                source: 'restore-persisted',
+                recovery: resolved.recovery,
+                recoverySource: resolved.source,
+                force: true,
+              });
+            }
+            setIsReconnecting(false);
+          }
+        );
         return;
       }
 

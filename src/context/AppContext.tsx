@@ -4,6 +4,7 @@ import { SAMPLE_SONGS } from '@/data/songs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { loadVisitedSongsCache, mergeVisitedSongsIntoSongs } from '@/pwa/visitedSongsCache';
+import { clearAuthenticatedDirectorCache } from '@/features/director-session/utils/liveSessionAuth';
 
 interface AppContextType extends AppState {
   isLoading: boolean;
@@ -251,6 +252,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        clearAuthenticatedDirectorCache();
         setUserName('');
         setIsGuest(false);
         userIdRef.current = null;

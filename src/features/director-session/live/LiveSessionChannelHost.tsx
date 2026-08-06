@@ -28,7 +28,7 @@ import { auditEventLog } from '@/features/director-session/utils/auditEventLog';
 import { followTrace } from '@/features/director-session/utils/followTrace';
 import { FEATURES } from '@/config/features';
 import { attachFollowV3Listener } from '@/features/director-session/follow-v3/followV3Realtime';
-import { activateLiveSessionRow } from '@/features/director-session/utils/liveSessionActive';
+import { keepLiveSessionActiveHeartbeat } from '@/features/director-session/utils/liveSessionActive';
 
 console.log('[BOOT_IMPORT]', 'LiveSessionChannelHost');
 
@@ -638,16 +638,16 @@ export function LiveSessionChannelHost() {
     };
   }, [liveIsFollower, liveFollowerCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Mantiene is_active=true en BD mientras el director tiene canal activo (respaldo del heartbeat en DirectorSession).
+  // Lightweight is_active heartbeat (verify; RPC only if inactive).
   useEffect(() => {
     if (!liveIsDirector || !liveSessionCode) return;
 
     const normalizedCode = normalizeSessionCode(liveSessionCode);
-    void activateLiveSessionRow(normalizedCode);
+    void keepLiveSessionActiveHeartbeat(normalizedCode);
 
     const keepAlive = setInterval(() => {
-      void activateLiveSessionRow(normalizedCode);
-    }, HEARTBEAT_INTERVAL_MS);
+      void keepLiveSessionActiveHeartbeat(normalizedCode);
+    }, 30_000);
 
     return () => clearInterval(keepAlive);
   }, [liveIsDirector, liveSessionCode]);

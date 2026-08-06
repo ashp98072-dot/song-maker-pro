@@ -137,6 +137,21 @@ export async function forceUpdateAndVerifyLiveSessionActive(
   return false;
 }
 
+/** Lightweight keep-alive for open director sessions (no multi-attempt force). */
+export async function keepLiveSessionActiveHeartbeat(code: string): Promise<boolean> {
+  const normalized = normalizeSessionCode(code);
+  if (normalized.length < 4) return false;
+
+  const verify = await verifyLiveSessionActiveState(normalized);
+  if (verify.is_active === true) return true;
+
+  console.warn('[LIVE_SESSION_ACTIVE] heartbeat found inactive — activating via RPC', {
+    code: normalized,
+    is_active: verify.is_active,
+  });
+  return activateLiveSessionViaRpc(normalized);
+}
+
 /** Forces is_active=true with retries and RPC fallback; returns verified state. */
 export async function activateLiveSessionRow(
   code: string,
