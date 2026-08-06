@@ -183,6 +183,32 @@ import {
   RECONNECT_UI_DELAY_MS,
 } from '@/features/director-session/utils/realtimeReconnectGuard';
 import { persistDirectorLiveSessionFromShared } from '@/features/director-session/utils/persistDirectorLiveSession';
+
+const DIRECTOR_DB_PERSIST_MIN_MS = 12_000;
+let lastDirectorDbPersistAt = 0;
+let directorDbPersistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingDirectorDbPersist:
+  | { state: SharedSessionState; origin: SessionOrigin | null }
+  | null = null;
+
+function scheduleThrottledDirectorDbPersist(
+  state: SharedSessionState,
+  origin: SessionOrigin | null
+): void {
+  pendingDirectorDbPersist = { state, origin };
+  const elapsed = Date.now() - lastDirectorDbPersistAt;
+  const delay = Math.max(0, DIRECTOR_DB_PERSIST_MIN_MS - elapsed);
+
+  if (directorDbPersistTimer) return;
+  directorDbPersistTimer = setTimeout(() => {
+    directorDbPersistTimer = null;
+    const pending = pendingDirectorDbPersist;
+    pendingDirectorDbPersist = null;
+    if (!pending) return;
+    lastDirectorDbPersistAt = Date.now();
+    void persistDirectorLiveSessionFromShared(pending.state, pending.origin);
+  }, delay);
+}
 import { SessionRenderErrorBoundary } from '@/components/SessionRenderErrorBoundary';
 import type { LiveSessionStatus } from '@/features/director-session/utils/liveSessionStatus';
 import { logSessionStatusTransition } from '@/features/director-session/utils/sessionStatusLog';
@@ -1331,7 +1357,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         songId: normalized.currentSongId,
       });
       publishSharedSessionState(sessionId, normalized, opts);
-      void persistDirectorLiveSessionFromShared(normalized, sessionOriginRef.current);
+      // Throttle DB upsert — never on every realtime publish (was locking the UI).
+      scheduleThrottledDirectorDbPersist(normalized, sessionOriginRef.current);
     },
     [liveIsDirector, directorAwayFromScope]
   );
@@ -3107,7 +3134,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     ]
   );
 
-  /** Director handshake: page publish + broadcast ref fallback (view_mode, index, list). */
+  /** Director handshake: page publish + broadcast (DB persist is separate / throttled). */
   const publishFullSessionStateIfDirector = useCallback(
     (sessionCode: string, opts?: { force?: boolean; reason?: string }) => {
       if (!liveIsDirector) return;
@@ -3120,25 +3147,15 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       const snapshot = buildSharedSessionFromBroadcast(key, broadcastStateRef.current);
       if (snapshot) {
         const normalized = normalizeOutgoingSharedSession(key, snapshot);
-        const publishLog = {
-          session_code: key,
-          reason: opts?.reason ?? null,
-          view_mode: normalized.viewMode,
-          current_index: normalized.currentIndex ?? null,
-          list_id: normalized.listId ?? null,
-          list_song_ids: normalized.listSongIds ?? [],
-          current_song_id: normalized.currentSongId ?? null,
-          gender_shift: normalized.genderShift,
-          shared_section_anchor: normalized.sharedSectionAnchor ?? null,
-          updated_at: normalized.updatedAt,
-          force: opts?.force ?? true,
-        };
-        if (opts?.reason?.startsWith('director-initial')) {
-          console.log('[DIRECTOR_INITIAL_PUBLISH]', publishLog);
+        if (opts?.reason?.startsWith('director-initial') || opts?.force) {
+          console.log('[HANDSHAKE_SENT]', {
+            session_code: key,
+            reason: opts?.reason ?? null,
+            view_mode: normalized.viewMode,
+            current_song_id: normalized.currentSongId ?? null,
+          });
         }
-        console.log('[HANDSHAKE_SENT]', publishLog);
         publishFullSessionState(key, normalized, { force: opts?.force ?? true });
-        void persistDirectorLiveSessionFromShared(normalized, sessionOriginRef.current);
       } else {
         sessionLog('publishFullSessionState skipped — no broadcast snapshot', { code: key });
       }

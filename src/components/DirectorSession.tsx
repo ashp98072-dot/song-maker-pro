@@ -429,7 +429,11 @@ export default function DirectorSession({
       );
 
       publishSharedSessionIfDirector(sessionCode, payload, { immediate: true });
-      publishFullSessionStateIfDirector(sessionCode, { force: true });
+      // Avoid double-publish: publishFullSessionStateIfDirector also broadcasts.
+      // Keep a single forced path for handshake/nav.
+      if (reason === 'session-created' || reason === 'session-start' || reason === 'initial-handshake') {
+        publishFullSessionStateIfDirector(sessionCode, { force: true, reason });
+      }
     },
     [
       useGlobalChannel,
@@ -886,7 +890,7 @@ export default function DirectorSession({
     if (!isDirector || !sessionCode) return;
     const syncFields = window.setInterval(() => {
       void persistSession(sessionCode, true);
-    }, 15000);
+    }, 30000);
     return () => window.clearInterval(syncFields);
   }, [isDirector, sessionCode, persistSession]);
 

@@ -163,25 +163,15 @@ export function LiveSessionChannelHost() {
 
   const runDirectorSubscribedHandshake = useCallback((code: string) => {
     const key = normalizeSessionCode(code);
-    const publishInitial = (phase: 'immediate' | '400ms' | '1200ms') => {
-      console.log('[DIRECTOR_INITIAL_PUBLISH]', {
-        session_code: key,
-        phase,
-        trigger:
-          phase === 'immediate'
-            ? 'SUBSCRIBED'
-            : phase === '400ms'
-              ? 'SUBSCRIBED+400ms'
-              : 'SUBSCRIBED+1200ms',
-      });
-      requestThrottledFullPublishRef.current(key, `director-initial-${phase}`, {
-        bypassThrottle: true,
-      });
-    };
-    realtimeLog('handshake director subscribed — triple publish', { code: key });
-    publishInitial('immediate');
-    window.setTimeout(() => publishInitial('400ms'), 400);
-    window.setTimeout(() => publishInitial('1200ms'), 1200);
+    console.log('[DIRECTOR_INITIAL_PUBLISH]', {
+      session_code: key,
+      phase: 'immediate',
+      trigger: 'SUBSCRIBED',
+    });
+    // One handshake publish — triple publish was flooding realtime + UI.
+    requestThrottledFullPublishRef.current(key, 'director-initial-immediate', {
+      bypassThrottle: true,
+    });
   }, []);
 
   useEffect(() => {
@@ -278,25 +268,25 @@ export function LiveSessionChannelHost() {
         requestThrottledFullPublishRef.current(normalizedCode, 'request-current-state-force', {
           bypassThrottle: true,
         });
-        publishFullSessionStateIfDirectorRef.current(normalizedCode, {
-          force: true,
-          reason: 'request-current-state-force',
-        });
       });
 
       channel
         .on('presence', { event: 'sync' }, () => {
           const newState = channel!.presenceState();
-          const count = Object.keys(newState).length - 1;
-          setConnectedCount(Math.max(0, count));
-          realtimeLog('presence sync', { role: 'director', count });
+          // Count non-director presence keys (followers / musicians).
+          const followerKeys = Object.keys(newState).filter((k) => k !== 'director');
+          const count = followerKeys.length;
+          setConnectedCount(count);
+          realtimeLog('presence sync', { role: 'director', count, keys: Object.keys(newState) });
         })
-        .on('presence', { event: 'join' }, () => {
+        .on('presence', { event: 'join' }, ({ key }) => {
+          if (key === 'director') return;
           setTimeout(() => {
             requestThrottledFullPublishRef.current(normalizedCode, 'follower-presence-join');
             realtimeLog('event send', {
               reason: 'follower presence join',
               republish: 'full-shared-session',
+              presenceKey: key,
             });
           }, 600);
         })
@@ -452,7 +442,13 @@ export function LiveSessionChannelHost() {
       sessionProviderLog('follower auto-join', { code: normalizedCode });
 
       channel = supabase.channel(worshipSessionChannelName(normalizedCode), {
-        config: WORSHIP_CHANNEL_CONFIG,
+        config: {
+          ...WORSHIP_CHANNEL_CONFIG,
+          // Unique per tab so same-account director+follower don't overwrite presence.
+          presence: {
+            key: `follower-${session.user.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 8)}`,
+          },
+        },
       });
       followerChannelRef.current = channel;
 
