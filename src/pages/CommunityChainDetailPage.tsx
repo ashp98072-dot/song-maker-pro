@@ -286,7 +286,15 @@ export default function CommunityChainDetailPage() {
         </div>
         <h1 className="text-3xl font-bold font-display text-foreground mb-1">{list.name}</h1>
         <p className="text-sm text-muted-foreground">
-          Por {list.owner_name || 'Músico'} · {list.song_count} canciones
+          Por{' '}
+          {list.owner_id ? (
+            <Link to={`/perfil/${list.owner_id}`} className="text-gold hover:underline">
+              {list.owner_name || 'Músico'}
+            </Link>
+          ) : (
+            list.owner_name || 'Músico'
+          )}{' '}
+          · {list.song_count} canciones
         </p>
         {list.description && (
           <p className="text-sm text-foreground/80 mt-3">{list.description}</p>

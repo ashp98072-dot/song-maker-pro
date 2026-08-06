@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Heart, ListMusic, Plus, LogOut, ChevronDown, Globe, Database, Heart as HeartIcon, Sun, Moon } from 'lucide-react';
+import { Home, Heart, ListMusic, Plus, LogOut, ChevronDown, Globe, Database, Heart as HeartIcon, Sun, Moon, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useState, useRef, useEffect } from 'react';
 import logoUrl from '@/assets/worship-transpose-logo.png';
@@ -60,7 +60,6 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Toggle tema claro/oscuro — alto contraste para uso en exteriores */}
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-gold transition-colors"
@@ -70,7 +69,6 @@ export default function Navbar() {
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {/* Botón Donar destacado - estética dorada */}
           <Link
             to="/donaciones"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg gold-gradient text-primary-foreground text-sm font-semibold shadow-md hover:opacity-90 hover:shadow-lg transition-all active:scale-[0.98]"
@@ -90,7 +88,11 @@ export default function Navbar() {
             <ChevronDown className="w-3 h-3" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-40 rounded-lg bg-card border border-border shadow-lg py-1">
+            <div className="absolute right-0 mt-2 w-44 rounded-lg bg-card border border-border shadow-lg py-1">
+              <Link to="/perfil" onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                <User className="w-4 h-4" /> Mi perfil
+              </Link>
               <Link to="/backup" onClick={() => setMenuOpen(false)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                 <Database className="w-4 h-4" /> Backup

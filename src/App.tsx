@@ -27,6 +27,7 @@ import ListDetailPage from "@/pages/ListDetailPage";
 import AddSongPage from "@/pages/AddSongPage";
 import CommunityLibraryPage from "@/pages/CommunityLibraryPage";
 import CommunityChainDetailPage from "@/pages/CommunityChainDetailPage";
+import ProfilePage from "@/pages/ProfilePage";
 import BackupPage from "@/pages/BackupPage";
 import DonatePage from "@/pages/DonatePage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
@@ -311,6 +312,8 @@ function ProductionApp() {
                   <Route path="/agregar" element={<AddSongPage />} />
                   <Route path="/comunidad" element={<CommunityLibraryPage />} />
                   <Route path="/comunidad/cadena/:slug" element={<CommunityChainDetailPage />} />
+                  <Route path="/perfil" element={<ProfilePage />} />
+                  <Route path="/perfil/:userId" element={<ProfilePage />} />
                   <Route path="/backup" element={<BackupPage />} />
                   <Route path="/donaciones" element={<DonatePage />} />
                   <Route path="/payment-success" element={<PaymentSuccessPage />} />

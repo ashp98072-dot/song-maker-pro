@@ -8,6 +8,8 @@ describe('isPublicAppPath', () => {
     expect(isPublicAppPath('/comunidad')).toBe(true);
     expect(isPublicAppPath('/comunidad/foo')).toBe(true);
     expect(isPublicAppPath('/unirse/AB12')).toBe(true);
+    expect(isPublicAppPath('/perfil')).toBe(true);
+    expect(isPublicAppPath('/perfil/abc')).toBe(true);
     expect(isPublicAppPath('/')).toBe(true);
   });
 
