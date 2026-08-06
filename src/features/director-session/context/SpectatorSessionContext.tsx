@@ -3249,14 +3249,6 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   ]);
 
   useEffect(() => {
-    console.error('[LIVE_SESSION_CRITICAL]', {
-      liveFollowerCode,
-      followerAwaitingDirector,
-      hasSessionInDB: !!lastDbRowRef.current,
-    });
-  }, []);
-
-  useEffect(() => {
     if (!followerAwaitingDirector) return;
     void (async () => {
       const code = normalizeSessionCode(liveFollowerCode);
@@ -3264,10 +3256,12 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         const row = await getLiveSessionByCode(code);
         if (row) rememberDbRow(row);
       }
-      console.error('[LIVE_SESSION_CRITICAL]', {
+      console.warn('[LIVE_SESSION_AWAITING]', {
         liveFollowerCode,
         followerAwaitingDirector,
         hasSessionInDB: !!lastDbRowRef.current,
+        dbSongId: lastDbRowRef.current?.song_id ?? null,
+        dbActive: lastDbRowRef.current?.is_active ?? null,
       });
     })();
   }, [followerAwaitingDirector, liveFollowerCode, rememberDbRow]);
