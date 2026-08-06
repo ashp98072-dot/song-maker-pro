@@ -2,7 +2,7 @@ import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'reac
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
-import { SimpleLiveSyncPanel, type SimpleLiveState } from '@/features/simple-live-sync';
+import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';
@@ -194,6 +194,7 @@ export default function ContinuousSetlistPage() {
     activeJoinCode,
     setFollowDirectorPreference,
   } = useSpectatorSession();
+  const simpleLive = useSimpleLiveSyncOptional();
   const autoJoinFollower = sessionConnected;
   const effectiveJoinCode = activeJoinCode ?? joinSessionCode;
   const routeInitialAppliedRef = useRef(false);
@@ -271,6 +272,13 @@ export default function ContinuousSetlistPage() {
   useEffect(() => {
     followDirectorRef.current = followDirector;
   }, [followDirector]);
+
+  // Keep page follow flag in sync with simple-live panel checkbox.
+  useEffect(() => {
+    if (!simpleLive || simpleLive.role !== 'follower') return;
+    if (followDirector === simpleLive.followDirector) return;
+    setFollowDirector(simpleLive.followDirector);
+  }, [simpleLive?.role, simpleLive?.followDirector, followDirector, simpleLive]);
 
   const { list, entries, songIds, resolvedSongIds, resolvedSource } = useSetlistSongs(listId, {
     routeSongIds: routeState.listSongIds,
@@ -353,8 +361,11 @@ export default function ContinuousSetlistPage() {
     entries.length > 0
   );
 
-  const isFollowerRole = sessionConnection?.role === 'follower';
-  const isDirectorRole = liveIsDirector && sessionConnection?.role === 'director';
+  const isFollowerRole =
+    sessionConnection?.role === 'follower' || simpleLive?.role === 'follower';
+  const isDirectorRole =
+    (liveIsDirector && sessionConnection?.role === 'director') ||
+    simpleLive?.role === 'director';
   const followerContinuousFrozen =
     isFollowerRole && followDirector && !isFollowerContinuousEnabled(followDirector);
 

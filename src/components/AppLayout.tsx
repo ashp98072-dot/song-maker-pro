@@ -10,7 +10,7 @@ import { SessionStatusBar } from '@/features/director-session/components/Session
 import { DirectorSessionConflictDialog } from '@/features/director-session/components/DirectorSessionConflictDialog';
 import { JoinSessionConflictDialog } from '@/features/director-session/components/JoinSessionConflictDialog';
 import { FollowerJoinAwaitingOverlay } from '@/features/director-session/components/FollowerJoinAwaitingOverlay';
-import { SimpleLiveSyncProvider } from '@/features/simple-live-sync';
+import { SimpleLiveSyncProvider, SimpleLiveResumeBanner } from '@/features/simple-live-sync';
 
 export default function AppLayout() {
   const { userName } = useApp();
@@ -25,7 +25,9 @@ export default function AppLayout() {
     <main className="min-h-screen bg-background">
       <VisitedSongsRegistrar />
       <Navbar />
-      {!FEATURES.SIMPLE_LIVE_SYNC && (
+      {FEATURES.SIMPLE_LIVE_SYNC ? (
+        <SimpleLiveResumeBanner />
+      ) : (
         <>
           <ActiveSessionBanner />
           <SessionStatusBar />

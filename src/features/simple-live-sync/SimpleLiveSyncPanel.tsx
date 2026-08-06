@@ -84,7 +84,16 @@ export function SimpleLiveSyncPanel({
   // Follower: apply remote state when following
   useEffect(() => {
     if (role !== 'follower' || !followDirector || !lastState) return;
-    const key = `${lastState.songId}|${lastState.viewMode}|${lastState.currentIndex}|${lastState.semitones}|${lastState.genderShift}|${lastState.sectionAnchor}`;
+    const key = [
+      lastState.songId,
+      lastState.viewMode,
+      lastState.currentIndex,
+      lastState.semitones,
+      lastState.genderShift,
+      lastState.sectionAnchor,
+      lastState.listId,
+      lastState.listSongIds?.join(',') ?? '',
+    ].join('|');
     if (key === lastAppliedRef.current) return;
     lastAppliedRef.current = key;
     onRemoteState?.(lastState);
@@ -201,7 +210,7 @@ export function SimpleLiveSyncPanel({
           <div className="flex items-center justify-between text-[10px] font-bold px-1">
             <span className="text-muted-foreground flex items-center gap-1">
               <Users className="w-4 h-4 text-gold" />
-              {connectedCount} conectados
+              {connectedCount} conectado{connectedCount === 1 ? '' : 's'}
             </span>
             <span className={status === 'connected' ? 'text-emerald-400' : 'text-amber-300'}>
               {status === 'connected' ? 'Conectado' : 'Conectando…'}
@@ -221,9 +230,16 @@ export function SimpleLiveSyncPanel({
       {isFollower && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-mono tracking-widest">{code}</span>
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  status === 'connected' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+                }`}
+              />
+              <span className="text-muted-foreground font-mono tracking-widest">{code}</span>
+            </span>
             <span className={status === 'connected' ? 'text-emerald-400' : 'text-amber-300'}>
-              {status === 'connected' ? 'Conectado' : 'Conectando…'}
+              {status === 'connected' ? 'Siguiendo' : 'Conectando…'}
             </span>
           </div>
           <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">

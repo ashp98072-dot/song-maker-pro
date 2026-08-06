@@ -18,10 +18,17 @@ export type SimpleLiveState = {
   updatedAt: string;
 };
 
+export type SimpleLiveHint = {
+  code: string;
+  role: 'director' | 'follower';
+};
+
 export const SIMPLE_LIVE_STATE_EVENT = 'simple-live-state' as const;
 export const SIMPLE_LIVE_END_EVENT = 'simple-live-end' as const;
+export const SIMPLE_LIVE_REQUEST_EVENT = 'simple-live-request' as const;
 
-export const FOLLOW_DIRECTOR_KEY = 'wt_simple_follow_director';
+/** Manual rejoin hint only — never auto-connects on boot. */
+export const SIMPLE_LIVE_HINT_KEY = 'wt_simple_live_hint';
 
 export function simpleLiveChannelName(code: string): string {
   return `worship-session-${normalizeSessionCode(code)}`;
@@ -31,19 +38,33 @@ export function generateSimpleSessionCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-export function readFollowPreference(): boolean {
+export function readSimpleLiveHint(): SimpleLiveHint | null {
   try {
-    const v = localStorage.getItem(FOLLOW_DIRECTOR_KEY);
-    if (v === null) return true;
-    return v !== '0' && v !== 'false';
+    const raw = sessionStorage.getItem(SIMPLE_LIVE_HINT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SimpleLiveHint>;
+    const code = normalizeSessionCode(parsed.code ?? '');
+    if (code.length < 4) return null;
+    if (parsed.role !== 'director' && parsed.role !== 'follower') return null;
+    return { code, role: parsed.role };
   } catch {
-    return true;
+    return null;
   }
 }
 
-export function writeFollowPreference(on: boolean): void {
+export function writeSimpleLiveHint(hint: SimpleLiveHint | null): void {
   try {
-    localStorage.setItem(FOLLOW_DIRECTOR_KEY, on ? '1' : '0');
+    if (!hint) {
+      sessionStorage.removeItem(SIMPLE_LIVE_HINT_KEY);
+      return;
+    }
+    sessionStorage.setItem(
+      SIMPLE_LIVE_HINT_KEY,
+      JSON.stringify({
+        code: normalizeSessionCode(hint.code),
+        role: hint.role,
+      })
+    );
   } catch {
     /* ignore */
   }

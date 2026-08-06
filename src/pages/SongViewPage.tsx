@@ -30,7 +30,7 @@ import SetlistNav from '@/components/SetlistNav';
 import type { DirectorSessionConnection, SharedSessionState } from '@/features/director-session/types';
 import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
 import { FollowerDirectorSyncLoader } from '@/features/director-session/components/FollowerDirectorSyncLoader';
-import { SimpleLiveSyncPanel, type SimpleLiveState } from '@/features/simple-live-sync';
+import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { shouldApplyRemoteSectionAnchor } from '@/features/director-session/utils/shouldApplyRemoteSectionAnchor';
 import { useSessionOriginMismatch } from '@/features/director-session/hooks/useSessionOriginMismatch';
 import { useReportSessionPageContext } from '@/features/director-session/hooks/useReportSessionPageContext';
@@ -168,6 +168,7 @@ export default function SongViewPage() {
   const [fetchedSong, setFetchedSong] = useState<Song | null>(null);
   const routeSongId = resolveSongIdFromRouteParam(songIdentifier, songs);
   const spectator = useSpectatorSession();
+  const simpleLive = useSimpleLiveSyncOptional();
   const {
     connection: sessionConnection,
     publishSharedSessionIfDirector,
@@ -446,6 +447,12 @@ export default function SongViewPage() {
   useEffect(() => {
     followDirectorRef.current = followDirector;
   }, [followDirector]);
+
+  useEffect(() => {
+    if (!simpleLive || simpleLive.role !== 'follower') return;
+    if (followDirector === simpleLive.followDirector) return;
+    setFollowDirector(simpleLive.followDirector);
+  }, [simpleLive?.role, simpleLive?.followDirector, followDirector, simpleLive]);
   const [liveNote, setLiveNote] = useState<string>('');
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const pendingSectionAnchorRef = useRef<string | null>(null);
@@ -1282,8 +1289,6 @@ export default function SongViewPage() {
           if (!state.listId) return;
           persistContinuousListSync(state.listId, ids);
           const livePath = `/setlist/${state.listId}/live`;
-          const sessionCode =
-            sessionConnection?.sessionCode ?? joinSessionCode ?? undefined;
           if (location.pathname !== livePath) {
             continuousSyncLog('navigate follower to live', {
               listId: state.listId,
@@ -1301,7 +1306,11 @@ export default function SongViewPage() {
               state: {
                 listId: state.listId,
                 listSongIds: ids,
-                joinSessionCode: sessionCode,
+                joinSessionCode:
+                  state.sessionId ??
+                  sessionConnection?.sessionCode ??
+                  joinSessionCode ??
+                  undefined,
                 initialSongId: state.currentSongId ?? undefined,
                 initialIndex: state.currentIndex,
                 currentIndex: state.currentIndex,
