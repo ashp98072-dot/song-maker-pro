@@ -8,15 +8,20 @@ import {
   Loader2,
   ListMusic,
   MessageCircle,
+  Pencil,
   Send,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import {
+  deletePublicList,
   fetchListComments,
   fetchPublicListBySlug,
   postListComment,
   snapshotToSong,
+  updatePublicListMeta,
+  updatePublicListSongs,
   type PublicListComment,
   type PublicListRow,
   type PublicListSongSnapshot,
@@ -38,14 +43,20 @@ export default function CommunityChainDetailPage() {
   const [preview, setPreview] = useState<PublicListSongSnapshot | null>(null);
   const [commentBody, setCommentBody] = useState('');
   const [posting, setPosting] = useState(false);
-  const [hasAuthSession, setHasAuthSession] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [removingSongId, setRemovingSongId] = useState<string | null>(null);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      setHasAuthSession(!!data.session?.user);
+      setUserId(data.session?.user?.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setHasAuthSession(!!session?.user);
+      setUserId(session?.user?.id ?? null);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -73,6 +84,8 @@ export default function CommunityChainDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const isOwner = !!(list && userId && list.owner_id === userId);
 
   const openSongInViewer = async (snap: PublicListSongSnapshot) => {
     const key = `${snap.song_id}`;
@@ -144,6 +157,83 @@ export default function CommunityChainDetailPage() {
     }
   };
 
+  const openEdit = () => {
+    if (!list) return;
+    setEditName(list.name);
+    setEditDescription(list.description || '');
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!list || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const result = await updatePublicListMeta({
+        listId: list.id,
+        name: editName,
+        description: editDescription,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setList({
+        ...list,
+        name: editName.trim().slice(0, 120),
+        description: editDescription.trim().slice(0, 500) || null,
+      });
+      setEditing(false);
+      toast.success('Cadena actualizada');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const removeSong = async (songId: string) => {
+    if (!list || !isOwner || removingSongId) return;
+    if (list.songs.length <= 1) {
+      toast.error('Deja al menos una canción, o elimina la cadena completa');
+      return;
+    }
+    if (!confirm('¿Quitar esta canción de la cadena pública?')) return;
+    setRemovingSongId(songId);
+    try {
+      const next = list.songs.filter((s) => s.song_id !== songId);
+      const result = await updatePublicListSongs(list.id, next);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setList({ ...list, songs: next, song_count: next.length });
+      toast.success('Canción quitada de la cadena');
+    } finally {
+      setRemovingSongId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!list || deleting) return;
+    if (
+      !confirm(
+        `¿Eliminar la cadena pública «${list.name}»? Dejará de verse en Comunidad.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const result = await deletePublicList(list.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Cadena eliminada');
+      navigate('/comunidad');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleComment = async () => {
     if (!list || posting) return;
     setPosting(true);
@@ -203,6 +293,30 @@ export default function CommunityChainDetailPage() {
         )}
       </div>
 
+      {isOwner && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            type="button"
+            onClick={openEdit}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-sm font-bold hover:bg-secondary"
+          >
+            <Pencil className="w-4 h-4 text-gold" /> Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-destructive/40 text-destructive text-sm font-bold hover:bg-destructive/10 disabled:opacity-50"
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Eliminar
+          </button>
+          <p className="w-full text-[11px] text-muted-foreground">
+            Eres el autor. Para refrescar canciones y tonos, vuelve a «Publicar cadena» desde Mis Listas.
+          </p>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => void handleImport()}
@@ -252,10 +366,78 @@ export default function CommunityChainDetailPage() {
               >
                 <Eye className="w-4 h-4" />
               </button>
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => void removeSong(snap.song_id)}
+                  disabled={removingSongId === snap.song_id}
+                  className="p-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0 disabled:opacity-50"
+                  title="Quitar de la cadena"
+                  aria-label={`Quitar ${snap.title}`}
+                >
+                  {removingSongId === snap.song_id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !savingEdit && setEditing(false)}
+        >
+          <div
+            className="glass-card p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold font-display text-foreground mb-4">Editar cadena</h2>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Nombre
+            </label>
+            <input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              maxLength={120}
+              className="mt-1 mb-3 w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Descripción (opcional)
+            </label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="mt-1 mb-4 w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void saveEdit()}
+                disabled={savingEdit || !editName.trim()}
+                className="flex-1 py-2.5 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                disabled={savingEdit}
+                className="px-4 py-2.5 rounded-lg border border-border text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {preview && (
         <div
@@ -365,7 +547,7 @@ export default function CommunityChainDetailPage() {
           </button>
         </div>
         <p className="text-[11px] text-muted-foreground mt-2">
-          {hasAuthSession
+          {userId
             ? `Comentando como ${userName || 'usuario'}`
             : isGuest
               ? 'Inicia sesión (no invitado) para comentar.'

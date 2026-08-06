@@ -22,7 +22,11 @@ export {
   fetchPublicLists,
   postListComment,
   publishListAsCadena,
+  updatePublicListMeta,
+  updatePublicListSongs,
+  deletePublicList,
   type PublishListInput,
+  type UpdateCadenaMetaInput,
 } from '@/features/community/publicListsApi';
 export {
   buildListSlug,

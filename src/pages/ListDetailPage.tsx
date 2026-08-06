@@ -199,7 +199,7 @@ export default function ListDetailPage() {
         text: `Cadena con ${listSongs.length} canciones`,
         url,
       });
-      toast.success('Cadena publicada en Comunidad');
+      toast.success('Cadena publicada / actualizada en Comunidad');
     } finally {
       setPublishingCadena(false);
     }
@@ -234,14 +234,14 @@ export default function ListDetailPage() {
               onClick={() => void publishCadena()}
               disabled={publishingCadena || !list?.id}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gold/40 bg-card text-foreground text-sm font-bold hover:bg-gold/10 transition-all active:scale-95 disabled:opacity-40"
-              title="Publica esta lista en Comunidad para que otros la importen y comenten"
+              title="Publica o actualiza esta lista en Comunidad (canciones, tonos y enlace)"
             >
               {publishingCadena ? (
                 <Loader2 className="w-4 h-4 animate-spin text-gold" />
               ) : (
                 <Globe className="w-4 h-4 text-gold" />
               )}
-              Publicar cadena
+              Publicar / actualizar
             </button>
             <button
               type="button"

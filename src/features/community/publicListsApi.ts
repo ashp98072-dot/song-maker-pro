@@ -131,6 +131,91 @@ export async function publishListAsCadena(
   return { ok: true, slug: data.slug, id: data.id };
 }
 
+export type UpdateCadenaMetaInput = {
+  listId: string;
+  name: string;
+  description?: string | null;
+};
+
+export async function updatePublicListMeta(
+  input: UpdateCadenaMetaInput
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return { ok: false, error: 'Inicia sesión para editar' };
+  }
+
+  const name = input.name.trim().slice(0, 120);
+  if (!name) return { ok: false, error: 'El nombre no puede estar vacío' };
+
+  const { error } = await supabase
+    .from('public_lists')
+    .update({
+      name,
+      description: input.description?.trim().slice(0, 500) || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.listId)
+    .eq('owner_id', authData.user.id);
+
+  if (error) {
+    console.error('[community] updatePublicListMeta', error);
+    return { ok: false, error: error.message || 'No se pudo guardar' };
+  }
+  return { ok: true };
+}
+
+export async function updatePublicListSongs(
+  listId: string,
+  songs: PublicListSongSnapshot[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return { ok: false, error: 'Inicia sesión para editar' };
+  }
+  if (!songs.length) {
+    return { ok: false, error: 'La cadena no puede quedar vacía. Elimínala si ya no la necesitas.' };
+  }
+
+  const { error } = await supabase
+    .from('public_lists')
+    .update({
+      songs: songs as unknown as Json,
+      song_count: songs.length,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', listId)
+    .eq('owner_id', authData.user.id);
+
+  if (error) {
+    console.error('[community] updatePublicListSongs', error);
+    return { ok: false, error: error.message || 'No se pudo actualizar las canciones' };
+  }
+  return { ok: true };
+}
+
+/** Soft-delete: hides from community; owner can no longer open via public slug. */
+export async function deletePublicList(
+  listId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return { ok: false, error: 'Inicia sesión para eliminar' };
+  }
+
+  const { error } = await supabase
+    .from('public_lists')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', listId)
+    .eq('owner_id', authData.user.id);
+
+  if (error) {
+    console.error('[community] deletePublicList', error);
+    return { ok: false, error: error.message || 'No se pudo eliminar' };
+  }
+  return { ok: true };
+}
+
 export async function fetchListComments(listId: string): Promise<PublicListComment[]> {
   const { data, error } = await supabase
     .from('public_list_comments')
