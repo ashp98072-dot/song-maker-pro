@@ -1,9 +1,41 @@
--- Community library: genre taxonomy + public read + authenticated publish.
--- public_songs already exists in production; this extends it safely.
+-- Community library: create public_songs (if missing) + genre taxonomy + RLS + facets RPC.
+-- NOTE: production may not have public_songs yet (types assumed it; this creates it).
 
+CREATE TABLE IF NOT EXISTS public.public_songs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  song_id text NOT NULL,
+  title text NOT NULL,
+  artist text NOT NULL DEFAULT '',
+  original_key text NOT NULL DEFAULT 'C',
+  scale_mode text NOT NULL DEFAULT 'major',
+  chords text NOT NULL DEFAULT '',
+  bpm integer,
+  suggested_key text,
+  title_slug text NOT NULL,
+  is_cover boolean NOT NULL DEFAULT false,
+  uploader_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  genre text NOT NULL DEFAULT 'adoracion',
+  original_gender text NOT NULL DEFAULT 'male',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT public_songs_song_id_unique UNIQUE (song_id),
+  CONSTRAINT public_songs_title_len CHECK (char_length(trim(title)) BETWEEN 1 AND 200)
+);
+
+-- Safer for DBs that already had a partial public_songs without these columns.
 ALTER TABLE public.public_songs
   ADD COLUMN IF NOT EXISTS genre text NOT NULL DEFAULT 'adoracion',
-  ADD COLUMN IF NOT EXISTS original_gender text NOT NULL DEFAULT 'male';
+  ADD COLUMN IF NOT EXISTS original_gender text NOT NULL DEFAULT 'male',
+  ADD COLUMN IF NOT EXISTS bpm integer,
+  ADD COLUMN IF NOT EXISTS suggested_key text,
+  ADD COLUMN IF NOT EXISTS is_cover boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS scale_mode text NOT NULL DEFAULT 'major',
+  ADD COLUMN IF NOT EXISTS chords text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS original_key text NOT NULL DEFAULT 'C',
+  ADD COLUMN IF NOT EXISTS title_slug text,
+  ADD COLUMN IF NOT EXISTS artist text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 COMMENT ON COLUMN public.public_songs.genre IS
   'Curated worship genre slug (adoracion, alabanza, contemporaneo, himno, coral, juvenil, ninos, instrumental, otro).';
@@ -47,7 +79,6 @@ CREATE POLICY "public_songs_delete_own"
   TO authenticated
   USING (auth.uid() = uploader_id);
 
--- Filter facets for UI chips (artists / keys / genres present in catalog).
 CREATE OR REPLACE FUNCTION public.public_song_filter_facets()
 RETURNS json
 LANGUAGE sql
