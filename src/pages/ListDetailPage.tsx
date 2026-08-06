@@ -1,13 +1,14 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import SongCard from '@/components/SongCard';
-import { ArrowLeft, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Share2, PlayCircle, ScrollText } from 'lucide-react';
+import { ArrowLeft, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Share2, PlayCircle, ScrollText, Church } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
 import { NOTES_SHARP, encodeListShare } from '@/utils/transpose';
 import { getUserSemitones } from '@/utils/userTranspositions';
 import { getSongPath, getSongPathById } from '@/utils/songSlug';
+import { shareNative } from '@/utils/shareNative';
 
 function noteIndex(note: string): number {
   return NOTES_SHARP.indexOf(note.replace('b', '').replace('#', ''));
@@ -124,16 +125,17 @@ export default function ListDetailPage() {
       });
 
       const url = `${window.location.origin}/listas?share=${encoded}`;
-      await navigator.clipboard.writeText(url);
-      
       const count = Object.keys(transpositions).length;
-      toast.success(
-        count > 0
-          ? `Enlace copiado: Incluye ${count} tonos personalizados`
-          : 'Enlace de la lista copiado'
-      );
-    } catch (err) {
-      toast.error("No se pudo copiar el enlace");
+      await shareNative({
+        title: `${list.name} — Worship Transpose`,
+        text:
+          count > 0
+            ? `Lista con ${listSongs.length} canciones (${count} tonos personalizados)`
+            : `Lista con ${listSongs.length} canciones`,
+        url,
+      });
+    } catch {
+      toast.error('No se pudo compartir el enlace');
     }
   };
 
@@ -165,6 +167,15 @@ export default function ListDetailPage() {
     if (!list?.id || listSongs.length === 0) return;
     clearManualExitContinuous();
     navigate(`/setlist/${list.id}/live`);
+  };
+
+  /** Continuo + live director + teleprompter + compartir unión. */
+  const startServiceMode = () => {
+    if (!list?.id || listSongs.length === 0) return;
+    clearManualExitContinuous();
+    navigate(`/setlist/${list.id}/live?culto=1`, {
+      state: { startServiceMode: true },
+    });
   };
 
   return (
@@ -199,6 +210,15 @@ export default function ListDetailPage() {
               title="Teleprompter: todas las canciones en un scroll continuo"
             >
               <ScrollText className="w-4 h-4" /> Modo continuo
+            </button>
+            <button
+              type="button"
+              onClick={() => startServiceMode()}
+              disabled={!list?.id}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gold/40 bg-card text-foreground text-sm font-bold hover:bg-gold/10 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+              title="Continuo + en vivo + teleprompter + enlace para unirse"
+            >
+              <Church className="w-4 h-4 text-gold" /> Iniciar culto
             </button>
             <button
               onClick={startLiveSession}

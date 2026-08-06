@@ -52,16 +52,19 @@ export async function startWorshipServiceMode(opts: {
   }
 
   if (plan.needsCreate) {
-    const ok = await live.createAsDirector({
-      songId: input.songId,
-      listId: input.listId ?? null,
-      listSongIds: input.listSongIds ?? [],
-      currentIndex: input.currentIndex ?? 0,
-      viewMode: input.viewMode ?? 'musician',
-      semitones: input.semitones ?? 0,
-      genderShift: input.genderShift ?? 'original',
-      sectionAnchor: input.sectionAnchor ?? null,
-    });
+    const ok = await live.createAsDirector(
+      {
+        songId: input.songId,
+        listId: input.listId ?? null,
+        listSongIds: input.listSongIds ?? [],
+        currentIndex: input.currentIndex ?? 0,
+        viewMode: input.viewMode ?? 'musician',
+        semitones: input.semitones ?? 0,
+        genderShift: input.genderShift ?? 'original',
+        sectionAnchor: input.sectionAnchor ?? null,
+      },
+      { quiet: true }
+    );
     if (!ok) return false;
   }
 

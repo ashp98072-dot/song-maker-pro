@@ -99,6 +99,7 @@ import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDoc
 import { useMobileControlsChrome } from '@/features/mobile-worship/hooks/useMobileControlsChrome';
 import { MobileControlsRestoreFab } from '@/features/mobile-worship/components/MobileControlsRestoreFab';
 import { TeleprompterLivePill } from '@/features/mobile-worship/components/TeleprompterLivePill';
+import { startWorshipServiceMode } from '@/features/mobile-worship/utils/worshipServiceMode';
 import {
   loadContinuousPersisted,
   saveContinuousPersisted,
@@ -167,6 +168,8 @@ type ContinuousRouteState = {
   initialSongId?: string;
   initialIndex?: number;
   recoverySource?: 'shared-session' | 'db' | 'route' | 'fallback';
+  /** From ListDetail “Iniciar culto” — auto-start live + teleprompter once. */
+  startServiceMode?: boolean;
 };
 
 export type { ExitContinuousNavState } from '@/features/director-session/utils/exitContinuousNavigation';
@@ -927,6 +930,66 @@ export default function ContinuousSetlistPage() {
   });
 
   autoScrollingRef.current = autoScrolling;
+
+  const serviceModeBootRef = useRef(false);
+  const wantsServiceModeBoot =
+    routeState.startServiceMode === true || searchParams.get('culto') === '1';
+
+  useEffect(() => {
+    if (!wantsServiceModeBoot || serviceModeBootRef.current) return;
+    if (!FEATURES.SIMPLE_LIVE_SYNC || !simpleLive || !currentSong || entries.length === 0) {
+      return;
+    }
+    if (simpleLive.role === 'follower') return;
+
+    serviceModeBootRef.current = true;
+
+    void startWorshipServiceMode({
+      live: simpleLive,
+      hideControls,
+      input: {
+        songId: currentSong.id,
+        semitones: effectiveSemitones,
+        viewMode: 'continuous',
+        genderShift:
+          genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',
+        currentIndex: visibility.currentSongIndex >= 0 ? visibility.currentSongIndex : 0,
+        listId: listId ?? null,
+        listSongIds: resolvedSongIds.length > 0 ? resolvedSongIds : songIds,
+        sectionAnchor: directorSectionAnchor || visibility.currentSection || null,
+      },
+      share: true,
+    }).then((ok) => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('culto');
+      const qs = next.toString();
+      const { startServiceMode: _drop, ...restState } = routeState;
+      navigate(
+        { pathname: location.pathname, search: qs ? `?${qs}` : '' },
+        { replace: true, state: restState }
+      );
+      if (!ok) serviceModeBootRef.current = false;
+    });
+  }, [
+    wantsServiceModeBoot,
+    simpleLive,
+    currentSong?.id,
+    entries.length,
+    hideControls,
+    effectiveSemitones,
+    genderShift,
+    visibility.currentSongIndex,
+    visibility.currentSection,
+    listId,
+    resolvedSongIds,
+    songIds,
+    directorSectionAnchor,
+    searchParams,
+    routeState,
+    navigate,
+    location.pathname,
+    currentSong,
+  ]);
 
   useEffect(() => {
     if (!isFollowerRole || !followDirector) return;

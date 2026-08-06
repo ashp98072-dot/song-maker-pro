@@ -74,7 +74,10 @@ export type SimpleLiveSyncContextValue = {
   error: string | null;
   /** Stored hint for manual rejoin (never auto-connects). */
   resumable: SimpleLiveHint | null;
-  createAsDirector: (input: CreateInput) => Promise<boolean>;
+  createAsDirector: (
+    input: CreateInput,
+    opts?: { quiet?: boolean }
+  ) => Promise<boolean>;
   joinAsFollower: (code: string) => Promise<boolean>;
   resumeSession: () => Promise<boolean>;
   dismissResumable: () => void;
@@ -401,7 +404,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
   );
 
   const createAsDirector = useCallback(
-    async (input: CreateInput) => {
+    async (input: CreateInput, opts?: { quiet?: boolean }) => {
       setError(null);
       setStatus('connecting');
 
@@ -464,11 +467,13 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       lastPublishKeyRef.current = '';
       publishSnapshot(state, true);
 
-      toast.success(`Sesión activa: ${newCode}`);
+      if (!opts?.quiet) {
+        toast.success(`Sesión activa: ${newCode}`);
+      }
       log('director created', { code: newCode });
       return true;
     },
-    [publishSnapshot, rememberHint, subscribeChannel]
+    [buildState, publishSnapshot, rememberHint, subscribeChannel]
   );
 
   const joinAsFollower = useCallback(
