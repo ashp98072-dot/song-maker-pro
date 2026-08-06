@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, Loader2, ListMusic, MessageCircle, Send } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Download,
+  Eye,
+  Loader2,
+  ListMusic,
+  MessageCircle,
+  Send,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import {
@@ -10,20 +19,36 @@ import {
   snapshotToSong,
   type PublicListComment,
   type PublicListRow,
+  type PublicListSongSnapshot,
 } from '@/features/community';
 import { bulkSetUserTranspositions } from '@/utils/userTranspositions';
 import { normalizeTitle } from '@/utils/textNormalize';
+import { getSongPath } from '@/utils/songSlug';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CommunityChainDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { songs, addSong, createList, setListSongs } = useApp();
+  const { songs, addSong, createList, setListSongs, isGuest, userName } = useApp();
   const [list, setList] = useState<PublicListRow | null>(null);
   const [comments, setComments] = useState<PublicListComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PublicListSongSnapshot | null>(null);
   const [commentBody, setCommentBody] = useState('');
   const [posting, setPosting] = useState(false);
+  const [hasAuthSession, setHasAuthSession] = useState(false);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      setHasAuthSession(!!data.session?.user);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setHasAuthSession(!!session?.user);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const load = useCallback(async () => {
     if (!slug) return;
@@ -48,6 +73,34 @@ export default function CommunityChainDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const openSongInViewer = async (snap: PublicListSongSnapshot) => {
+    const key = `${snap.song_id}`;
+    if (openingId) return;
+    setOpeningId(key);
+    try {
+      const asSong = snapshotToSong(snap);
+      const existing = songs.find(
+        (s) =>
+          s.id === asSong.id ||
+          (normalizeTitle(s.title) === normalizeTitle(asSong.title) &&
+            normalizeTitle(s.artist) === normalizeTitle(asSong.artist))
+      );
+      const song = existing ?? asSong;
+      if (!existing) {
+        await addSong(asSong);
+      }
+      const catalog = existing ? songs : [song, ...songs];
+      navigate(getSongPath(song, catalog), {
+        state: { seedSong: song, fromCadena: list?.slug },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo abrir la canción');
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   const handleImport = async () => {
     if (!list || importing) return;
@@ -161,22 +214,101 @@ export default function CommunityChainDetailPage() {
       </button>
 
       <div className="space-y-2 mb-10">
-        {list.songs.map((snap, idx) => (
+        {list.songs.map((snap, idx) => {
+          const busy = openingId === snap.song_id;
+          return (
+            <div
+              key={`${snap.song_id}-${idx}`}
+              className="glass-card px-3 py-3 flex items-center gap-2"
+            >
+              <button
+                type="button"
+                onClick={() => void openSongInViewer(snap)}
+                disabled={!!openingId}
+                className="flex-1 min-w-0 flex items-center gap-3 text-left hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                <span className="text-xs font-mono text-muted-foreground w-6 shrink-0">
+                  {idx + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground truncate">{snap.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {snap.artist} · {snap.original_key}
+                    {snap.semitones ? ` · ${snap.semitones > 0 ? '+' : ''}${snap.semitones}` : ''}
+                  </p>
+                </div>
+                {busy ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-gold shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreview(snap)}
+                className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground shrink-0"
+                title="Vista previa"
+                aria-label={`Vista previa de ${snap.title}`}
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreview(null)}
+        >
           <div
-            key={`${snap.song_id}-${idx}`}
-            className="glass-card px-4 py-3 flex items-center gap-3"
+            className="glass-card p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-xs font-mono text-muted-foreground w-6">{idx + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground truncate">{snap.title}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {snap.artist} · {snap.original_key}
-                {snap.semitones ? ` · ${snap.semitones > 0 ? '+' : ''}${snap.semitones}` : ''}
-              </p>
+            <div className="flex items-start justify-between mb-4 gap-3">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold font-display text-foreground truncate">
+                  {preview.title}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {preview.artist} · Tono: {preview.original_key}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="text-muted-foreground hover:text-foreground text-xl"
+              >
+                ×
+              </button>
+            </div>
+            <pre className="font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap mb-4">
+              {preview.chords || 'Sin acordes'}
+            </pre>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const snap = preview;
+                  setPreview(null);
+                  void openSongInViewer(snap);
+                }}
+                className="flex-1 py-2.5 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm"
+              >
+                Abrir en el visor
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="px-4 py-2.5 rounded-lg border border-border text-sm text-muted-foreground"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       <section>
         <div className="flex items-center gap-2 mb-4">
@@ -232,7 +364,13 @@ export default function CommunityChainDetailPage() {
             {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2">Requiere sesión iniciada.</p>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          {hasAuthSession
+            ? `Comentando como ${userName || 'usuario'}`
+            : isGuest
+              ? 'Inicia sesión (no invitado) para comentar.'
+              : 'Requiere sesión iniciada.'}
+        </p>
       </section>
     </div>
   );

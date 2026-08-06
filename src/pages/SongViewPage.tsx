@@ -122,11 +122,13 @@ import { scrollToSectionAnchor } from '@/utils/sectionAnchorScroll';
 import { SectionQuickNav } from '@/features/song-view/components/SectionQuickNav';
 import { useSongPageSeo } from '@/features/seo/useSongPageSeo';
 import {
+  buildSongSlug,
   getSongFromSlugOrId,
   getSongPath,
   getSongPathById,
   isNumericSongId,
   resolveSongIdFromRouteParam,
+  slugifySongTitle,
 } from '@/utils/songSlug';
 import {
   Dialog,
@@ -168,7 +170,12 @@ export default function SongViewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { songs, toggleFavorite, isFavorite, lists, addSongToList, createList, updateSong, isAdmin } = useApp();
-  const [fetchedSong, setFetchedSong] = useState<Song | null>(null);
+  const seedSong =
+    (location.state as { seedSong?: Song } | null)?.seedSong &&
+    typeof (location.state as { seedSong?: Song }).seedSong?.id === 'string'
+      ? (location.state as { seedSong: Song }).seedSong
+      : null;
+  const [fetchedSong, setFetchedSong] = useState<Song | null>(seedSong);
   const routeSongId = resolveSongIdFromRouteParam(songIdentifier, songs);
   const spectator = useSpectatorSession();
   const simpleLive = useSimpleLiveSyncOptional();
@@ -213,12 +220,25 @@ export default function SongViewPage() {
     if (!songIdentifier) return;
     let cancelled = false;
     void getSongFromSlugOrId(songIdentifier, songs).then((resolved) => {
-      if (!cancelled) setFetchedSong(resolved);
+      if (cancelled) return;
+      if (resolved) {
+        setFetchedSong(resolved);
+        return;
+      }
+      const seed = (location.state as { seedSong?: Song } | null)?.seedSong;
+      if (
+        seed &&
+        (seed.id === songIdentifier ||
+          buildSongSlug(seed, songs) === songIdentifier ||
+          slugifySongTitle(seed.title) === songIdentifier)
+      ) {
+        setFetchedSong(seed);
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [songIdentifier, songs]);
+  }, [songIdentifier, songs, location.state]);
 
   useEffect(() => {
     if (!song || !songIdentifier || !isNumericSongId(songIdentifier)) return;
