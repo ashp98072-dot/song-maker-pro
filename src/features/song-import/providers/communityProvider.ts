@@ -1,7 +1,7 @@
 import type { SongImportProvider } from '@/features/song-import/types';
 
 /**
- * Community library: user uploads, votes, versioning (DB-backed — wire to Supabase later).
+ * Community library: user uploads with genre taxonomy (Supabase public_songs).
  */
 export const communityProvider: SongImportProvider = {
   id: 'community',

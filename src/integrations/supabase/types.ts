@@ -193,8 +193,10 @@ export type Database = {
           bpm: number | null
           chords: string
           created_at: string
+          genre: string
           id: string
           is_cover: boolean
+          original_gender: string
           original_key: string
           scale_mode: string
           song_id: string
@@ -209,8 +211,10 @@ export type Database = {
           bpm?: number | null
           chords?: string
           created_at?: string
+          genre?: string
           id?: string
           is_cover?: boolean
+          original_gender?: string
           original_key?: string
           scale_mode?: string
           song_id: string
@@ -225,8 +229,10 @@ export type Database = {
           bpm?: number | null
           chords?: string
           created_at?: string
+          genre?: string
           id?: string
           is_cover?: boolean
+          original_gender?: string
           original_key?: string
           scale_mode?: string
           song_id?: string
@@ -460,6 +466,10 @@ export type Database = {
           chords: string
           created_at: string
         }[]
+      }
+      public_song_filter_facets: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       has_role: {
         Args: {

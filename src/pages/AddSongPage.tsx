@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { Gender, ScaleMode } from '@/types/music';
 import { processSmartPaste, processInlineChords } from '@/utils/smartPaste';
-import { publishSongToLibrary } from '@/pages/CommunityLibraryPage';
+import { publishSongToPublicLibrary, COMMUNITY_GENRES, type CommunityGenreId } from '@/features/community';
 import { findInvalidBrackets } from '@/utils/chordValidator';
 import { normalizeTitle } from '@/utils/textNormalize';
 import { Wand2, Camera, Loader2, Globe, Trash2, AlertTriangle } from 'lucide-react';
@@ -24,9 +24,11 @@ export default function AddSongPage() {
   const [chords, setChords] = useState('');
   const [smartPasteText, setSmartPasteText] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [genre, setGenre] = useState<CommunityGenreId>('adoracion');
   const [isCover, setIsCover] = useState(false);
   const [duplicateFound, setDuplicateFound] = useState<{ title: string; artist: string } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chordsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -57,6 +59,7 @@ export default function AddSongPage() {
     setChords('');
     setSmartPasteText('');
     setIsPublic(false);
+    setGenre('adoracion');
     toast.success('🧹 Lienzo limpio');
   };
 
@@ -104,9 +107,9 @@ export default function AddSongPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !artist.trim() || !chords.trim()) return;
+    if (!title.trim() || !artist.trim() || !chords.trim() || saving) return;
 
     // Detección de duplicados (mismo título + artista normalizados)
     const normTitle = normalizeTitle(title);
@@ -132,19 +135,32 @@ export default function AddSongPage() {
       scaleMode,
       lyrics: lyrics.trim(),
       chords: chords.trim(),
+      genre: isPublic ? genre : undefined,
       createdAt: new Date().toLocaleDateString(),
       isNew: true,
     };
-    
-    addSong(newSong);
-    
-    if (isPublic) {
-      publishSongToLibrary(newSong);
-      toast.success('🌍 Canción publicada en la biblioteca comunitaria');
+
+    setSaving(true);
+    try {
+      await addSong(newSong);
+
+      if (isPublic) {
+        const published = await publishSongToPublicLibrary({
+          song: newSong,
+          genre,
+          isCover,
+        });
+        if (!published.ok) {
+          toast.error(published.error);
+        } else {
+          toast.success('Publicada en la biblioteca comunitaria');
+        }
+      }
+      toast.success('Canción agregada');
+      navigate('/');
+    } finally {
+      setSaving(false);
     }
-    toast.success('✅ Canción agregada');
-    
-    navigate('/');
   };
 
   return (
@@ -272,24 +288,48 @@ export default function AddSongPage() {
         </div>
 
         {/* Public toggle */}
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
-          <Globe className="w-4 h-4 text-gold" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Publicar en Biblioteca Comunitaria</p>
-            <p className="text-xs text-muted-foreground">Otros músicos podrán encontrar y usar esta canción</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
+            <Globe className="w-4 h-4 text-gold" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Publicar en Biblioteca Comunitaria</p>
+              <p className="text-xs text-muted-foreground">Otros músicos podrán encontrar y usar esta canción</p>
+            </div>
+            <button type="button" onClick={() => setIsPublic(!isPublic)}
+              className={`w-10 h-5 rounded-full transition-colors ${isPublic ? 'bg-gold' : 'bg-muted'}`}>
+              <div className={`w-4 h-4 rounded-full bg-foreground transition-transform ${isPublic ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
-          <button type="button" onClick={() => setIsPublic(!isPublic)}
-            className={`w-10 h-5 rounded-full transition-colors ${isPublic ? 'bg-gold' : 'bg-muted'}`}>
-            <div className={`w-4 h-4 rounded-full bg-foreground transition-transform ${isPublic ? 'translate-x-5' : 'translate-x-0.5'}`} />
-          </button>
+          {isPublic && (
+            <div className="p-3 rounded-lg border border-border bg-card">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Género
+              </label>
+              <select
+                value={genre}
+                onChange={(e) => setGenre(e.target.value as CommunityGenreId)}
+                className="mt-2 w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {COMMUNITY_GENRES.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Requiere sesión iniciada. Sin cuenta solo se guarda en tu repertorio.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 pt-2">
           <button type="button" onClick={() => navigate('/')} className="px-4 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-secondary transition-colors">
             Cancelar
           </button>
-          <button type="submit" className="flex-1 py-2.5 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity">
-            Guardar Canción
+          <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {saving ? 'Guardando…' : 'Guardar Canción'}
           </button>
         </div>
 

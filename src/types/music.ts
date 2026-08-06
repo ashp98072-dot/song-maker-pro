@@ -70,6 +70,8 @@ export interface Song {
   bpm?: number;
   /** URL de YouTube persistida (user_songs.youtube_url) */
   youtubeUrl?: string;
+  /** Community genre slug (adoracion, alabanza, …) */
+  genre?: string;
   isPopular?: boolean;
   isNew?: boolean;
   createdAt?: string;
