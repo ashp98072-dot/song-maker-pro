@@ -51,7 +51,7 @@ const CHANNEL_CONFIG = {
   private: true,
 } as const;
 
-const HEARTBEAT_MS = 20_000;
+const HEARTBEAT_MS = 45_000;
 
 type CreateInput = {
   songId: string | null;
@@ -315,8 +315,12 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       const syncPresence = () => {
         const state = channel.presenceState();
         const followers = countFollowers(state);
-        setConnectedCount(followers);
-        log('presence sync', { keys: Object.keys(state), followers });
+        setConnectedCount((prev) => {
+          if (prev !== followers) {
+            log('presence sync', { keys: Object.keys(state), followers });
+          }
+          return followers;
+        });
       };
 
       channel.on('presence', { event: 'sync' }, syncPresence);

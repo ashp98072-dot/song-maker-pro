@@ -51,7 +51,7 @@ export function ContinuousSetlistScroller({
   );
 
   return (
-    <div className="continuous-setlist-track max-w-4xl mx-auto px-3 sm:px-4 pb-32">
+    <div className="continuous-setlist-track w-full max-w-4xl mx-auto px-2 sm:px-4 pb-24 sm:pb-32">
       {entries.map(({ song, index }) => {
         const inWindow = isIndexInWindow(index, windowStart, windowEnd);
         if (!inWindow) {

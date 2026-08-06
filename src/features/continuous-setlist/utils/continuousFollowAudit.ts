@@ -68,8 +68,8 @@ export function readVisibleSongIndexFromDom(
   return { index: bestIndex, songId: bestSongId };
 }
 
-const SETTLE_VERIFY_MS = 400;
-const SCROLL_DRIFT_PX = 12;
+const SETTLE_VERIFY_MS = 500;
+const SCROLL_DRIFT_PX = 28;
 
 export type SettleVerifyCallbacks = {
   onDuplicate: (detail: Record<string, unknown>) => void;

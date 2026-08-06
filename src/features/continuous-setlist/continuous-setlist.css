@@ -2,6 +2,7 @@
 
 .continuous-setlist-root {
   --continuous-dock-height: 5.5rem;
+  --continuous-session-bar: 0px;
 }
 
 .continuous-exit-btn {
@@ -44,15 +45,20 @@
 }
 
 .continuous-setlist-scroll {
-  height: calc(100dvh - 3.5rem);
+  height: calc(100dvh - 3.5rem - var(--continuous-session-bar));
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  overscroll-behavior-y: contain;
+}
+
+.continuous-setlist-root.is-director-smooth .continuous-setlist-scroll {
   scroll-behavior: smooth;
 }
 
 .continuous-setlist-root.is-fullscreen .continuous-setlist-scroll {
-  height: 100dvh;
+  height: calc(100dvh - var(--continuous-session-bar));
 }
 
 .continuous-setlist-root.has-dock .continuous-setlist-scroll {
@@ -85,19 +91,70 @@
   padding: 0 1rem 1rem;
 }
 
+.continuous-session-panel.is-live-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  max-width: none;
+  margin: 0;
+  padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid hsl(var(--border) / 0.6);
+  background: hsl(var(--background) / 0.94);
+  backdrop-filter: blur(10px);
+}
+
+.continuous-session-panel.is-live-bar .glass-card {
+  margin-top: 0;
+  padding: 0.75rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 @media (max-width: 1023px) {
   .continuous-setlist-root.has-dock .continuous-toolbar {
     display: none;
+  }
+
+  .continuous-setlist-root.has-live-bar {
+    --continuous-session-bar: 5.5rem;
+  }
+
+  .continuous-setlist-track {
+    max-width: none !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .continuous-song-block .chord-sheet-scroll {
+    padding: 0.75rem !important;
+  }
+
+  .continuous-exit-btn {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.6875rem;
   }
 }
 
 /* Móvil: ocultar controles = teleprompter limpio (sin panel inferior) */
 @media (max-width: 768px) {
+  .continuous-setlist-root.has-live-bar {
+    --continuous-session-bar: 4.75rem;
+  }
+
   .continuous-setlist-root.is-teleprompter-hidden .continuous-setlist-scroll {
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 
   .continuous-setlist-root.is-teleprompter-hidden.has-dock {
     --continuous-dock-height: 0;
+  }
+
+  .continuous-setlist-root.is-teleprompter-hidden {
+    --continuous-session-bar: 0px;
+  }
+
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-session-panel.is-live-bar {
+    display: none;
   }
 }

@@ -930,9 +930,11 @@ export default function ContinuousSetlistPage() {
     if (!root) return;
 
     let lastTop = root.scrollTop;
+    let lastLogAt = 0;
     const onScroll = () => {
       const top = root.scrollTop;
-      if (Math.abs(top - lastTop) < 4) return;
+      const delta = Math.abs(top - lastTop);
+      if (delta < 8) return;
       lastTop = top;
 
       if (
@@ -943,14 +945,18 @@ export default function ContinuousSetlistPage() {
         return;
       }
 
+      const now = Date.now();
+      if (now - lastLogAt < 2000) return;
+      lastLogAt = now;
+
       const detail = {
-        timestamp: Date.now(),
+        timestamp: now,
         scrollTop: top,
         probableSource: 'untracked follower scroll',
         ...getFollowAuditSnapshot('scroll-container'),
       };
       const diagnosis = reportRuntimeEvent('unexpected-scroll', detail, {
-        scrollDelta: top - lastTop,
+        scrollDelta: delta,
       });
       followUnexpectedScrollLog({
         ...detail,
@@ -2791,6 +2797,9 @@ export default function ContinuousSetlistPage() {
     settings.ultraContrast ? 'is-ultra' : '',
     dockUiVisible ? 'has-dock' : '',
     mobileTeleprompter ? 'is-teleprompter-hidden' : '',
+    // Smooth scroll only for director — followers snap instantly (less drift / lag).
+    isDirector && !isFollower ? 'is-director-smooth' : '',
+    FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle' ? 'has-live-bar' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -2818,15 +2827,15 @@ export default function ContinuousSetlistPage() {
       </button>
 
       {isFollower && !followDirector && (
-        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-4 py-1.5">
+        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5 hidden sm:block">
           <p className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-200">
             Siguiendo desactivado — sigues conectado; navegación y scroll no se sincronizan hasta que lo reactives.
           </p>
         </div>
       )}
 
-      {isFollower && (
-        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-4 py-1.5">
+      {isFollower && !FEATURES.SIMPLE_LIVE_SYNC && (
+        <div className="sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5">
           <label className="flex items-center justify-between gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs">
             <span className="font-medium text-blue-200">
               {followDirector ? 'Seguir al director' : 'Dejar de seguir al director'}
@@ -2905,9 +2914,28 @@ export default function ContinuousSetlistPage() {
         />
       </div>
 
-      <div className={showSession || FEATURES.SIMPLE_LIVE_SYNC ? 'continuous-session-panel' : 'sr-only h-0 overflow-hidden'} aria-hidden={!showSession && !FEATURES.SIMPLE_LIVE_SYNC}>
+      <div
+        className={
+          (showSession || (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle'))
+            ? `continuous-session-panel${
+                FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle'
+                  ? ' is-live-bar'
+                  : ''
+              }`
+            : FEATURES.SIMPLE_LIVE_SYNC && showSession
+              ? 'continuous-session-panel'
+              : 'sr-only h-0 overflow-hidden'
+        }
+        aria-hidden={
+          !(
+            showSession ||
+            (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle')
+          )
+        }
+      >
         {FEATURES.SIMPLE_LIVE_SYNC ? (
           <SimpleLiveSyncPanel
+            compact={simpleLive?.role !== 'idle'}
             songId={currentSong?.id ?? visibility.currentSongId ?? ''}
             semitones={currentSong ? effectiveSemitones : 0}
             viewMode="continuous"

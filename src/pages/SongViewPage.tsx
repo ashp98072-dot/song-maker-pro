@@ -2212,10 +2212,11 @@ export default function SongViewPage() {
         </button>
       )}
 
-      {sessionConnection && (
+      {(sessionConnection ||
+        (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle')) && (
         <div
           className={`sticky top-2 z-40 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-semibold uppercase tracking-wider ${
-            sessionConnection.role === 'director'
+            (sessionConnection?.role ?? simpleLive?.role) === 'director'
               ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
               : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
           }`}
@@ -2224,18 +2225,21 @@ export default function SongViewPage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-60" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-current" />
           </span>
-          {sessionConnection.role === 'director'
-            ? 'Sincronizando asistentes'
+          {(sessionConnection?.role ?? simpleLive?.role) === 'director'
+            ? `Transmitiendo · ${sessionConnection?.sessionCode ?? simpleLive?.code ?? ''}`
             : followDirector
-              ? 'Siguiendo al director'
-              : 'Siguiendo desactivado'}
-          {sessionConnection.role === 'follower' && (
+              ? `Siguiendo · ${sessionConnection?.sessionCode ?? simpleLive?.code ?? ''}`
+              : `Conectado · ${sessionConnection?.sessionCode ?? simpleLive?.code ?? ''}`}
+          {(sessionConnection?.role === 'follower' || simpleLive?.role === 'follower') && (
             <label className="normal-case ml-auto flex items-center gap-2 font-normal text-[10px] cursor-pointer">
-              <span className="text-muted-foreground">Seguir director</span>
+              <span className="text-muted-foreground">Seguir</span>
               <input
                 type="checkbox"
                 checked={followDirector}
-                onChange={(e) => handleFollowDirectorChange(e.target.checked)}
+                onChange={(e) => {
+                  handleFollowDirectorChange(e.target.checked);
+                  simpleLive?.setFollowDirector(e.target.checked);
+                }}
                 className="h-3.5 w-3.5 accent-gold"
               />
             </label>

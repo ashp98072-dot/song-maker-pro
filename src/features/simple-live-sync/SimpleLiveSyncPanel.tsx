@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Radio, Users, Wifi } from 'lucide-react';
 import { toast } from 'sonner';
 import { normalizeSessionCode } from '@/features/director-session/types';
@@ -16,6 +16,8 @@ type Props = {
   listSongIds?: string[];
   sharedSectionAnchor?: string | null;
   onRemoteState?: (state: SimpleLiveState) => void;
+  /** Compact bar for continuous mobile footer. */
+  compact?: boolean;
 };
 
 function mapGender(
@@ -35,6 +37,7 @@ export function SimpleLiveSyncPanel({
   listSongIds = [],
   sharedSectionAnchor = null,
   onRemoteState,
+  compact = false,
 }: Props) {
   const {
     role,
@@ -53,26 +56,35 @@ export function SimpleLiveSyncPanel({
   const [joinInput, setJoinInput] = useState('');
   const [busy, setBusy] = useState(false);
   const lastAppliedRef = useRef('');
+  const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Director: publish local song/view changes
+  const listKey = useMemo(() => (listSongIds ?? []).join(','), [listSongIds]);
+
+  // Director: debounced publish (avoids spam on rapid prop churn)
   useEffect(() => {
     if (role !== 'director' || status !== 'connected') return;
-    publish({
-      songId,
-      listId: listId ?? null,
-      listSongIds: listSongIds ?? [],
-      currentIndex: currentIndex ?? 0,
-      viewMode,
-      semitones,
-      genderShift: mapGender(genderShift),
-      sectionAnchor: sharedSectionAnchor ?? null,
-    });
+    if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+    publishTimerRef.current = setTimeout(() => {
+      publish({
+        songId,
+        listId: listId ?? null,
+        listSongIds: listKey ? listKey.split(',') : [],
+        currentIndex: currentIndex ?? 0,
+        viewMode,
+        semitones,
+        genderShift: mapGender(genderShift),
+        sectionAnchor: sharedSectionAnchor ?? null,
+      });
+    }, 120);
+    return () => {
+      if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+    };
   }, [
     role,
     status,
     songId,
     listId,
-    listSongIds,
+    listKey,
     currentIndex,
     viewMode,
     semitones,
@@ -151,8 +163,47 @@ export function SimpleLiveSyncPanel({
   const isFollower = role === 'follower';
   const connecting = status === 'connecting' || busy;
 
+  if (compact && (isDirector || isFollower)) {
+    return (
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <div className="flex min-w-0 items-center gap-2">
+          <Radio
+            className={`h-3.5 w-3.5 shrink-0 ${
+              isDirector ? 'animate-pulse text-red-500' : 'text-gold'
+            }`}
+          />
+          <span className="truncate font-mono tracking-widest text-gold">{code}</span>
+          {isDirector && (
+            <span className="shrink-0 text-muted-foreground">
+              {connectedCount} online
+            </span>
+          )}
+          {isFollower && (
+            <label className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={followDirector}
+                onChange={(e) => setFollowDirector(e.target.checked)}
+                className="rounded border-white/20"
+              />
+              Seguir
+            </label>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => void onLeave()}
+          disabled={busy}
+          className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 font-bold hover:bg-secondary/60"
+        >
+          {isDirector ? 'Detener' : 'Salir'}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="glass-card p-4 mt-4 border-t border-white/10 bg-black/10">
+    <div className="glass-card p-3 sm:p-4 mt-4 border-t border-white/10 bg-black/10">
       <label className="text-[10px] font-black text-gold flex items-center gap-1.5 mb-3 uppercase tracking-[0.2em]">
         <Radio className={`w-3.5 h-3.5 ${isDirector ? 'animate-pulse text-red-500' : 'text-gold'}`} />
         {isDirector ? 'Transmitiendo en Vivo' : isFollower ? 'Modo Escucha Activo' : 'Sincronización'}
@@ -194,10 +245,12 @@ export function SimpleLiveSyncPanel({
           {status === 'connecting' && (
             <p className="text-xs text-amber-300/90 text-center py-1">Conectando sesión…</p>
           )}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gold/5 border border-gold/20">
+          <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-gold/5 border border-gold/20">
             <div>
               <p className="text-[9px] text-gold/60 uppercase font-black">Tu código:</p>
-              <p className="text-3xl font-mono font-black text-gold tracking-widest">{code}</p>
+              <p className="text-2xl sm:text-3xl font-mono font-black text-gold tracking-widest">
+                {code}
+              </p>
             </div>
             <button
               type="button"
