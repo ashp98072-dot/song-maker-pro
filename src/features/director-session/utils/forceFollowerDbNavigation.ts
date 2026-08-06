@@ -7,6 +7,7 @@ import {
 } from '@/features/director-session/utils/sessionRecovery';
 import { normalizeViewMode, resolveSharedViewMode } from '@/types/music';
 import { getSongPathById } from '@/utils/songSlug';
+import { asSongIdOrNull } from '@/utils/asSongIdOrNull';
 
 export type DbRpcNavTarget = {
   path: string;
@@ -108,10 +109,7 @@ function resolveForceNavSongId(
       ? enriched.listSongIds[Math.max(0, enriched.currentIndex ?? 0)] ??
         enriched.listSongIds[0]
       : null);
-  if (!raw) return null;
-  // Reject local list Date.now() ids used as song paths.
-  if (/^\d{12,14}$/.test(raw.trim())) return null;
-  return raw;
+  return asSongIdOrNull(raw, enriched.listId);
 }
 
 export function resolveEmergencyFollowerPath(

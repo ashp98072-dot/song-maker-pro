@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'wt_follow_director';
 const LEGACY_SESSION_KEY = 'worship-follow-director';
 
+let defaultLogged = false;
+
 export function followPrefLog(message: string, detail?: unknown): void {
   if (detail !== undefined) {
     console.log(`[FOLLOW_PREF] ${message}`, detail);
@@ -59,7 +61,12 @@ export function readFollowDirector(): boolean {
     const migrated = migrateLegacySessionStorage();
     if (migrated !== null) return migrated;
 
-    followRestoredLog('default true (no stored preference)');
+    // Persist default once so re-renders / StatusBar do not flood the console.
+    localStorage.setItem(STORAGE_KEY, '1');
+    if (!defaultLogged) {
+      defaultLogged = true;
+      followRestoredLog('default true (no stored preference)');
+    }
     return true;
   } catch {
     return true;
@@ -79,6 +86,7 @@ export function clearFollowDirectorStorage(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(LEGACY_SESSION_KEY);
+    defaultLogged = false;
   } catch {
     /* ignore */
   }

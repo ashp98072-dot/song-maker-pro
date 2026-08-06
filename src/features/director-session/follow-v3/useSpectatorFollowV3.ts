@@ -10,6 +10,8 @@ export type UseSpectatorFollowV3Opts = {
   sessionCode: string;
   handlerRef: MutableRefObject<((state: FollowV3RemoteState) => void) | null>;
   lastRemoteStateRef: MutableRefObject<SharedSessionState | null>;
+  /** Called when a Follow V3 song is applied (clears awaiting overlay). */
+  onSongApplied?: (songId: string) => void;
 };
 
 function logReceiveCompare(
@@ -86,8 +88,9 @@ export function useSpectatorFollowV3(opts: UseSpectatorFollowV3Opts): void {
       lastRemoteV3Ref.current = remote;
       lastAppliedSeqRef.current = remote.seq;
       logReceiveCompare(remote, { applied: true });
+      opts.onSongApplied?.(songId);
     },
-    [opts.enabled]
+    [opts.enabled, opts.onSongApplied]
   );
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import { clearAllLiveSessionLocalState } from '@/features/director-session/utils
 import { sessionRecoveryLog } from '@/features/director-session/utils/sessionRecoveryLog';
 import { joinSessionLog } from '@/features/director-session/utils/joinSessionLog';
 import { joinDebugLog } from '@/features/director-session/utils/joinNavigationDebug';
+import { asSongIdOrNull } from '@/utils/asSongIdOrNull';
 
 export const LIVE_SESSION_STORAGE_KEY = 'worship-live-session';
 
@@ -61,16 +62,15 @@ function normalizeGenderShift(raw: string | null | undefined): SharedSessionGend
 
 export function mapLiveSessionRow(row: LiveSessionRow): SessionRecoveryState {
   const listSongIds = parseListSongIds(row.list_song_ids);
-  const rawSongId = row.song_id?.trim() || null;
-  // Epoch-millis ids are local list ids — never treat them as song_id.
-  const songId =
-    rawSongId && !/^\d{12,14}$/.test(rawSongId) ? rawSongId : null;
+  const listId = row.list_id ?? null;
+  // Songs often use Date.now() ids — only drop song_id when it equals list_id.
+  const songId = asSongIdOrNull(row.song_id, listId);
   const base: SessionRecoveryState = {
     code: row.code,
     directorId: row.director_id,
     songId,
     listSongIds,
-    listId: row.list_id,
+    listId,
     semitones: row.semitones ?? 0,
     bpm: row.bpm,
     currentKey: row.current_key,

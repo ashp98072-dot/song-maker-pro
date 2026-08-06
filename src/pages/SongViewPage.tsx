@@ -187,7 +187,7 @@ export default function SongViewPage() {
     [isFollowOwner, followSongId, songs]
   );
   const effectiveSongId = isFollowOwner
-    ? followV3Resolve?.resolvedSongId ?? null
+    ? followV3Resolve?.resolvedSongId ?? routeSongId ?? fetchedSong?.id ?? null
     : routeSongId ?? fetchedSong?.id ?? null;
   /** Canonical song id for session/sync logic (legacy name kept across page). */
   const id = effectiveSongId ?? undefined;
@@ -1904,12 +1904,23 @@ export default function SongViewPage() {
   }, [song?.id, songViewPreference, isFullscreen]);
 
   if (!song) {
-    if (liveIsFollower && followerAwaitingDirector) {
+    // Only block on overlay when we cannot resolve a song from the URL either.
+    if (
+      liveIsFollower &&
+      followerAwaitingDirector &&
+      !routeSongId &&
+      !fetchedSong?.id
+    ) {
       return <FollowerDirectorSyncLoader />;
     }
 
     const awaitingDirector =
-      liveIsFollower && isFollowOwner && (!followSongId || !effectiveSongId);
+      liveIsFollower &&
+      isFollowOwner &&
+      !followSongId &&
+      !effectiveSongId &&
+      !routeSongId &&
+      !fetchedSong?.id;
 
     if (awaitingDirector) {
       return <FollowerDirectorSyncLoader />;

@@ -167,7 +167,8 @@ import {
   shouldDisableLegacyFollowPipeline,
 } from '@/features/director-session/follow-v3/isFollowV3Active';
 import type { FollowV3RemoteState } from '@/features/director-session/follow-v3/types';
-import { resetFollowV3State } from '@/features/director-session/follow-v3/followV3Store';
+import { resetFollowV3State, setFollowV3Song } from '@/features/director-session/follow-v3/followV3Store';
+import { asSongIdOrNull } from '@/utils/asSongIdOrNull';
 import { useFollowV3RouteMount } from '@/features/director-session/follow-v3/useFollowV3RouteMount';
 import { useSpectatorFollowV3 } from '@/features/director-session/follow-v3/useSpectatorFollowV3';
 import { shouldIgnoreFollowerUpdate } from '@/features/director-session/utils/shouldIgnoreFollowerUpdate';
@@ -408,11 +409,18 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     ((remote: SharedSessionState, source: string) => void) | null
   >(null);
 
+  const clearAwaitingOnV3Song = useCallback((_songId: string) => {
+    followerAwaitingDirectorRef.current = false;
+    awaitingFirstBroadcastRef.current = false;
+    setFollowerAwaitingDirector(false);
+  }, []);
+
   useSpectatorFollowV3({
     enabled: FEATURES.USE_FOLLOW_V3 && liveIsFollower,
     sessionCode: liveFollowerCode || activeJoinCode || '',
     handlerRef: followV3HandlerRef,
     lastRemoteStateRef,
+    onSongApplied: clearAwaitingOnV3Song,
   });
 
   const resetFollowerHardeningState = useCallback(() => {
@@ -1521,13 +1529,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   );
 
   const resolveFollowerSongIdForNav = useCallback((recovery: SessionRecoveryState): string | null => {
-    const asSong = (id: string | null | undefined) => {
-      if (!id) return null;
-      const trimmed = id.trim();
-      // Local list ids used Date.now() — never navigate to /cancion/{timestamp}.
-      if (/^\d{12,14}$/.test(trimmed)) return null;
-      return trimmed;
-    };
+    const asSong = (id: string | null | undefined) =>
+      asSongIdOrNull(id, recovery.listId);
 
     const fromRecovery = asSong(recovery.songId);
     if (fromRecovery) return fromRecovery;
@@ -1850,6 +1853,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
           currentIndex: recovery.currentIndex,
           source: opts?.source,
         });
+        setFollowV3Song(songId, Math.max(Date.now(), getFollowV3State().seq + 1));
         setFollowerAwaitingDirector(false);
         navigate(path, {
           replace: navReplace || true,
