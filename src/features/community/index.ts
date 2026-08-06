@@ -16,3 +16,20 @@ export {
   type CommunityFacets,
   type PublishPublicSongInput,
 } from '@/features/community/publicSongsApi';
+export {
+  fetchListComments,
+  fetchPublicListBySlug,
+  fetchPublicLists,
+  postListComment,
+  publishListAsCadena,
+  type PublishListInput,
+} from '@/features/community/publicListsApi';
+export {
+  buildListSlug,
+  parseListSongsJson,
+  snapshotToSong,
+  songToSnapshot,
+  type PublicListComment,
+  type PublicListRow,
+  type PublicListSongSnapshot,
+} from '@/features/community/listTypes';

@@ -244,6 +244,75 @@ export type Database = {
         }
         Relationships: []
       }
+      public_lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string
+          owner_name: string
+          slug: string
+          song_count: number
+          songs: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id: string
+          owner_name?: string
+          slug: string
+          song_count?: number
+          songs?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string
+          owner_name?: string
+          slug?: string
+          song_count?: number
+          songs?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      public_list_comments: {
+        Row: {
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          list_id: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          list_id: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          list_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       song_attachments: {
         Row: {
           created_at: string

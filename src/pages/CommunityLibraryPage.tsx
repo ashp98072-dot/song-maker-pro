@@ -1,23 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
-import { Search, Globe, Plus, Eye, Star, CheckCircle, Loader2 } from 'lucide-react';
+import { Search, Globe, Plus, Eye, Star, CheckCircle, Loader2, ListMusic } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Song } from '@/types/music';
 import { toast } from 'sonner';
 import { browseCatalogSongs } from '@/features/song-discovery/browseSongs';
 import { getSongPath } from '@/utils/songSlug';
+import { matchesSearch } from '@/utils/textNormalize';
 import SongCard from '@/components/SongCard';
 import {
   COMMUNITY_GENRES,
   buildLocalFacets,
   fetchCommunityFacets,
+  fetchPublicLists,
   fetchPublicSongs,
   filterCommunitySongs,
   genreLabel,
   publishSongToPublicLibrary,
   type CommunityFacets,
   type CommunityGenreId,
+  type PublicListRow,
 } from '@/features/community';
 
 const COMMUNITY_RATINGS_KEY = 'worship-community-ratings';
@@ -77,6 +80,7 @@ function Chip({
 
 export default function CommunityLibraryPage() {
   const { songs, addSong } = useApp();
+  const [tab, setTab] = useState<'songs' | 'cadenas'>('songs');
   const [search, setSearch] = useState('');
   const [genre, setGenre] = useState<string | null>(null);
   const [keyFilter, setKeyFilter] = useState<string | null>(null);
@@ -84,6 +88,7 @@ export default function CommunityLibraryPage() {
   const [previewSong, setPreviewSong] = useState<Song | null>(null);
   const [ratings, setRatings] = useState<CommunityRatings>(getRatings);
   const [publicSongs, setPublicSongs] = useState<Song[]>([]);
+  const [publicLists, setPublicLists] = useState<PublicListRow[]>([]);
   const [facets, setFacets] = useState<CommunityFacets>({
     genres: [],
     keys: [],
@@ -98,11 +103,13 @@ export default function CommunityLibraryPage() {
     (async () => {
       setLoading(true);
       try {
-        const [rows, remoteFacets] = await Promise.all([
+        const [rows, remoteFacets, lists] = await Promise.all([
           fetchPublicSongs(400),
           fetchCommunityFacets(),
+          fetchPublicLists(80).catch(() => [] as PublicListRow[]),
         ]);
         if (cancelled) return;
+        setPublicLists(lists);
         if (rows.length > 0) {
           setPublicSongs(rows);
           setFacets(remoteFacets.total > 0 ? remoteFacets : buildLocalFacets(rows));
@@ -115,6 +122,12 @@ export default function CommunityLibraryPage() {
         if (cancelled) return;
         setPublicSongs([]);
         setSource('catalog');
+        try {
+          const lists = await fetchPublicLists(80);
+          if (!cancelled) setPublicLists(lists);
+        } catch {
+          if (!cancelled) setPublicLists([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -167,6 +180,17 @@ export default function CommunityLibraryPage() {
     artist,
     ratings,
   ]);
+
+  const filteredLists = useMemo(() => {
+    const q = search.trim();
+    if (!q) return publicLists;
+    return publicLists.filter(
+      (l) =>
+        matchesSearch(l.name, q) ||
+        matchesSearch(l.owner_name, q) ||
+        l.songs.some((s) => matchesSearch(s.title, q) || matchesSearch(s.artist, q))
+    );
+  }, [publicLists, search]);
 
   const genreChips = useMemo(() => {
     const ids =
@@ -257,22 +281,107 @@ export default function CommunityLibraryPage() {
           </h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          {source === 'public'
-            ? 'Canciones compartidas por la comunidad. Filtra por género, tono o artista.'
-            : 'Catálogo compartido (aún no hay publicaciones comunitarias). Filtra por tono o artista.'}
+          {tab === 'cadenas'
+            ? 'Cadenas (listas) compartidas por la comunidad. Importa y comenta.'
+            : source === 'public'
+              ? 'Canciones compartidas por la comunidad. Filtra por género, tono o artista.'
+              : 'Catálogo compartido (aún no hay publicaciones comunitarias). Filtra por tono o artista.'}
         </p>
       </motion.div>
+
+      <div className="flex gap-2 mb-5">
+        <button
+          type="button"
+          onClick={() => setTab('songs')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${
+            tab === 'songs'
+              ? 'bg-gold/15 border-gold text-gold'
+              : 'bg-secondary border-border text-muted-foreground'
+          }`}
+        >
+          Canciones
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('cadenas')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors inline-flex items-center gap-2 ${
+            tab === 'cadenas'
+              ? 'bg-gold/15 border-gold text-gold'
+              : 'bg-secondary border-border text-muted-foreground'
+          }`}
+        >
+          <ListMusic className="w-4 h-4" />
+          Cadenas
+          {publicLists.length > 0 && (
+            <span className="text-[10px] opacity-80">({publicLists.length})</span>
+          )}
+        </button>
+      </div>
 
       <div className="relative mb-4">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por título, artista o tono..."
+          placeholder={
+            tab === 'cadenas'
+              ? 'Buscar cadena por nombre, autor o canción...'
+              : 'Buscar por título, artista o tono...'
+          }
           className="w-full max-w-2xl pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
         />
       </div>
 
+      {tab === 'cadenas' ? (
+        loading ? (
+          <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Cargando cadenas…
+          </div>
+        ) : filteredLists.length === 0 ? (
+          <div className="text-center py-16">
+            <ListMusic className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+            <p className="text-muted-foreground mb-2">
+              {search
+                ? 'No hay cadenas con ese criterio.'
+                : 'Aún no hay cadenas públicas. Publica una desde Mis Listas.'}
+            </p>
+            <Link to="/listas" className="text-gold text-sm font-semibold hover:underline">
+              Ir a Mis Listas
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredLists.map((cadena) => (
+              <Link
+                key={cadena.id}
+                to={`/comunidad/cadena/${cadena.slug}`}
+                className="glass-card p-5 hover:bg-surface-hover transition-colors block"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-gold/10 text-gold shrink-0">
+                    <ListMusic className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground truncate">{cadena.name}</h3>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {cadena.owner_name || 'Músico'} · {cadena.song_count} canciones
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                      {cadena.songs
+                        .slice(0, 4)
+                        .map((s) => s.title)
+                        .join(' · ')}
+                      {cadena.songs.length > 4 ? '…' : ''}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )
+      ) : (
+        <>
       <div className="space-y-3 mb-8">
         {source === 'public' && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -481,6 +590,8 @@ export default function CommunityLibraryPage() {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

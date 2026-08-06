@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import SongCard from '@/components/SongCard';
-import { ArrowLeft, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Share2, PlayCircle, ScrollText, Church } from 'lucide-react';
+import { ArrowLeft, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Share2, PlayCircle, ScrollText, Church, Globe, Loader2 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
@@ -9,6 +9,7 @@ import { NOTES_SHARP, encodeListShare } from '@/utils/transpose';
 import { getUserSemitones } from '@/utils/userTranspositions';
 import { getSongPath, getSongPathById } from '@/utils/songSlug';
 import { shareNative } from '@/utils/shareNative';
+import { publishListAsCadena } from '@/features/community';
 
 function noteIndex(note: string): number {
   return NOTES_SHARP.indexOf(note.replace('b', '').replace('#', ''));
@@ -48,6 +49,7 @@ export default function ListDetailPage() {
   const list = useMemo(() => lists.find(l => l.id === id), [lists, id]);
   const [currentIdx, setCurrentIdx] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [publishingCadena, setPublishingCadena] = useState(false);
 
   // Hooks must run unconditionally — keep above any early return.
   const listSongs = useMemo(
@@ -178,6 +180,31 @@ export default function ListDetailPage() {
     });
   };
 
+  const publishCadena = async () => {
+    if (!list || listSongs.length === 0 || publishingCadena) return;
+    setPublishingCadena(true);
+    try {
+      const result = await publishListAsCadena({
+        name: list.name,
+        songs: listSongs,
+        sourceListId: list.id,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const url = `${window.location.origin}/comunidad/cadena/${result.slug}`;
+      await shareNative({
+        title: `${list.name} — Cadena en Worship Transpose`,
+        text: `Cadena con ${listSongs.length} canciones`,
+        url,
+      });
+      toast.success('Cadena publicada en Comunidad');
+    } finally {
+      setPublishingCadena(false);
+    }
+  };
+
   return (
     <div className="container px-4 py-6 max-w-6xl animate-in fade-in duration-500">
       <Link to="/listas" className="flex items-center gap-2 text-muted-foreground hover:text-gold text-sm mb-6 transition-colors group">
@@ -201,6 +228,20 @@ export default function ListDetailPage() {
               title="Copia un enlace con canciones y tonos"
             >
               <Share2 className="w-4 h-4 text-gold" /> Compartir
+            </button>
+            <button
+              type="button"
+              onClick={() => void publishCadena()}
+              disabled={publishingCadena || !list?.id}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gold/40 bg-card text-foreground text-sm font-bold hover:bg-gold/10 transition-all active:scale-95 disabled:opacity-40"
+              title="Publica esta lista en Comunidad para que otros la importen y comenten"
+            >
+              {publishingCadena ? (
+                <Loader2 className="w-4 h-4 animate-spin text-gold" />
+              ) : (
+                <Globe className="w-4 h-4 text-gold" />
+              )}
+              Publicar cadena
             </button>
             <button
               type="button"
