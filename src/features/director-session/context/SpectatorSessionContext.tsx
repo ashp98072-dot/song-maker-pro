@@ -978,10 +978,22 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         source,
       });
 
+      // Always wipe local join state — even before beginFollowerSession sets live flags.
       setFollowerAwaitingDirector(false);
+      awaitingFirstBroadcastRef.current = false;
+      clearPendingJoin();
+      resetFollowV3State();
+      clearAllLiveSessionLocalState(result.code || code);
+      setDetected(null);
+      setActiveJoinCode(null);
+      setSessionConnected(false);
 
-      if (result.reason === 'inactive' && (liveIsFollower || liveFollowerCode)) {
-        completeFollowerSessionEndedByDirectorRef.current?.();
+      if (result.reason === 'inactive') {
+        if (liveIsFollower || liveFollowerCode) {
+          completeFollowerSessionEndedByDirectorRef.current?.();
+        } else {
+          toast.info('El director cerró la sesión');
+        }
         return false;
       }
 
@@ -1023,6 +1035,43 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   }, [leaveFollowerSession, navigate, transitionSessionStatus, liveFollowerCode, resetFollowerHardeningState]);
 
   completeFollowerSessionEndedByDirectorRef.current = completeFollowerSessionEndedByDirector;
+
+  // While following, drop the join as soon as the director row is inactive/missing.
+  useEffect(() => {
+    if (!liveIsFollower || !liveFollowerCode) return;
+    const code = normalizeSessionCode(liveFollowerCode);
+    if (code.length < 4) return;
+
+    let cancelled = false;
+    const check = async () => {
+      const result = await querySessionActive(code);
+      if (cancelled) return;
+      if (result.active) return;
+      joinDebugLog('JOIN_ABORT', 'live poll — session gone', {
+        code,
+        reason: result.reason,
+      });
+      if (result.reason === 'inactive' || result.reason === 'not_found') {
+        completeFollowerSessionEndedByDirector();
+      } else {
+        void abortFollowerJoinIfSessionInactive(code, 'follower-liveness-poll');
+      }
+    };
+
+    void check();
+    const id = window.setInterval(() => {
+      void check();
+    }, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [
+    liveIsFollower,
+    liveFollowerCode,
+    completeFollowerSessionEndedByDirector,
+    abortFollowerJoinIfSessionInactive,
+  ]);
 
   const onFollowerChannelLost = useCallback(
     (code: string, status: string) => {
@@ -4109,16 +4158,28 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   }, [liveIsDirector, liveSessionCode, endDirectorSession, detected, refreshDetection]);
 
   const salirDeSesion = useCallback(() => {
+    const code = liveFollowerCode || activeJoinCode || detected?.code || '';
     transitionSessionStatus('ended', 'salirDeSesion');
     markSpectatorSessionOptOut();
     dispatchSpectatorSessionLeave();
     leaveFollowerSession();
+    clearPendingJoin();
+    resetFollowV3State();
+    clearAllLiveSessionLocalState(code || undefined);
     setDetected(null);
+    setActiveJoinCode(null);
+    setSessionConnected(false);
     setBannerDismissed(false);
     clearDismissedSessionBanner();
     sessionLog('follower hard leave');
     toast.success('Has salido de la sesión del director');
-  }, [leaveFollowerSession, transitionSessionStatus]);
+  }, [
+    leaveFollowerSession,
+    transitionSessionStatus,
+    liveFollowerCode,
+    activeJoinCode,
+    detected?.code,
+  ]);
 
   const markExplicitJoin = useCallback(
     (code: string) => {
