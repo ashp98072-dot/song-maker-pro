@@ -64,7 +64,7 @@ type CreateInput = {
   sectionAnchor?: string | null;
 };
 
-type SimpleLiveSyncContextValue = {
+export type SimpleLiveSyncContextValue = {
   role: SimpleLiveRole;
   status: SimpleLiveStatus;
   code: string | null;
