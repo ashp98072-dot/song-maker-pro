@@ -45,7 +45,7 @@ function mapRows(data: any[] | null | undefined): SeoSongRow[] {
 }
 
 async function restSelect(url: string, key: string, select: string) {
-  const endpoint = `${url}/rest/v1/user_songs?select=${encodeURIComponent(select)}&order=updated_at.desc&limit=5000`;
+  const endpoint = `${url}/rest/v1/user_songs?select=${encodeURIComponent(select)}&order=created_at.desc&limit=5000`;
   const res = await fetch(endpoint, {
     headers: {
       apikey: key,
@@ -108,8 +108,8 @@ export async function loadSeoCatalog(opts?: { withChords?: boolean }): Promise<S
   }
 
   const select = opts?.withChords
-    ? 'song_id,title,artist,chords,updated_at'
-    : 'song_id,title,artist,updated_at';
+    ? 'song_id,title,artist,chords,created_at'
+    : 'song_id,title,artist,created_at';
 
   const primary = await restSelect(cfg.url, cfg.key, select);
   if (primary.ok && primary.rows.length > 0) {

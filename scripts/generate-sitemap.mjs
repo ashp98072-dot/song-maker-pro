@@ -46,7 +46,7 @@ if (!catalog.length && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_
     const { data, error } = await supabase
       .from('user_songs')
       .select('song_id, title')
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(5000);
     if (error) {
       console.warn('[sitemap] Supabase fetch failed:', error.message);
@@ -80,7 +80,7 @@ if (
     const { data, error } = await supabase
       .from('user_songs')
       .select('song_id, title')
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(5000);
     if (error) {
       console.warn('[sitemap] anon fetch failed:', error.message);
