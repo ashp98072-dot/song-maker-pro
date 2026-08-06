@@ -16,6 +16,7 @@ import {
   type AuthDirectorResult,
 } from '@/features/director-session/utils/liveSessionAuth';
 import { deactivateAllMyPreviousSessions } from '@/features/director-session/utils/ghostSessionCleanup';
+import { asUuidOrNull } from '@/utils/asUuidOrNull';
 
 export type { AuthDirectorResult };
 export { resolveAuthenticatedDirector, requireAuthenticatedDirector } from '@/features/director-session/utils/liveSessionAuth';
@@ -88,6 +89,8 @@ function buildRpcUpsertPayload(
 ): Record<string, unknown> {
   const listSongIds = input.listSongIds ?? [];
   const songId = input.currentSongId ?? '';
+  // live_sessions.list_id is UUID in production — local Date.now() ids must not be sent.
+  const listId = asUuidOrNull(input.listId);
 
   return {
     code,
@@ -99,7 +102,7 @@ function buildRpcUpsertPayload(
     view_mode: input.viewMode ?? 'musician',
     gender_shift: recoveryGenderShiftForPersist(input.genderShift),
     current_index: input.currentIndex ?? 0,
-    list_id: input.listId ?? null,
+    list_id: listId,
     shared_section_anchor: input.sharedSectionAnchor?.trim() || null,
     follow_director: input.followDirector ?? true,
     ...(input.sessionOrigin ? { session_origin: input.sessionOrigin } : {}),

@@ -408,7 +408,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLists(prev => [...prev, newList]);
       return data.id;
     }
-    const localId = Date.now().toString();
+    const localId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     setLists(prev => [...prev, { id: localId, name, songIds: [], createdAt: new Date().toLocaleDateString() }]);
     return localId;
   };
