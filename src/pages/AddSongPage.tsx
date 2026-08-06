@@ -292,8 +292,8 @@ export default function AddSongPage() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
             <Globe className="w-4 h-4 text-gold" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Publicar en Biblioteca Comunitaria</p>
-              <p className="text-xs text-muted-foreground">Otros músicos podrán encontrar y usar esta canción</p>
+            <p className="text-sm font-medium text-foreground">Compartir en catálogo público</p>
+            <p className="text-xs text-muted-foreground">Otros podrán descubrirla por búsqueda / SEO</p>
             </div>
             <button type="button" onClick={() => setIsPublic(!isPublic)}
               className={`w-10 h-5 rounded-full transition-colors ${isPublic ? 'bg-gold' : 'bg-muted'}`}>
