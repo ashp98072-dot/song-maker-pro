@@ -1,0 +1,103 @@
+/* Continuous setlist — teleprompter */
+
+.continuous-setlist-root {
+  --continuous-dock-height: 5.5rem;
+}
+
+.continuous-exit-btn {
+  position: fixed;
+  z-index: 50;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid hsl(var(--stage-border) / 0.45);
+  background: hsl(var(--stage-card) / 0.92);
+  color: hsl(var(--stage-text));
+  backdrop-filter: blur(8px);
+}
+
+.continuous-exit-btn:hover {
+  background: hsl(var(--stage-accent) / 0.12);
+}
+
+.continuous-setlist-root.is-fullscreen .continuous-exit-btn {
+  top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.continuous-setlist-root.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: hsl(var(--background));
+}
+
+.continuous-setlist-root.is-stage {
+  background: hsl(var(--stage-background));
+  color: hsl(var(--stage-text));
+}
+
+.continuous-setlist-root.is-stage .continuous-song-block.is-active .continuous-song-header {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.continuous-setlist-scroll {
+  height: calc(100dvh - 3.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.continuous-setlist-root.is-fullscreen .continuous-setlist-scroll {
+  height: 100dvh;
+}
+
+.continuous-setlist-root.has-dock .continuous-setlist-scroll {
+  padding-bottom: calc(var(--continuous-dock-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.continuous-setlist-root.is-ultra .continuous-setlist-scroll {
+  background: hsl(var(--stage-background));
+}
+
+.continuous-song-block.is-active {
+  outline: 1px solid rgba(212, 175, 55, 0.2);
+  outline-offset: 4px;
+  border-radius: 0.75rem;
+}
+
+.continuous-spacing-large .continuous-song-block {
+  margin-bottom: 2rem;
+}
+
+.continuous-song-placeholder {
+  contain: strict;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+
+.continuous-session-panel {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 1rem 1rem;
+}
+
+@media (max-width: 1023px) {
+  .continuous-setlist-root.has-dock .continuous-toolbar {
+    display: none;
+  }
+}
+
+/* Móvil: ocultar controles = teleprompter limpio (sin panel inferior) */
+@media (max-width: 768px) {
+  .continuous-setlist-root.is-teleprompter-hidden .continuous-setlist-scroll {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .continuous-setlist-root.is-teleprompter-hidden.has-dock {
+    --continuous-dock-height: 0;
+  }
+}

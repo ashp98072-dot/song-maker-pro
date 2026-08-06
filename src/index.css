@@ -1,0 +1,314 @@
+/* 1. LOS IMPORTS SIEMPRE PRIMERO */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* 2. DIRECTIVAS DE TAILWIND */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. CAPA BASE (VARIABLES Y ESTILOS GLOBALES) */
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 41% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 41% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 38 92% 50%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 30% 16%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 38 92% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 41% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 222 30% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 38 92% 50%;
+
+    /* Custom tokens */
+    --gold: 38 92% 50%;
+    --gold-light: 38 92% 65%;
+    --gold-dark: 38 92% 40%;
+    --surface: 222 41% 12%;
+    --surface-hover: 222 41% 15%;
+    --chord-color: 38 92% 55%;
+    --section-color: 38 92% 50%;
+    --badge-male: 199 89% 48%;
+    --badge-female: 330 81% 60%;
+    --badge-popular: 38 92% 50%;
+    --success: 142 76% 36%;
+    --magic: 270 76% 60%;
+
+    /* Stage / teleprompter (dark default) */
+    --stage-background: 222 47% 4%;
+    --stage-card: 222 41% 9%;
+    --stage-text: 210 40% 98%;
+    --stage-muted: 38 70% 72%;
+    --stage-accent: 38 92% 55%;
+    --stage-border: 38 55% 42%;
+  }
+
+  /* ====== TEMA CLARO (alto contraste para uso en exteriores / eventos diurnos) ====== */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 8%;
+
+    --primary: 38 92% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 47% 8%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 222 20% 30%;
+
+    --accent: 38 92% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
+    --ring: 38 92% 42%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 8%;
+    --sidebar-primary: 38 92% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 222 47% 8%;
+    --sidebar-border: 220 14% 86%;
+    --sidebar-ring: 38 92% 42%;
+
+    --gold: 38 92% 42%;
+    --gold-light: 38 92% 55%;
+    --gold-dark: 38 92% 32%;
+    --surface: 220 14% 96%;
+    --surface-hover: 220 14% 92%;
+    --chord-color: 38 92% 38%;
+    --section-color: 38 92% 38%;
+
+    --stage-background: 0 0% 98%;
+    --stage-card: 0 0% 100%;
+    --stage-text: 222 47% 11%;
+    --stage-muted: 222 16% 38%;
+    --stage-accent: 38 92% 38%;
+    --stage-border: 38 45% 48%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* 4. CAPA DE UTILIDADES (CLASES PERSONALIZADAS) */
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border rounded-xl;
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
+  }
+
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+
+  .chord-highlight {
+    color: hsl(var(--chord-color));
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+    overflow: visible;
+  }
+
+  /* Horizontal scroll for long chord lines; popovers render via portal to body */
+  .chord-sheet-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  @supports (overflow: clip) {
+    .chord-sheet-scroll {
+      overflow-y: clip;
+    }
+  }
+
+  .musician-note--inline {
+    vertical-align: baseline;
+  }
+
+  .lyric-line {
+    overflow-wrap: anywhere;
+  }
+
+  .section-label {
+    color: hsl(var(--gold));
+    font-weight: 700;
+    font-family: 'Space Grotesk', monospace;
+  }
+
+  .magic-gradient {
+    background: linear-gradient(135deg, hsl(var(--magic)) 0%, hsl(330 81% 60%) 100%);
+  }
+
+  @keyframes metronome-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  .metronome-beat {
+    animation: metronome-pulse 0.15s ease-out;
+  }
+
+  @keyframes float-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .float-in {
+    animation: float-in 0.3s ease-out;
+  }
+}
+
+@layer components {
+  .bg-stage {
+    background-color: hsl(var(--stage-background));
+  }
+
+  .bg-stage-card {
+    background-color: hsl(var(--stage-card));
+  }
+
+  .text-stage {
+    color: hsl(var(--stage-text));
+  }
+
+  .text-stage-muted {
+    color: hsl(var(--stage-muted));
+  }
+
+  .border-stage {
+    border-color: hsl(var(--stage-border) / 0.45);
+  }
+
+  .stage-surface {
+    background-color: hsl(var(--stage-background));
+    color: hsl(var(--stage-text));
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
+  .stage-sheet {
+    background-color: hsl(var(--stage-card));
+    color: hsl(var(--stage-text));
+    border: 1px solid hsl(var(--stage-border) / 0.45);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 0 1px hsl(var(--stage-border) / 0.12);
+  }
+
+  .stage-sheet .section-label,
+  .stage-sheet .text-amber-400,
+  .stage-sheet .text-gold {
+    color: hsl(var(--stage-accent));
+  }
+
+  .stage-sheet .musician-note--inline {
+    color: hsl(var(--stage-accent));
+    background-color: hsl(var(--stage-accent) / 0.12);
+    border-color: hsl(var(--stage-border) / 0.35);
+  }
+
+  .stage-exit-btn {
+    color: hsl(var(--stage-text));
+    border: 1px solid hsl(var(--stage-border) / 0.45);
+    background-color: hsl(var(--stage-card) / 0.92);
+    backdrop-filter: blur(8px);
+  }
+
+  .stage-exit-btn:hover {
+    background-color: hsl(var(--stage-accent) / 0.12);
+  }
+
+  .is-ultra {
+    --stage-background: 222 47% 2%;
+    --stage-card: 222 41% 6%;
+    --stage-text: 48 100% 96%;
+    --stage-muted: 38 80% 75%;
+    --stage-accent: 38 95% 58%;
+    --stage-border: 38 70% 50%;
+  }
+
+  :root.light .is-ultra,
+  .light .is-ultra {
+    --stage-background: 0 0% 96%;
+    --stage-card: 0 0% 100%;
+    --stage-text: 222 47% 8%;
+    --stage-muted: 222 18% 32%;
+    --stage-accent: 38 92% 32%;
+    --stage-border: 38 55% 40%;
+  }
+}
+
+/* 5. SCROLLBAR CUSTOM */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-line-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}

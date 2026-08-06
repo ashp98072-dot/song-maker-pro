@@ -1,0 +1,68 @@
+/* Mobile stage — raw CSS only (no @apply custom utilities). Vars from index.css */
+
+@media (max-width: 1023px) {
+  [data-mobile-stage='active'] {
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-hide {
+    display: none !important;
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-content {
+    background-color: hsl(var(--stage-background));
+    color: hsl(var(--stage-text));
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  [data-mobile-stage='active'][data-mobile-landscape='true'] .mobile-stage-content {
+    padding-bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-sheet {
+    background-color: hsl(var(--stage-card));
+    color: hsl(var(--stage-text));
+    border: 1px solid hsl(var(--stage-border) / 0.45);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 0 1px hsl(var(--stage-border) / 0.12);
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-sheet .glass-card {
+    background-color: hsl(var(--stage-card));
+    color: hsl(var(--stage-text));
+    border-color: hsl(var(--stage-border) / 0.35);
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-chord-area {
+    line-height: 2;
+    letter-spacing: 0.01em;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-fullscreen {
+    padding: 0.5rem !important;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    min-height: -webkit-fill-available !important;
+    background-color: hsl(var(--stage-background));
+    color: hsl(var(--stage-text));
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  [data-mobile-stage='active'] .mobile-stage-fullscreen-inner {
+    max-width: 100%;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}

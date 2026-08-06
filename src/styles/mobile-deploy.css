@@ -1,0 +1,31 @@
+/**
+ * Ajustes mínimos de despliegue móvil: stacking y safe-area sin cambiar UX.
+ * Worship dock (122) < Mobile stage dock (125) < Worship sheet (130).
+ */
+@media (max-width: 1023px) {
+  [data-worship-floating-dock] {
+    z-index: 122;
+  }
+
+  [data-mobile-stage-dock] {
+    z-index: 125;
+  }
+
+  [data-worship-control-sheet],
+  [data-mobile-stage='active'] .mobile-stage-sheet {
+    z-index: 130;
+  }
+
+  /* Evitar que el dock de setlist continuo quede bajo el worship dock en rutas distintas */
+  [data-continuous-dock] {
+    z-index: 45;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  [data-worship-floating-dock][data-worship-landscape] {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

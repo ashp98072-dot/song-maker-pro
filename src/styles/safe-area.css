@@ -1,0 +1,90 @@
+/**
+ * iOS safe-area (notch / Dynamic Island / home indicator).
+ * Only applied below lg (1024px); desktop unchanged.
+ */
+@media (max-width: 1023px) {
+  :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+    --app-nav-bar-height: 3.5rem;
+    --app-header-inset-top: max(12px, env(safe-area-inset-top, 0px));
+    --app-chrome-top: calc(var(--app-nav-bar-height) + var(--app-header-inset-top));
+    --app-dock-pad-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-navbar-safe {
+    padding-top: var(--app-header-inset-top);
+  }
+
+  .app-spectator-banner-safe {
+    top: var(--app-chrome-top);
+  }
+
+  .ios-safe-fixed-top {
+    top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .ios-safe-fixed-top-right {
+    top: max(0.5rem, env(safe-area-inset-top, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .ios-safe-fixed-bottom {
+    bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .ios-safe-fixed-bottom-center {
+    bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .ios-safe-sticky-below-chrome {
+    top: var(--app-chrome-top);
+  }
+
+  .continuous-toolbar-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
+
+  .continuous-setlist-root.is-fullscreen .continuous-setlist-scroll {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
+
+  .continuous-setlist-root.is-fullscreen .section-quick-nav,
+  .continuous-setlist-root.is-fullscreen .continuous-song-header {
+    scroll-margin-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  }
+
+  [data-floating-dock] [data-floating-dock-inner] {
+    padding-bottom: var(--app-dock-pad-bottom);
+  }
+
+  [data-rehearsal-autoscroll-stop-fab] {
+    bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  [data-song-fullscreen-bar] {
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .continuous-setlist-scroll {
+    height: calc(100dvh - var(--app-chrome-top, 3.5rem));
+  }
+
+  .continuous-setlist-root.is-fullscreen .continuous-setlist-scroll {
+    height: 100dvh;
+  }
+
+  .continuous-setlist-root.has-dock .continuous-setlist-scroll {
+    padding-bottom: calc(
+      var(--continuous-dock-height) + max(12px, env(safe-area-inset-bottom, 0px))
+    );
+  }
+
+  .continuous-setlist-root.has-dock[data-continuous-dock-minimal] .continuous-setlist-scroll,
+  .continuous-setlist-root.has-dock:has([data-continuous-dock-minimal]) .continuous-setlist-scroll {
+    --continuous-dock-height: 4.25rem;
+  }
+}
