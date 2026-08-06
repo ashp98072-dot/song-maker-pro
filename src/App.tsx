@@ -83,10 +83,25 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     const checkSession = async () => {
-      await supabase.auth.getSession();
-      setIsInitializing(false);
+      try {
+        await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((_, reject) =>
+            window.setTimeout(() => reject(new Error('getSession timeout')), 4000)
+          ),
+        ]);
+      } catch (err) {
+        console.warn('[AUTH] getSession failed or timed out', err);
+      } finally {
+        setIsInitializing(false);
+      }
     };
     void checkSession();
+
+    // Absolute fail-open so the app never stays on "Sincronizando sesión..." forever.
+    const failOpen = window.setTimeout(() => {
+      setIsInitializing(false);
+    }, 5000);
 
     const {
       data: { subscription },
@@ -101,6 +116,7 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
+      window.clearTimeout(failOpen);
       subscription.unsubscribe();
     };
   }, [diagRouteBypass, navigate, location.pathname]);

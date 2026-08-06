@@ -163,60 +163,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const syncUser = async (session: any) => {
-      await fetchGlobalCloudData();
+    let cancelled = false;
 
+    const applyIdentity = (session: { user?: { id: string; email?: string; user_metadata?: Record<string, unknown> } } | null) => {
       if (session?.user) {
-        const name = session.user.user_metadata?.full_name || 
-                     session.user.user_metadata?.name || 
-                     session.user.email?.split('@')[0] || 
-                     'Usuario';
+        const meta = session.user.user_metadata ?? {};
+        const name =
+          (typeof meta.full_name === 'string' && meta.full_name) ||
+          (typeof meta.name === 'string' && meta.name) ||
+          session.user.email?.split('@')[0] ||
+          'Usuario';
         setUserName(name);
         setIsGuest(false);
         userIdRef.current = session.user.id;
-        await fetchCloudLists(session.user.id);
+        return session.user.id as string;
+      }
+      if (saved.isGuest) {
+        setUserName('Invitado');
+        setIsGuest(true);
+        userIdRef.current = null;
+        setIsAdmin(false);
+        return null;
+      }
+      setUserName('');
+      setIsGuest(false);
+      userIdRef.current = null;
+      setIsAdmin(false);
+      return null;
+    };
+
+    const hydrateCloudInBackground = async (userId: string | null) => {
+      try {
+        await fetchGlobalCloudData();
+        if (cancelled || !userId) return;
+        await fetchCloudLists(userId);
+        if (cancelled) return;
 
         try {
           const { data: roles } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', session.user.id);
-          setIsAdmin(Array.isArray(roles) && roles.some((r: any) => r.role === 'admin'));
+            .eq('user_id', userId);
+          if (!cancelled) {
+            setIsAdmin(Array.isArray(roles) && roles.some((r: { role: string }) => r.role === 'admin'));
+          }
         } catch {
-          setIsAdmin(false);
+          if (!cancelled) setIsAdmin(false);
         }
 
         try {
           const { data: favs } = await supabase
             .from('user_favorites')
             .select('song_id')
-            .eq('user_id', session.user.id);
-          if (Array.isArray(favs)) {
-            setFavorites(prev => {
-              const cloudIds = favs.map((f) => f.song_id);
+            .eq('user_id', userId);
+          if (!cancelled && Array.isArray(favs)) {
+            setFavorites((prev) => {
+              const cloudIds = favs.map((f: { song_id: string }) => f.song_id);
               return Array.from(new Set([...cloudIds, ...prev]));
             });
           }
         } catch (err) {
           console.error('Hidratar favoritos falló:', err);
         }
-      } else if (saved.isGuest) {
-        setUserName('Invitado');
-        setIsGuest(true);
-        userIdRef.current = null;
-        setIsAdmin(false);
-      } else {
-        setUserName('');
-        setIsGuest(false);
-        userIdRef.current = null;
-        setIsAdmin(false);
+      } catch (err) {
+        console.error('Hydrate cloud failed:', err);
       }
+    };
+
+    const syncUser = async (session: unknown) => {
+      const userId = applyIdentity(session as Parameters<typeof applyIdentity>[0]);
+      // Unblock AuthManager immediately — never wait on cloud/network for first paint.
       setIsLoading(false);
+      void hydrateCloudInBackground(userId);
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      syncUser(session);
+      if (!cancelled) void syncUser(session);
     });
+
+    // Fail-open: if getSession never resolves, still show the app.
+    const bootTimeout = window.setTimeout(() => {
+      if (!cancelled) {
+        console.warn('[AUTH] boot timeout — clearing isLoading');
+        setIsLoading(false);
+      }
+    }, 6000);
 
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
@@ -227,11 +258,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLists([]);
         setFavorites([]);
         setIsLoading(false);
-      } else {
-        // Do NOT deactivate live_sessions on SIGNED_IN — that event also fires on
-        // session restore / other tabs and was wiping active director sessions
-        // (is_active=false while the UI still showed a join code).
-        syncUser(session);
+        return;
+      }
+      // Avoid re-blocking the UI on TOKEN_REFRESHED / noisy events.
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        void syncUser(session);
       }
     });
 
@@ -241,25 +272,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_songs' },
         (payload) => {
-          const updatedSong = payload.new as any;
+          const updatedSong = payload.new as Record<string, unknown>;
           if (updatedSong) {
-            setSongs(prev => {
-              const exists = prev.some(s => s.id === updatedSong.song_id);
+            setSongs((prev) => {
+              const songId = String(updatedSong.song_id ?? '');
+              const exists = prev.some((s) => s.id === songId);
               if (!exists) {
                 const newSong = cloudRowToSong(updatedSong);
                 toast.success(`✨ Nueva canción: ${newSong.title}`);
                 return [newSong, ...prev];
               }
-              return prev.map(s =>
-                s.id === updatedSong.song_id
+              return prev.map((s) =>
+                s.id === songId
                   ? {
                       ...s,
-                      key: updatedSong.key,
-                      chords: updatedSong.chords,
-                      title: updatedSong.title,
-                      artist: updatedSong.artist,
-                      bpm: updatedSong.bpm || s.bpm,
-                      youtubeUrl: updatedSong.youtube_url?.trim() || s.youtubeUrl,
+                      key: (updatedSong.key as string) || s.key,
+                      chords: (updatedSong.chords as string) || s.chords,
+                      title: (updatedSong.title as string) || s.title,
+                      artist: (updatedSong.artist as string) || s.artist,
+                      bpm: (updatedSong.bpm as number) || s.bpm,
+                      youtubeUrl:
+                        (typeof updatedSong.youtube_url === 'string'
+                          ? updatedSong.youtube_url.trim()
+                          : undefined) || s.youtubeUrl,
                     }
                   : s
               );
@@ -270,6 +305,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
+      cancelled = true;
+      window.clearTimeout(bootTimeout);
       authSubscription.unsubscribe();
       supabase.removeChannel(channel);
     };

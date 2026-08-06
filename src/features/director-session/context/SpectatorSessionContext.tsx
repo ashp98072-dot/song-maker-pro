@@ -2261,22 +2261,54 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       }
 
       if (shouldDisableLegacyFollowPipeline('follower')) {
-        joinDebugLog('JOIN_NAV', 'follow-v3 — view-mode navigation only', { source });
+        joinDebugLog('JOIN_NAV', 'follow-v3 — seed from remote/DB then navigate', { source });
         const remote = lastRemoteStateRef.current;
-        const recovery =
+        let recovery =
           opts?.recovery ??
           (remote
             ? enrichRecoveryForNavigation(
                 sharedStateToRecovery(normalized, remote, sessionOriginRef.current)
               )
             : null);
+
+        if (!recovery) {
+          recovery =
+            (await queryLiveSessionForFollowerNav(normalized)) ??
+            (await resolveLiveSessionForReconnectWithRetry(normalized));
+          joinDebugLog('JOIN_NAV', 'follow-v3 — DB recovery', {
+            source,
+            found: !!recovery,
+            songId: recovery?.songId ?? null,
+            listId: recovery?.listId ?? null,
+            isActive: recovery?.isActive ?? null,
+          });
+        }
+
         if (recovery) {
-          await navigateFollowerToMatchDirectorView(normalized, recovery, {
+          const songId = resolveFollowerSongIdForNav(recovery);
+          if (songId) {
+            setFollowV3Song(songId, Math.max(Date.now(), getFollowV3State().seq + 1));
+            followerAwaitingDirectorRef.current = false;
+            awaitingFirstBroadcastRef.current = false;
+            setFollowerAwaitingDirector(false);
+          }
+          const navigated = await navigateFollowerToMatchDirectorView(normalized, recovery, {
             source: `v3:${source}`,
             force: opts?.force,
           });
+          if (navigated || songId) {
+            followerAwaitingDirectorRef.current = false;
+            awaitingFirstBroadcastRef.current = false;
+            setFollowerAwaitingDirector(false);
+            return true;
+          }
         }
-        return true;
+
+        // No seed yet — keep awaiting for realtime/RPC; do not pretend success.
+        joinDebugLog('JOIN_BLOCKED', 'follow-v3 — no recovery/song yet, awaiting broadcast', {
+          source,
+        });
+        return false;
       }
 
       if (isFollowerLivePageOwner() && lastRemoteStateRef.current?.currentSongId) {
@@ -2516,6 +2548,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       navigate,
       navigateToRecoveryTarget,
       navigateFollowerToMatchDirectorView,
+      resolveFollowerSongIdForNav,
       liveIsFollower,
       connection?.role,
       isFollowerLivePageOwner,
