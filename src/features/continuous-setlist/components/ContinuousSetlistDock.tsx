@@ -12,6 +12,8 @@ import {
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
 import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
+import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
+import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
 
 export interface ContinuousSetlistDockProps {
   visible: boolean;
@@ -42,6 +44,7 @@ export interface ContinuousSetlistDockProps {
   onBumpControls?: () => void;
   controlsHidden?: boolean;
   onHideControls?: () => void;
+  serviceModeInput?: WorshipServiceModeInput | null;
 }
 
 export function ContinuousSetlistDock({
@@ -73,6 +76,7 @@ export function ContinuousSetlistDock({
   onBumpControls,
   controlsHidden = false,
   onHideControls,
+  serviceModeInput = null,
 }: ContinuousSetlistDockProps) {
   if (!visible) return null;
 
@@ -108,6 +112,13 @@ export function ContinuousSetlistDock({
           ) : null}
 
           <div className="flex items-center justify-around gap-1">
+            {onHideControls && serviceModeInput && !controlsHidden ? (
+              <WorshipServiceModeButton
+                compact
+                hideControls={onHideControls}
+                input={serviceModeInput}
+              />
+            ) : null}
             <button
               type="button"
               onClick={onToggleAutoScroll}

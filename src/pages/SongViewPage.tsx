@@ -8,6 +8,7 @@ import { EMPTY_SONG_SETTINGS, useSongSettings } from '@/hooks/useSongSettings';
 import { convertLineToLatin } from '@/utils/notation';
 import { useTransposeEngine } from '@/features/transpose/hooks/useTransposeEngine';
 import { generateSongPdf } from '@/utils/pdfExport';
+import { shareNative } from '@/utils/shareNative';
 import { VOCAL_REGISTERS, getOptimalSemitonesForRegister, type VocalRegister } from '@/utils/vocalRange';
 import { toast } from 'sonner';
 import ChordSheet from '@/features/song-view/components/ChordSheet';
@@ -2026,7 +2027,11 @@ export default function SongViewPage() {
     if (vocalRegister) params.set('vocal', vocalRegister);
     const qs = params.toString();
     const url = `${window.location.origin}${getSongPath(song, songs)}${qs ? `?${qs}` : ''}`;
-    navigator.clipboard.writeText(url).then(() => toast.success('¡Enlace copiado!'));
+    void shareNative({
+      title: `${song.title} — Worship Transpose`,
+      text: `Letra y acordes de «${song.title}»`,
+      url,
+    });
   };
 
   const handlePdf = () => {

@@ -3046,6 +3046,21 @@ export default function ContinuousSetlistPage() {
         controlsVisible={dockControlsVisible}
         controlsHidden={controlsHidden}
         onHideControls={hideControls}
+        serviceModeInput={
+          currentSong
+            ? {
+                songId: currentSong.id,
+                semitones: effectiveSemitones,
+                viewMode: 'continuous',
+                genderShift:
+                  genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',
+                currentIndex: visibility.currentSongIndex,
+                listId: listId ?? null,
+                listSongIds: resolvedSongIds.length > 0 ? resolvedSongIds : songIds,
+                sectionAnchor: directorSectionAnchor || visibility.currentSection || null,
+              }
+            : null
+        }
         listName={list.name}
         currentIndex={visibility.currentSongIndex}
         total={entries.length}
