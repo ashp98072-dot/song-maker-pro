@@ -1,8 +1,10 @@
+import { Link } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
   EyeOff,
   Heart,
+  Library,
   Maximize,
   RotateCcw,
   Share2,
@@ -20,7 +22,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RehearsalAutoScrollToolbar } from '@/features/rehearsal/components/RehearsalTools';
 import { RehearsalTools } from '@/features/rehearsal/components/RehearsalTools';
-import { ChordLibraryPanel } from '@/components/chord-diagram/ChordLibraryPanel';
 import type { WorshipControlSheetProps } from '@/features/mobile-worship/types';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
@@ -249,8 +250,23 @@ export function WorshipControlSheet({
               </div>
             </TabsContent>
 
-            <TabsContent value="chords" className="mt-0">
-              <ChordLibraryPanel compact />
+            <TabsContent value="chords" className="mt-0 space-y-3">
+              <Link
+                to="/acordes"
+                onClick={() => onOpenChange(false)}
+                className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-4 hover:bg-gold/10 transition-colors"
+              >
+                <div className="p-2 rounded-lg bg-gold/15 text-gold shrink-0">
+                  <Library className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Abrir biblioteca de acordes</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Explora todos los diagramas en pantalla completa. En la letra, toca un acorde
+                    para verlo al instante.
+                  </p>
+                </div>
+              </Link>
             </TabsContent>
 
             <TabsContent value="tools" className="mt-0 space-y-3">

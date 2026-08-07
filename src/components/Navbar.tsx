@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   User,
+  Library,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -27,6 +28,7 @@ const navItems = [
   { label: 'Favoritos', path: '/favoritos', icon: Heart },
   { label: 'Mis Listas', path: '/listas', icon: ListMusic },
   { label: 'Comunidad', path: '/comunidad', icon: Globe },
+  { label: 'Acordes', path: '/acordes', icon: Library },
   { label: 'Agregar', path: '/agregar', icon: Plus },
 ];
 
@@ -152,6 +154,13 @@ export default function Navbar() {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
                   <User className="w-4 h-4" /> Mi perfil
+                </Link>
+                <Link
+                  to="/acordes"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <Library className="w-4 h-4" /> Biblioteca de acordes
                 </Link>
                 <Link
                   to="/agregar"

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Globe, ListMusic, Heart, User } from 'lucide-react';
+import { Home, Globe, ListMusic, User, Library } from 'lucide-react';
 
 const tabs = [
   { label: 'Inicio', path: '/', match: (p: string) => p === '/', icon: Home },
@@ -16,10 +16,10 @@ const tabs = [
     icon: ListMusic,
   },
   {
-    label: 'Favoritos',
-    path: '/favoritos',
-    match: (p: string) => p.startsWith('/favoritos'),
-    icon: Heart,
+    label: 'Acordes',
+    path: '/acordes',
+    match: (p: string) => p.startsWith('/acordes'),
+    icon: Library,
   },
   {
     label: 'Perfil',

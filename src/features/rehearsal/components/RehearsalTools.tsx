@@ -1,10 +1,10 @@
 import type { RefObject } from 'react';
+import { Link } from 'react-router-dom';
 import { Play, Pause, Youtube, RotateCcw, StopCircle, Mic, Library } from 'lucide-react';
 import RehearsalRecorder from '@/components/RehearsalRecorder';
 import { YouTubeEmbedFrame } from '@/components/YouTubeEmbedFrame';
 import { toYouTubeWatchUrl } from '@/features/youtube-search/utils/youtubeUrl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChordLibraryPanel } from '@/components/chord-diagram/ChordLibraryPanel';
 
 /** Root: metrónomo, YouTube y grabador — listo para dock móvil / stage overlay futuro. */
 export interface RehearsalToolsProps {
@@ -239,7 +239,21 @@ export function RehearsalTools({
           <RehearsalRecorder songId={songId} embedded />
         </TabsContent>
         <TabsContent value="chords" className="mt-0 p-4 focus-visible:outline-none">
-          <ChordLibraryPanel compact />
+          <Link
+            to="/acordes"
+            className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-4 hover:bg-gold/10 transition-colors"
+          >
+            <div className="p-2 rounded-lg bg-gold/15 text-gold shrink-0">
+              <Library className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Abrir biblioteca de acordes</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Módulo aparte para explorar diagramas. En la letra, toca un acorde para verlo al
+                instante.
+              </p>
+            </div>
+          </Link>
         </TabsContent>
       </Tabs>
     </div>

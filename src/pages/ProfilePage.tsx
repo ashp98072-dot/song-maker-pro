@@ -9,6 +9,7 @@ import {
   UserMinus,
   Users,
   Database,
+  Library,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
@@ -446,27 +447,43 @@ export default function ProfilePage() {
           </div>
         ))}
 
-      {isOwn && (
-        <div className="mt-8 pt-6 border-t border-border">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-            Herramientas
-          </p>
+      <div className="mt-8 pt-6 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+          Herramientas
+        </p>
+        <div className="space-y-2">
           <Link
-            to="/backup"
+            to="/acordes"
             className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
           >
             <div className="p-2 rounded-lg bg-secondary text-gold shrink-0">
-              <Database className="w-4 h-4" />
+              <Library className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Backup y restauración</p>
+              <p className="text-sm font-semibold text-foreground">Biblioteca de acordes</p>
               <p className="text-xs text-muted-foreground">
-                Exporta o importa tu biblioteca (JSON / ChordPro)
+                Explora diagramas de guitarra y piano
               </p>
             </div>
           </Link>
+          {isOwn && (
+            <Link
+              to="/backup"
+              className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+            >
+              <div className="p-2 rounded-lg bg-secondary text-gold shrink-0">
+                <Database className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Backup y restauración</p>
+                <p className="text-xs text-muted-foreground">
+                  Exporta o importa tu biblioteca (JSON / ChordPro)
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
