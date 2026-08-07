@@ -3,7 +3,7 @@
  * Humans still get the SPA.
  */
 
-import { buildSongSlug, loadSeoCatalog } from './_seoCatalog';
+import { buildSongSlug, loadSeoCatalog } from './_seoCatalog.js';
 
 export const config = { runtime: 'edge' };
 

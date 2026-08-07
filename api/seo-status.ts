@@ -3,7 +3,7 @@
  * GET /api/seo-status
  */
 
-import { loadSeoCatalog } from './_seoCatalog';
+import { loadSeoCatalog } from './_seoCatalog.js';
 
 export const config = { runtime: 'edge' };
 

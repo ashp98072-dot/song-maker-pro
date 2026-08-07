@@ -2,7 +2,7 @@
  * Dynamic sitemap.xml — Vercel Edge Function.
  */
 
-import { buildSongSlug, loadSeoCatalog } from './_seoCatalog';
+import { buildSongSlug, loadSeoCatalog } from './_seoCatalog.js';
 
 export const config = { runtime: 'edge' };
 
