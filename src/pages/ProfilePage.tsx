@@ -10,6 +10,7 @@ import {
   Users,
   Database,
   Library,
+  AudioLines,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
@@ -462,7 +463,21 @@ export default function ProfilePage() {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">Biblioteca de acordes</p>
               <p className="text-xs text-muted-foreground">
-                Explora diagramas de guitarra y piano
+                Guitarra, piano y bajo
+              </p>
+            </div>
+          </Link>
+          <Link
+            to="/afinador"
+            className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+          >
+            <div className="p-2 rounded-lg bg-secondary text-gold shrink-0">
+              <AudioLines className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Afinador</p>
+              <p className="text-xs text-muted-foreground">
+                Guitarra, bajo y violín
               </p>
             </div>
           </Link>

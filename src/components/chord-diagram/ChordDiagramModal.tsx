@@ -12,9 +12,16 @@ type ChordDiagramModalProps = {
   onOpenChange: (open: boolean) => void;
   chord: string;
   diagram: ChordDiagramResult;
+  instrument?: 'guitar' | 'piano' | 'bass' | 'all';
 };
 
-export function ChordDiagramModal({ open, onOpenChange, chord, diagram }: ChordDiagramModalProps) {
+export function ChordDiagramModal({
+  open,
+  onOpenChange,
+  chord,
+  diagram,
+  instrument = 'all',
+}: ChordDiagramModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] max-h-[min(90vh,560px)] overflow-y-auto z-[200]">
@@ -27,6 +34,7 @@ export function ChordDiagramModal({ open, onOpenChange, chord, diagram }: ChordD
             diagram={diagram}
             scale={1.5}
             showExpandAction={false}
+            instrument={instrument}
           />
         </div>
       </DialogContent>

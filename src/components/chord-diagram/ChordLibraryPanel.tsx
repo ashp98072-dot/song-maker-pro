@@ -1,10 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Library, Search } from 'lucide-react';
-import { getChordDiagram, listKnownChordNames } from '@/utils/chordDiagrams';
-import { GuitarDiagram } from '@/components/chord-diagram/ChordDiagramContent';
+import {
+  getChordDiagram,
+  listBassChordNames,
+  listKnownChordNames,
+  listPianoChordNames,
+} from '@/utils/chordDiagrams';
+import { GuitarDiagram, PianoDiagram } from '@/components/chord-diagram/ChordDiagramContent';
 import { ChordDiagramModal } from '@/components/chord-diagram/ChordDiagramModal';
 
 const ROOTS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
+
+const INSTRUMENTS = [
+  { id: 'guitar' as const, label: 'Guitarra' },
+  { id: 'piano' as const, label: 'Piano' },
+  { id: 'bass' as const, label: 'Bajo' },
+];
 
 const QUALITIES: { id: string; label: string; match: (name: string) => boolean }[] = [
   { id: 'all', label: 'Todos', match: () => true },
@@ -26,7 +37,7 @@ const QUALITIES: { id: string; label: string; match: (name: string) => boolean }
   },
   { id: '7', label: '7ª', match: (n) => /7|9|11|13/.test(n) },
   { id: 'sus', label: 'Sus', match: (n) => /sus/.test(n) },
-  { id: 'slash', label: 'Bajos', match: (n) => n.includes('/') },
+  { id: 'slash', label: 'Inversiones', match: (n) => n.includes('/') },
 ];
 
 function chordRoot(name: string): string {
@@ -34,29 +45,36 @@ function chordRoot(name: string): string {
   return m ? m[0] : '';
 }
 
+type InstrumentId = (typeof INSTRUMENTS)[number]['id'];
+
 type Props = {
-  /** Limit height inside song tabs / sheets */
   compact?: boolean;
   className?: string;
 };
 
 export function ChordLibraryPanel({ compact = false, className = '' }: Props) {
-  const allNames = useMemo(() => listKnownChordNames(), []);
+  const [instrument, setInstrument] = useState<InstrumentId>('guitar');
   const [query, setQuery] = useState('');
   const [root, setRoot] = useState<string | 'all'>('all');
   const [quality, setQuality] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
 
+  const catalog = useMemo(() => {
+    if (instrument === 'piano') return listPianoChordNames();
+    if (instrument === 'bass') return listBassChordNames();
+    return listKnownChordNames();
+  }, [instrument]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const qualityFn = QUALITIES.find((x) => x.id === quality)?.match ?? (() => true);
-    return allNames.filter((name) => {
+    return catalog.filter((name) => {
       if (root !== 'all' && chordRoot(name) !== root) return false;
       if (!qualityFn(name)) return false;
       if (q && !name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [allNames, query, root, quality]);
+  }, [catalog, query, root, quality]);
 
   const selectedDiagram = selected ? getChordDiagram(selected) : null;
 
@@ -68,10 +86,30 @@ export function ChordLibraryPanel({ compact = false, className = '' }: Props) {
           <p className="text-sm font-semibold text-foreground">Biblioteca de acordes</p>
           {!compact && (
             <p className="text-xs text-muted-foreground">
-              {filtered.length} de {allNames.length} voicings · toca para ampliar
+              {filtered.length} de {catalog.length} · {INSTRUMENTS.find((i) => i.id === instrument)?.label}
             </p>
           )}
         </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
+        {INSTRUMENTS.map((inst) => (
+          <button
+            key={inst.id}
+            type="button"
+            onClick={() => {
+              setInstrument(inst.id);
+              setSelected(null);
+            }}
+            className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
+              instrument === inst.id
+                ? 'border-gold text-gold bg-gold/10'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {inst.label}
+          </button>
+        ))}
       </div>
 
       <div className="relative mb-3">
@@ -132,34 +170,49 @@ export function ChordLibraryPanel({ compact = false, className = '' }: Props) {
       ) : (
         <div
           className={`grid grid-cols-2 sm:grid-cols-3 gap-2 ${
-            compact ? 'max-h-[min(42vh,320px)]' : 'max-h-[min(55vh,420px)]'
+            compact ? 'max-h-[min(42vh,320px)]' : 'max-h-[min(55vh,480px)]'
           } overflow-y-auto pr-1`}
         >
           {filtered.map((name) => {
             const diagram = getChordDiagram(name);
             if (!diagram) return null;
-            const hasGuitar = diagram.guitar.frets.some((f) => f >= 0);
             return (
               <button
-                key={name}
+                key={`${instrument}-${name}`}
                 type="button"
                 onClick={() => setSelected(name)}
                 className="rounded-xl border border-border bg-secondary/40 hover:bg-secondary hover:border-gold/40 p-2 text-left transition-colors"
               >
                 <p className="text-xs font-bold text-gold text-center mb-1 truncate">{name}</p>
-                {hasGuitar ? (
+                {instrument === 'piano' ? (
+                  <div className="flex flex-col items-center gap-1 py-1">
+                    <PianoDiagram keys={diagram.piano} />
+                    <p className="text-[9px] text-muted-foreground font-mono text-center">
+                      {diagram.piano.join(' ')}
+                    </p>
+                  </div>
+                ) : instrument === 'bass' ? (
+                  <div className="flex justify-center">
+                    <GuitarDiagram
+                      frets={diagram.guitar.frets.slice(0, 4)}
+                      barFret={diagram.guitar.barFret}
+                      startFret={diagram.guitar.startFret}
+                      scale={0.85}
+                      stringCount={4}
+                    />
+                  </div>
+                ) : diagram.guitar.frets.some((f) => f >= 0) ? (
                   <div className="flex justify-center">
                     <GuitarDiagram
                       frets={diagram.guitar.frets}
                       barFret={diagram.guitar.barFret}
                       startFret={diagram.guitar.startFret}
                       scale={0.85}
+                      stringCount={6}
                     />
                   </div>
                 ) : (
-                  <p className="text-[10px] text-muted-foreground text-center py-4">
-                    Solo piano
-                  </p>
+                  <p className="text-[10px] text-muted-foreground text-center py-4">Sin diagrama</p>
                 )}
               </button>
             );
@@ -175,6 +228,7 @@ export function ChordLibraryPanel({ compact = false, className = '' }: Props) {
           }}
           chord={selected}
           diagram={selectedDiagram}
+          instrument={instrument}
         />
       )}
     </div>

@@ -5,22 +5,26 @@ export function GuitarDiagram({
   barFret,
   startFret = 0,
   scale = 1,
+  stringCount,
 }: {
   frets: number[];
   barFret?: number;
   startFret?: number;
   scale?: number;
+  /** 6 = guitar, 4 = bass (E A D G) */
+  stringCount?: number;
 }) {
   const numFrets = 4;
-  const strings = 6;
+  const strings = stringCount ?? frets.length ?? 6;
   const w = 80 * scale;
   const h = 90 * scale;
   const sx = 10 * scale;
   const sy = 15 * scale;
   const sw = 60 * scale;
   const sh = 70 * scale;
-  const stringGap = sw / (strings - 1);
+  const stringGap = strings > 1 ? sw / (strings - 1) : 0;
   const fretGap = sh / numFrets;
+  const shown = frets.slice(0, strings);
 
   return (
     <svg width={w} height={h + 10 * scale} viewBox={`0 0 ${w} ${h + 10 * scale}`} className="block overflow-visible">
@@ -63,7 +67,7 @@ export function GuitarDiagram({
           opacity={0.7}
         />
       )}
-      {frets.map((f, i) => {
+      {shown.map((f, i) => {
         if (f === -1)
           return (
             <text key={i} x={sx + i * stringGap} y={10} textAnchor="middle" fontSize={9} className="fill-muted-foreground">
@@ -174,6 +178,8 @@ type ChordDiagramContentProps = {
   scale?: number;
   showExpandAction?: boolean;
   onExpand?: () => void;
+  /** Focus one instrument in the detail view */
+  instrument?: 'guitar' | 'piano' | 'bass' | 'all';
 };
 
 export function ChordDiagramContent({
@@ -182,8 +188,14 @@ export function ChordDiagramContent({
   scale = 1,
   showExpandAction = true,
   onExpand,
+  instrument = 'all',
 }: ChordDiagramContentProps) {
   const hasGuitar = diagram.guitar.frets.some((f) => f >= 0);
+  const bassFrets = diagram.guitar.frets.slice(0, 4);
+  const hasBass = bassFrets.some((f) => f >= 0);
+  const showGuitar = instrument === 'all' || instrument === 'guitar';
+  const showBass = instrument === 'all' || instrument === 'bass';
+  const showPiano = instrument === 'all' || instrument === 'piano';
 
   return (
     <>
@@ -197,21 +209,37 @@ export function ChordDiagramContent({
         </p>
       )}
       <div className="flex gap-4 items-start justify-center flex-wrap">
-        {hasGuitar && (
+        {showGuitar && hasGuitar && (
           <div>
-            <p className="text-[10px] text-muted-foreground mb-1 text-center">🎸 Guitarra</p>
+            <p className="text-[10px] text-muted-foreground mb-1 text-center">Guitarra</p>
             <GuitarDiagram
               frets={diagram.guitar.frets}
               barFret={diagram.guitar.barFret}
               startFret={diagram.guitar.startFret}
               scale={scale}
+              stringCount={6}
             />
           </div>
         )}
-        {diagram.piano.length > 0 && (
+        {showBass && hasBass && (
           <div>
-            <p className="text-[10px] text-muted-foreground mb-1 text-center">🎹 Piano</p>
+            <p className="text-[10px] text-muted-foreground mb-1 text-center">Bajo (E A D G)</p>
+            <GuitarDiagram
+              frets={bassFrets}
+              barFret={diagram.guitar.barFret}
+              startFret={diagram.guitar.startFret}
+              scale={scale}
+              stringCount={4}
+            />
+          </div>
+        )}
+        {showPiano && diagram.piano.length > 0 && (
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-1 text-center">Piano</p>
             <PianoDiagram keys={diagram.piano} />
+            <p className="text-[10px] text-muted-foreground text-center mt-1 font-mono">
+              {diagram.piano.join(' · ')}
+            </p>
           </div>
         )}
       </div>

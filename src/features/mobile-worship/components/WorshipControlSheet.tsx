@@ -78,8 +78,8 @@ export function WorshipControlSheet({
       <SheetContent
         side="bottom"
         data-worship-control-sheet
-        overlayClassName="z-[140] bg-black/60"
-        className="z-[150] max-h-[min(88vh,720px)] flex flex-col gap-2 rounded-t-2xl p-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        overlayClassName="z-[140] bg-transparent"
+        className="z-[150] max-h-[min(88vh,720px)] flex flex-col gap-2 rounded-t-2xl border-t border-border p-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(0,0,0,0.25)]"
       >
         <SheetHeader className="text-left space-y-1 shrink-0 pr-8">
           <SheetTitle className="text-base">Más herramientas</SheetTitle>
@@ -103,7 +103,7 @@ export function WorshipControlSheet({
               Más
             </TabsTrigger>
             <TabsTrigger value="notes" className="text-[10px] px-1">
-              Notas
+              Afinar
             </TabsTrigger>
           </TabsList>
 
@@ -348,12 +348,23 @@ export function WorshipControlSheet({
               </div>
             </TabsContent>
 
-            <TabsContent value="notes" className="mt-0 pb-2">
+            <TabsContent value="notes" className="mt-0 pb-2 space-y-3">
+              <Link
+                to="/afinador"
+                onClick={() => onOpenChange(false)}
+                className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-4 hover:bg-gold/10 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Abrir afinador</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Guitarra, bajo y violín con el micrófono del teléfono.
+                  </p>
+                </div>
+              </Link>
               <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground space-y-2">
                 <p className="font-medium text-foreground">Próximamente:</p>
                 <ul className="list-disc pl-5 space-y-1 text-xs">
                   <li>Notas para músicos</li>
-                  <li>Afinador</li>
                   <li>Comentarios privados de banda</li>
                 </ul>
               </div>

@@ -112,6 +112,19 @@ export function listKnownChordNames(): string[] {
   return Object.keys(GUITAR_CHORDS).sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
 }
 
+/** Guitar voicings that map cleanly to 4-string bass (E A D G). */
+export function listBassChordNames(): string[] {
+  return listKnownChordNames().filter((name) => {
+    const g = GUITAR_CHORDS[name];
+    if (!g) return false;
+    return g.frets.slice(0, 4).some((f) => f >= 0);
+  });
+}
+
+export function getBassFretsFromGuitar(frets: number[]): number[] {
+  return frets.slice(0, 4);
+}
+
 const PIANO_KEYS: Record<string, string[]> = {
   'C':  ['C', 'E', 'G'],
   'Cm': ['C', 'Eb', 'G'],
@@ -179,6 +192,11 @@ const PIANO_KEYS: Record<string, string[]> = {
   'Bb7':['Bb', 'D', 'F', 'Ab'],
   'Bbm':['Bb', 'Db', 'F'],
 };
+
+/** Curated piano voicings for the library browser. */
+export function listPianoChordNames(): string[] {
+  return Object.keys(PIANO_KEYS).sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+}
 
 function lookupGuitar(key: string) {
   return GUITAR_CHORDS[key];

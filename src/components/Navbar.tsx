@@ -12,6 +12,7 @@ import {
   Moon,
   User,
   Library,
+  AudioLines,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -161,6 +162,13 @@ export default function Navbar() {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
                   <Library className="w-4 h-4" /> Biblioteca de acordes
+                </Link>
+                <Link
+                  to="/afinador"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <AudioLines className="w-4 h-4" /> Afinador
                 </Link>
                 <Link
                   to="/agregar"
