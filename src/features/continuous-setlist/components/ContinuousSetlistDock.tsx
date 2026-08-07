@@ -59,6 +59,10 @@ export interface ContinuousSetlistDockProps {
   serviceModeInput?: WorshipServiceModeInput | null;
 }
 
+/** Dock sits on dark glass (FloatingDockShell) — use light-on-dark tokens only. */
+const dockIconBtn =
+  'flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/20 bg-white/5 text-white/90';
+
 export function ContinuousSetlistDock({
   visible,
   controlsVisible = true,
@@ -103,7 +107,11 @@ export function ContinuousSetlistDock({
   if (!visible) return null;
 
   return (
-    <div data-continuous-dock data-continuous-dock-minimal={controlsHidden ? '' : undefined}>
+    <div
+      data-continuous-dock
+      data-continuous-dock-minimal={controlsHidden ? '' : undefined}
+      className="text-white"
+    >
       <FloatingDockShell
         visible
         controlsVisible={controlsVisible}
@@ -111,18 +119,20 @@ export function ContinuousSetlistDock({
         onPointerDown={onBumpControls}
       >
         <div className="px-3 pt-2 pb-2 space-y-2">
-          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-            <span className="truncate font-bold uppercase tracking-wider">{listName}</span>
-            <span className="font-mono text-gold shrink-0">
+          <div className="flex items-center justify-between gap-2 text-[10px]">
+            <span className="truncate font-bold uppercase tracking-wider text-white/70">
+              {listName}
+            </span>
+            <span className="font-mono text-amber-300 shrink-0 font-bold">
               {currentIndex + 1}/{total}
             </span>
           </div>
-          <p className="text-xs font-medium text-foreground truncate">{currentTitle}</p>
+          <p className="text-xs font-semibold text-white truncate">{currentTitle}</p>
 
           {liveActive && !controlsHidden ? (
-            <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/15 px-2 py-1.5">
               <Radio className="w-3.5 h-3.5 shrink-0 text-amber-300" />
-              <span className="font-mono text-xs font-black tracking-widest text-gold truncate">
+              <span className="font-mono text-xs font-black tracking-widest text-amber-200 truncate">
                 {simpleLive!.code}
               </span>
               {simpleLive!.role === 'director' ? (
@@ -137,7 +147,7 @@ export function ContinuousSetlistDock({
                         toast.message(simpleLive!.code!);
                       }
                     }}
-                    className="shrink-0 p-1.5 rounded-md border border-white/15"
+                    className="shrink-0 p-1.5 rounded-md border border-white/25 bg-black/30 text-white"
                     aria-label="Copiar código"
                   >
                     <Copy className="w-3 h-3" />
@@ -151,19 +161,19 @@ export function ContinuousSetlistDock({
                         url: buildLiveJoinUrl(simpleLive!.code!),
                       });
                     }}
-                    className="shrink-0 p-1.5 rounded-md border border-gold/40 text-gold"
+                    className="shrink-0 p-1.5 rounded-md border border-amber-400/50 bg-black/30 text-amber-200"
                     aria-label="Compartir"
                   >
                     <Share2 className="w-3 h-3" />
                   </button>
                 </>
               ) : (
-                <label className="shrink-0 flex items-center gap-1 text-[10px] font-bold">
+                <label className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-white">
                   <input
                     type="checkbox"
                     checked={simpleLive!.followDirector}
                     onChange={(e) => simpleLive!.setFollowDirector(e.target.checked)}
-                    className="h-3 w-3 accent-gold"
+                    className="h-3 w-3 accent-amber-400"
                   />
                   Seguir
                 </label>
@@ -175,7 +185,7 @@ export function ContinuousSetlistDock({
                   await simpleLive!.leave();
                   toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
                 }}
-                className="shrink-0 ml-auto flex items-center gap-1 px-2 py-1 rounded-md border border-red-400/40 text-red-300 text-[10px] font-bold"
+                className="shrink-0 ml-auto flex items-center gap-1 px-2 py-1 rounded-md border border-red-400/50 bg-red-500/15 text-red-200 text-[10px] font-bold"
               >
                 <LogOut className="w-3 h-3" />
                 {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
@@ -184,9 +194,9 @@ export function ContinuousSetlistDock({
           ) : null}
 
           {canCreateLive ? (
-            <div className="rounded-lg border border-border bg-secondary/40 px-2 py-2 space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Radio className="w-3 h-3" /> Sesión en vivo
+            <div className="rounded-lg border border-white/20 bg-black/35 px-2.5 py-2 space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/75 flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-amber-300" /> Sesión en vivo
               </p>
               <button
                 type="button"
@@ -218,7 +228,7 @@ export function ContinuousSetlistDock({
                     setLiveBusy(false);
                   }
                 }}
-                className="w-full py-1.5 rounded-md border border-gold/40 bg-gold/10 text-gold text-[11px] font-bold disabled:opacity-50"
+                className="w-full py-2 rounded-md border border-amber-400/60 bg-amber-400 text-neutral-950 text-[11px] font-bold disabled:opacity-50"
               >
                 {liveBusy ? 'Creando…' : 'Crear sesión'}
               </button>
@@ -228,7 +238,7 @@ export function ContinuousSetlistDock({
                   onChange={(e) => setJoinDraft(e.target.value.toUpperCase())}
                   placeholder="CÓDIGO"
                   maxLength={6}
-                  className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-background border border-border text-[11px] font-mono tracking-widest uppercase"
+                  className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-neutral-950 border border-white/25 text-[11px] font-mono tracking-widest uppercase text-white placeholder:text-white/40"
                 />
                 <button
                   type="button"
@@ -241,7 +251,7 @@ export function ContinuousSetlistDock({
                       setLiveBusy(false);
                     }
                   }}
-                  className="shrink-0 px-2.5 py-1.5 rounded-md border border-border text-[11px] font-bold disabled:opacity-40"
+                  className="shrink-0 px-2.5 py-1.5 rounded-md border border-white/30 bg-white/10 text-white text-[11px] font-bold disabled:opacity-40"
                 >
                   Unirse
                 </button>
@@ -263,7 +273,7 @@ export function ContinuousSetlistDock({
             />
           ) : null}
 
-          <div className="flex items-center justify-around gap-1">
+          <div className="flex items-center justify-around gap-1 text-white">
             {onHideControls && serviceModeInput && !controlsHidden ? (
               <WorshipServiceModeButton
                 compact
@@ -274,19 +284,19 @@ export function ContinuousSetlistDock({
             <button
               type="button"
               onClick={onToggleAutoScroll}
-              className={`flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border ${
-                autoScrolling ? 'border-gold text-gold bg-gold/10' : 'border-white/10'
+              className={`${dockIconBtn} ${
+                autoScrolling ? 'border-amber-400/70 bg-amber-400/20 text-amber-200' : ''
               }`}
               aria-label={autoScrolling ? 'Detener auto-scroll' : 'Iniciar auto-scroll'}
             >
               {autoScrolling ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              <span className="text-[9px]">Scroll</span>
+              <span className="text-[9px] text-white/80">Scroll</span>
             </button>
             {onScrollToTop ? (
               <button
                 type="button"
                 onClick={onScrollToTop}
-                className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/10"
+                className={dockIconBtn}
                 aria-label="Volver arriba"
               >
                 <ArrowUp className="w-5 h-5" />
@@ -296,7 +306,7 @@ export function ContinuousSetlistDock({
               type="button"
               onClick={onPrev}
               disabled={!hasPrev}
-              className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/10 disabled:opacity-30"
+              className={`${dockIconBtn} disabled:opacity-30`}
               aria-label="Canción anterior"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -304,7 +314,7 @@ export function ContinuousSetlistDock({
             <button
               type="button"
               onClick={onSongStart}
-              className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/10"
+              className={dockIconBtn}
               aria-label="Inicio de canción"
             >
               <SkipBack className="w-5 h-5" />
@@ -312,7 +322,7 @@ export function ContinuousSetlistDock({
             <button
               type="button"
               onClick={onOpenNavigator}
-              className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-gold/30 bg-gold/10 text-gold"
+              className={`${dockIconBtn} border-amber-400/50 bg-amber-400/15 text-amber-200`}
               aria-label="Lista de canciones"
             >
               <ListMusic className="w-5 h-5" />
@@ -321,7 +331,7 @@ export function ContinuousSetlistDock({
               type="button"
               onClick={onNext}
               disabled={!hasNext}
-              className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/10 disabled:opacity-30"
+              className={`${dockIconBtn} disabled:opacity-30`}
               aria-label="Canción siguiente"
             >
               <ChevronRight className="w-6 h-6" />
@@ -329,7 +339,7 @@ export function ContinuousSetlistDock({
             <button
               type="button"
               onClick={onToggleFullscreen}
-              className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-white/10"
+              className={dockIconBtn}
               aria-label="Pantalla completa"
             >
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}

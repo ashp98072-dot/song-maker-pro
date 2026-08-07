@@ -28,8 +28,8 @@ export const DockButton = forwardRef<HTMLButtonElement, DockButtonProps>(functio
       aria-label={label}
       className={`flex flex-col items-center justify-center min-w-[2.5rem] min-h-[2.5rem] px-1 py-0.5 rounded-xl border transition-all active:scale-95 ${className} ${
         active
-          ? 'border-gold bg-gold/20 text-gold'
-          : 'border-white/10 bg-white/5 text-foreground'
+          ? 'border-amber-400/70 bg-amber-400/20 text-amber-200'
+          : 'border-white/20 bg-white/5 text-white'
       }`}
       {...rest}
     >
