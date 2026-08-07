@@ -11,10 +11,12 @@ import {
   Library,
   LogOut,
   Maximize,
+  QrCode,
   Radio,
   RotateCcw,
   Share2,
   SlidersHorizontal,
+  Users,
   Youtube,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,7 +31,7 @@ import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
 import { VOCAL_REGISTERS, getRegisterInfo } from '@/utils/vocalRange';
 import { useSingerVocalProfile } from '@/features/vocal-test';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
-import { buildLiveJoinUrl } from '@/features/simple-live-sync/liveJoinUrl';
+import { buildLiveJoinUrl, liveJoinQrImageUrl } from '@/features/simple-live-sync/liveJoinUrl';
 import { normalizeSessionCode } from '@/features/director-session/types';
 
 const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
@@ -78,6 +80,7 @@ export function WorshipControlSheet({
   const panelRef = useRef<HTMLDivElement>(null);
   const [liveBusy, setLiveBusy] = useState(false);
   const [joinDraft, setJoinDraft] = useState('');
+  const [showLiveQr, setShowLiveQr] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -99,6 +102,10 @@ export function WorshipControlSheet({
     simpleLive &&
     (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
     !!simpleLive.code;
+
+  useEffect(() => {
+    if (!liveActive) setShowLiveQr(false);
+  }, [liveActive]);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -358,14 +365,22 @@ export function WorshipControlSheet({
             <TabsContent value="tools" className="mt-0 space-y-2">
               {liveActive ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5" />
-                    Sesión · {simpleLive!.role === 'director' ? 'Transmitiendo' : 'Invitado'}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5" />
+                      Sesión · {simpleLive!.role === 'director' ? 'Transmitiendo' : 'Invitado'}
+                    </p>
+                    {simpleLive!.role === 'director' ? (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {simpleLive!.connectedCount} online
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="font-mono text-xl font-black tracking-[0.2em] text-gold">
                     {simpleLive!.code}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {simpleLive!.role === 'director' ? (
                       <>
                         <button
@@ -379,7 +394,7 @@ export function WorshipControlSheet({
                               toast.message(simpleLive!.code!);
                             }
                           }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-border text-xs font-bold"
+                          className="flex-1 min-w-[5.5rem] flex items-center justify-center gap-1.5 py-2 rounded-lg border border-border text-xs font-bold"
                         >
                           <Copy className="w-3.5 h-3.5" /> Copiar
                         </button>
@@ -402,9 +417,26 @@ export function WorshipControlSheet({
                               }
                             }
                           }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gold/40 text-gold text-xs font-bold"
+                          className="flex-1 min-w-[5.5rem] flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gold/40 text-gold text-xs font-bold"
                         >
                           <Share2 className="w-3.5 h-3.5" /> Compartir
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            worshipHaptic();
+                            setShowLiveQr((v) => !v);
+                          }}
+                          className={`flex-1 min-w-[5.5rem] flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-bold ${
+                            showLiveQr
+                              ? 'border-gold/40 text-gold bg-gold/10'
+                              : 'border-border'
+                          }`}
+                          aria-label={showLiveQr ? 'Ocultar QR' : 'Mostrar QR'}
+                          aria-pressed={showLiveQr}
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          QR
                         </button>
                       </>
                     ) : (
@@ -423,18 +455,30 @@ export function WorshipControlSheet({
                       onClick={async () => {
                         worshipHaptic();
                         const wasDirector = simpleLive!.role === 'director';
+                        setShowLiveQr(false);
                         await simpleLive!.leave();
                         toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
                       }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-destructive/40 text-destructive text-xs font-bold"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-destructive/40 text-destructive text-xs font-bold"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
+                      {simpleLive!.role === 'director' ? 'Detener sesión' : 'Salir de la sesión'}
                     </button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Código y compartir solo aquí — la letra queda a pantalla completa.
-                  </p>
+                  {simpleLive!.role === 'director' && showLiveQr ? (
+                    <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-white p-3">
+                      <img
+                        src={liveJoinQrImageUrl(buildLiveJoinUrl(simpleLive!.code!), 180)}
+                        alt={`QR para unirse a ${simpleLive!.code}`}
+                        width={180}
+                        height={180}
+                        className="rounded-md"
+                      />
+                      <p className="text-[10px] text-neutral-600 text-center">
+                        Escanea para unirte · {simpleLive!.code}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               ) : serviceModeInput && simpleLive ? (
                 <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">

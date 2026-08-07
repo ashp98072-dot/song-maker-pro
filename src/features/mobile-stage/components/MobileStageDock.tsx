@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Play,
   Pause,
@@ -115,6 +115,11 @@ export function MobileStageDock({
     !!simpleLive &&
     (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
     !!simpleLive.code;
+
+  useEffect(() => {
+    if (!liveActive) return;
+    setExpansion('expanded');
+  }, [liveActive]);
 
   const toggleExpansion = () => {
     onBumpControls();
