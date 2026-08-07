@@ -402,20 +402,11 @@ export function WorshipControlSheet({
                           type="button"
                           onClick={async () => {
                             worshipHaptic();
-                            const url = buildLiveJoinUrl(simpleLive!.code!);
-                            const ok = await shareNative({
+                            await shareNative({
                               title: 'Sesión en vivo',
                               text: `Únete con el código ${simpleLive!.code}`,
-                              url,
+                              url: buildLiveJoinUrl(simpleLive!.code!),
                             });
-                            if (!ok) {
-                              try {
-                                await navigator.clipboard.writeText(url);
-                                toast.success('Enlace copiado');
-                              } catch {
-                                toast.message(simpleLive!.code!);
-                              }
-                            }
                           }}
                           className="flex-1 min-w-[5.5rem] flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gold/40 text-gold text-xs font-bold"
                         >

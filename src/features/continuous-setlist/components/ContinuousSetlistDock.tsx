@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ArrowUp,
   ChevronLeft,
@@ -14,11 +15,13 @@ import {
   SkipBack,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { FEATURES } from '@/config/features';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
 import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
+import { normalizeSessionCode } from '@/features/director-session/types';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { buildLiveJoinUrl } from '@/features/simple-live-sync/liveJoinUrl';
 import { shareNative } from '@/utils/shareNative';
@@ -87,10 +90,14 @@ export function ContinuousSetlistDock({
   serviceModeInput = null,
 }: ContinuousSetlistDockProps) {
   const simpleLive = useSimpleLiveSyncOptional();
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [joinDraft, setJoinDraft] = useState('');
   const liveActive =
     !!simpleLive &&
     (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
     !!simpleLive.code;
+  const canCreateLive =
+    FEATURES.SIMPLE_LIVE_SYNC && !!simpleLive && !!serviceModeInput && !liveActive && !controlsHidden;
 
   if (!visible) return null;
 
@@ -136,21 +143,12 @@ export function ContinuousSetlistDock({
                   </button>
                   <button
                     type="button"
-                    onClick={async () => {
-                      const url = buildLiveJoinUrl(simpleLive!.code!);
-                      const ok = await shareNative({
+                    onClick={() => {
+                      void shareNative({
                         title: 'Sesión en vivo',
                         text: `Únete con el código ${simpleLive!.code}`,
-                        url,
+                        url: buildLiveJoinUrl(simpleLive!.code!),
                       });
-                      if (!ok) {
-                        try {
-                          await navigator.clipboard.writeText(url);
-                          toast.success('Enlace copiado');
-                        } catch {
-                          toast.message(simpleLive!.code!);
-                        }
-                      }
                     }}
                     className="shrink-0 p-1.5 rounded-md border border-gold/40 text-gold"
                     aria-label="Compartir"
@@ -181,6 +179,62 @@ export function ContinuousSetlistDock({
                 <LogOut className="w-3 h-3" />
                 {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
               </button>
+            </div>
+          ) : null}
+
+          {canCreateLive ? (
+            <div className="rounded-lg border border-border bg-secondary/40 px-2 py-2 space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Radio className="w-3 h-3" /> Sesión en vivo
+              </p>
+              <button
+                type="button"
+                disabled={liveBusy}
+                onClick={async () => {
+                  setLiveBusy(true);
+                  try {
+                    await simpleLive!.createAsDirector({
+                      songId: serviceModeInput!.songId,
+                      listId: serviceModeInput!.listId ?? null,
+                      listSongIds: serviceModeInput!.listSongIds ?? [],
+                      currentIndex: serviceModeInput!.currentIndex ?? 0,
+                      viewMode: serviceModeInput!.viewMode ?? 'continuous',
+                      semitones: serviceModeInput!.semitones ?? 0,
+                      genderShift: serviceModeInput!.genderShift ?? 'original',
+                      sectionAnchor: serviceModeInput!.sectionAnchor ?? null,
+                    });
+                  } finally {
+                    setLiveBusy(false);
+                  }
+                }}
+                className="w-full py-1.5 rounded-md border border-gold/40 bg-gold/10 text-gold text-[11px] font-bold disabled:opacity-50"
+              >
+                {liveBusy ? 'Creando…' : 'Crear sesión'}
+              </button>
+              <div className="flex gap-1.5">
+                <input
+                  value={joinDraft}
+                  onChange={(e) => setJoinDraft(e.target.value.toUpperCase())}
+                  placeholder="CÓDIGO"
+                  maxLength={6}
+                  className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-background border border-border text-[11px] font-mono tracking-widest uppercase"
+                />
+                <button
+                  type="button"
+                  disabled={liveBusy || normalizeSessionCode(joinDraft).length < 4}
+                  onClick={async () => {
+                    setLiveBusy(true);
+                    try {
+                      await simpleLive!.joinAsFollower(joinDraft);
+                    } finally {
+                      setLiveBusy(false);
+                    }
+                  }}
+                  className="shrink-0 px-2.5 py-1.5 rounded-md border border-border text-[11px] font-bold disabled:opacity-40"
+                >
+                  Unirse
+                </button>
+              </div>
             </div>
           ) : null}
 

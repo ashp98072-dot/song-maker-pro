@@ -2782,17 +2782,20 @@ export default function ContinuousSetlistPage() {
   if (
     listId &&
     resolvedSongIds.length === 0 &&
-    (liveIsFollower || !!sessionConnection || !!sessionCodeForFetch)
+    (liveIsFollower ||
+      !!sessionConnection ||
+      !!sessionCodeForFetch ||
+      simpleLive?.role === 'follower')
   ) {
     return wrapFollower(
-      <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch} />
+      <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch ?? simpleLive?.code} />
     );
   }
 
   if (!list && resolvedSongIds.length === 0) {
-    if (liveIsFollower) {
+    if (liveIsFollower || simpleLive?.role === 'follower') {
       return wrapFollower(
-        <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch} />
+        <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch ?? simpleLive?.code} />
       );
     }
 
@@ -2818,10 +2821,10 @@ export default function ContinuousSetlistPage() {
   }
 
   if (entries.length === 0) {
-    if (liveIsFollower) {
+    if (liveIsFollower || simpleLive?.role === 'follower') {
       return wrapFollower(
         <div className="container px-4 py-12 text-center">
-          <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch} />
+          <FollowerDirectorSyncLoader sessionCode={effectiveJoinCode ?? sessionCodeForFetch ?? simpleLive?.code} />
           <p className="mt-2 text-sm text-muted-foreground">
             {resolvedSongIds.length > 0
               ? 'Esperando que las canciones estén disponibles en tu biblioteca…'

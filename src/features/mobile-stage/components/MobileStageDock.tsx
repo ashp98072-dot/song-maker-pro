@@ -166,21 +166,12 @@ export function MobileStageDock({
                       </button>
                       <button
                         type="button"
-                        onClick={async () => {
-                          const url = buildLiveJoinUrl(simpleLive!.code!);
-                          const ok = await shareNative({
+                        onClick={() => {
+                          void shareNative({
                             title: 'Sesión en vivo',
                             text: `Únete con el código ${simpleLive!.code}`,
-                            url,
+                            url: buildLiveJoinUrl(simpleLive!.code!),
                           });
-                          if (!ok) {
-                            try {
-                              await navigator.clipboard.writeText(url);
-                              toast.success('Enlace copiado');
-                            } catch {
-                              toast.message(simpleLive!.code!);
-                            }
-                          }
                         }}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-gold/40 text-gold text-[10px] font-bold"
                       >
