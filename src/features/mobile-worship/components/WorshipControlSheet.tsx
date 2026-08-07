@@ -21,7 +21,8 @@ import { RehearsalTools } from '@/features/rehearsal/components/RehearsalTools';
 import type { WorshipControlSheetProps } from '@/features/mobile-worship/types';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
-import { VOCAL_REGISTERS } from '@/utils/vocalRange';
+import { VOCAL_REGISTERS, getRegisterInfo } from '@/utils/vocalRange';
+import { useSingerVocalProfile } from '@/features/vocal-test';
 
 const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 
@@ -78,6 +79,11 @@ export function WorshipControlSheet({
     }, 0);
     return () => window.clearTimeout(id);
   }, [open]);
+
+  const { preferredRegister } = useSingerVocalProfile();
+  const preferredLabel = preferredRegister
+    ? getRegisterInfo(preferredRegister)?.label ?? preferredRegister
+    : null;
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -244,6 +250,27 @@ export function WorshipControlSheet({
               </div>
 
               <div className="flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
+                {preferredRegister ? (
+                  <button
+                    type="button"
+                    onClick={() => onVocalRegisterChange(preferredRegister)}
+                    className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                      vocalRegister === preferredRegister
+                        ? 'border-gold text-gold bg-gold/10'
+                        : 'border-gold/50 text-gold'
+                    }`}
+                  >
+                    Mi voz: {preferredLabel}
+                  </button>
+                ) : (
+                  <Link
+                    to="/registro-vocal"
+                    onClick={minimize}
+                    className="shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold border border-dashed border-gold/40 text-gold"
+                  >
+                    Test de voz
+                  </Link>
+                )}
                 {VOCAL_REGISTERS.map((r) => (
                   <button
                     key={r.id}

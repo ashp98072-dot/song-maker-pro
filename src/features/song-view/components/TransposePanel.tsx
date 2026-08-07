@@ -9,8 +9,10 @@ import {
   User,
   Users as UsersIcon,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Song } from '@/types/music';
-import { VOCAL_REGISTERS, type VocalRegister } from '@/utils/vocalRange';
+import { VOCAL_REGISTERS, getRegisterInfo, type VocalRegister } from '@/utils/vocalRange';
+import { useSingerVocalProfile } from '@/features/vocal-test';
 
 export interface TransposePanelProps {
   song: Song;
@@ -72,6 +74,10 @@ export default function TransposePanel({
 }: TransposePanelProps) {
   const resetDisabled =
     !vocalRegister && !genderShift && customSemitones === 0 && !modeSwapped;
+  const { preferredRegister, profile } = useSingerVocalProfile();
+  const preferredLabel = preferredRegister
+    ? getRegisterInfo(preferredRegister)?.label ?? preferredRegister
+    : null;
 
   return (
     <div className={className ?? 'space-y-4'} data-transpose-panel-root>
@@ -108,6 +114,39 @@ export default function TransposePanel({
         <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-2">
           Registro Vocal
         </label>
+        {preferredRegister ? (
+          <div className="flex gap-1.5 mb-2">
+            <button
+              type="button"
+              onClick={() => onVocalRegisterChange(preferredRegister)}
+              className={`flex-1 py-2 rounded-lg border text-xs font-bold transition-all ${
+                vocalRegister === preferredRegister
+                  ? 'border-gold bg-gold/15 text-gold'
+                  : 'border-gold/40 bg-gold/5 text-gold hover:bg-gold/10'
+              }`}
+            >
+              Mi voz: {preferredLabel}
+            </button>
+            <Link
+              to="/registro-vocal"
+              className="shrink-0 px-2.5 py-2 rounded-lg border border-border text-[10px] font-bold text-muted-foreground hover:text-foreground"
+            >
+              Test
+            </Link>
+          </div>
+        ) : (
+          <Link
+            to="/registro-vocal"
+            className="mb-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-dashed border-gold/40 text-xs font-semibold text-gold hover:bg-gold/5"
+          >
+            Descubrir mi registro
+          </Link>
+        )}
+        {profile && preferredRegister && vocalRegister !== preferredRegister ? (
+          <p className="text-[10px] text-muted-foreground mb-2 text-center">
+            Toca “Mi voz” para ajustar la tesitura a tu rango
+          </p>
+        ) : null}
         <div className="grid grid-cols-3 gap-1.5">
           {VOCAL_REGISTERS.map((r) => (
             <button

@@ -10,6 +10,7 @@ import {
   Users,
   Database,
   Library,
+  Mic2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
@@ -452,6 +453,22 @@ export default function ProfilePage() {
           Herramientas
         </p>
         <div className="space-y-2">
+          {isOwn && (
+            <Link
+              to="/registro-vocal"
+              className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+            >
+              <div className="p-2 rounded-lg bg-secondary text-gold shrink-0">
+                <Mic2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Test de registro vocal</p>
+                <p className="text-xs text-muted-foreground">
+                  Descubre tu voz (teclado o micrófono) y ajusta canciones
+                </p>
+              </div>
+            </Link>
+          )}
           <Link
             to="/acordes"
             className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
