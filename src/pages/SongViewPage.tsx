@@ -2442,9 +2442,9 @@ export default function SongViewPage() {
             </>
           )}
 
-          {/* Bottom toolbar */}
+          {/* Bottom toolbar — desktop only; móvil usa WorshipFloatingDock / sheet */}
           {!isEditing && !mobileTeleprompter && (
-            <div className="mobile-stage-hide flex flex-wrap items-center gap-3 mt-4">
+            <div className="mobile-stage-hide hidden lg:flex flex-wrap items-center gap-3 mt-4">
               <RehearsalAutoScrollToolbar
                 autoScrolling={autoScrolling}
                 smartScroll={smartScroll}
@@ -2460,8 +2460,9 @@ export default function SongViewPage() {
             </div>
           )}
 
+          {/* Ensayo tools — desktop; en móvil van en el sheet del dock */}
           {!isEditing && !isTeleprompter && (
-            <div className="mobile-stage-hide">
+            <div className="mobile-stage-hide hidden lg:block">
             <RehearsalTools
               songId={song.id}
               metronomeBpm={metronomeBpm}
@@ -2482,6 +2483,7 @@ export default function SongViewPage() {
               ytDelayMs={ytDelayMs}
               onYtDelayMsChange={(ms) => setYtDelayMs(ms)}
               onSmartYoutubeClick={handleSmartYoutubeClick}
+              layout="tabs"
             />
             </div>
           )}
@@ -2491,10 +2493,10 @@ export default function SongViewPage() {
           )}
         </div>
 
-        {/* RIGHT COLUMN — Transpose panel (oculto en teleprompter / solo letra local) */}
+        {/* RIGHT COLUMN — Transpose panel (desktop). Móvil: WorshipControlSheet */}
         {!isTeleprompter && !isLyricsOnlyPreference && !mobileTeleprompter && (
-        <div className="mobile-stage-hide lg:w-80 shrink-0">
-          <div className="glass-card p-5 sticky top-20 space-y-4">
+        <div className="mobile-stage-hide hidden lg:block lg:w-80 shrink-0">
+          <div className="glass-card p-5 sticky top-20 space-y-4 max-h-[calc(100dvh-6rem)] overflow-y-auto">
             <TransposePanel
               song={song}
               displayKey={displayKey}

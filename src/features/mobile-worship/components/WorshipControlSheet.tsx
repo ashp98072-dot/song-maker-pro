@@ -240,7 +240,7 @@ export function WorshipControlSheet({
                 onScrollSpeedChange={onScrollSpeedChange}
               />
               <div className="max-h-[45vh] overflow-y-auto">
-                <RehearsalTools {...rehearsal} />
+                <RehearsalTools {...rehearsal} layout="stack" />
               </div>
             </TabsContent>
 

@@ -12,9 +12,11 @@ interface Recording {
 
 interface RehearsalRecorderProps {
   songId: string;
+  /** Inside a parent card/tab — skip outer chrome */
+  embedded?: boolean;
 }
 
-export default function RehearsalRecorder({ songId }: RehearsalRecorderProps) {
+export default function RehearsalRecorder({ songId, embedded = false }: RehearsalRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -131,7 +133,7 @@ export default function RehearsalRecorder({ songId }: RehearsalRecorderProps) {
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
-    <div className="glass-card p-4 mt-4">
+    <div className={embedded ? '' : 'glass-card p-4 mt-4'}>
       <div className="flex items-center justify-between mb-3">
         <label className="text-xs font-medium text-gold flex items-center gap-1">
           <Mic className="w-3 h-3" /> Grabadora de Ensayos

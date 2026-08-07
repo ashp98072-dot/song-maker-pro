@@ -1,9 +1,9 @@
 import type { RefObject } from 'react';
-import { Play, Pause, Youtube, RotateCcw, StopCircle } from 'lucide-react';
-import DraggablePanel from '@/components/DraggablePanel';
+import { Play, Pause, Youtube, RotateCcw, StopCircle, Mic } from 'lucide-react';
 import RehearsalRecorder from '@/components/RehearsalRecorder';
 import { YouTubeEmbedFrame } from '@/components/YouTubeEmbedFrame';
 import { toYouTubeWatchUrl } from '@/features/youtube-search/utils/youtubeUrl';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /** Root: metrónomo, YouTube y grabador — listo para dock móvil / stage overlay futuro. */
 export interface RehearsalToolsProps {
@@ -27,6 +27,8 @@ export interface RehearsalToolsProps {
   onYtDelayMsChange: (ms: number) => void;
   /** Si hay URL → abre player; si no → selector rápido */
   onSmartYoutubeClick?: () => void;
+  /** Compact single-panel tabs (desktop). Sheet can pass false for stacked feel. */
+  layout?: 'tabs' | 'stack';
 }
 
 export function RehearsalTools({
@@ -49,135 +51,189 @@ export function RehearsalTools({
   ytDelayMs,
   onYtDelayMsChange,
   onSmartYoutubeClick,
+  layout = 'tabs',
 }: RehearsalToolsProps) {
-  return (
-    <div className="mt-6 space-y-4" data-rehearsal-tools-root>
-      <DraggablePanel title="Metrónomo" icon={<RotateCcw className="w-4 h-4 text-gold" />}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onToggleMetronome}
-            className={`px-4 py-2 rounded-lg text-sm font-medium border ${metronomeActive ? 'border-gold text-gold bg-gold/10' : 'border-border text-muted-foreground'}`}
-          >
-            {metronomeActive ? <Pause className="w-4 h-4 inline mr-1" /> : <Play className="w-4 h-4 inline mr-1" />}
-            {metronomeActive ? 'Detener' : 'Iniciar'}
-          </button>
-          <input
-            type="range"
-            min={40}
-            max={220}
-            value={metronomeBpm}
-            onChange={(e) => onBpmChange(Number(e.target.value))}
-            className="flex-1 accent-gold"
-          />
-          <span
-            className={`text-sm font-mono w-16 text-right transition-all ${bpmFlash ? 'text-amber-400 scale-125 font-bold' : 'text-foreground'}`}
-          >
-            {metronomeBpm} BPM
-          </span>
-          {metronomeActive && (
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map((b) => (
-                <div
-                  key={b}
-                  className={`w-3 h-3 rounded-full transition-colors ${beatCount === b ? (b === 1 ? 'bg-gold' : 'bg-foreground') : 'bg-muted'}`}
-                />
-              ))}
-            </div>
-          )}
+  const metronomeBody = (
+    <div className="flex items-center gap-3 flex-wrap">
+      <button
+        type="button"
+        onClick={onToggleMetronome}
+        className={`px-4 py-2 rounded-lg text-sm font-medium border ${metronomeActive ? 'border-gold text-gold bg-gold/10' : 'border-border text-muted-foreground'}`}
+      >
+        {metronomeActive ? <Pause className="w-4 h-4 inline mr-1" /> : <Play className="w-4 h-4 inline mr-1" />}
+        {metronomeActive ? 'Detener' : 'Iniciar'}
+      </button>
+      <input
+        type="range"
+        min={40}
+        max={220}
+        value={metronomeBpm}
+        onChange={(e) => onBpmChange(Number(e.target.value))}
+        className="flex-1 min-w-[120px] accent-gold"
+      />
+      <span
+        className={`text-sm font-mono w-16 text-right transition-all ${bpmFlash ? 'text-amber-400 scale-125 font-bold' : 'text-foreground'}`}
+      >
+        {metronomeBpm} BPM
+      </span>
+      {metronomeActive && (
+        <div className="flex gap-1">
+          {[1, 2, 3, 4].map((b) => (
+            <div
+              key={b}
+              className={`w-3 h-3 rounded-full transition-colors ${beatCount === b ? (b === 1 ? 'bg-gold' : 'bg-foreground') : 'bg-muted'}`}
+            />
+          ))}
         </div>
-      </DraggablePanel>
+      )}
+    </div>
+  );
 
-      <DraggablePanel title="YouTube" icon={<Youtube className="w-4 h-4 text-red-500" />} defaultHeight={300}>
-        <div className="flex gap-2 flex-wrap">
-          {onSmartYoutubeClick && (
+  const youtubeBody = (
+    <>
+      <div className="flex gap-2 flex-wrap">
+        {onSmartYoutubeClick && (
+          <button
+            type="button"
+            onClick={onSmartYoutubeClick}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium shrink-0 hover:bg-red-500/20"
+            title={youtubeEmbedId ? 'Abrir video' : 'Buscar video en YouTube'}
+          >
+            <Youtube className="w-4 h-4" />
+            {youtubeEmbedId ? 'Abrir' : 'Buscar'}
+          </button>
+        )}
+        <input
+          value={youtubeUrl}
+          onChange={(e) => onYoutubeUrlChange(e.target.value)}
+          placeholder="Pega el enlace de YouTube..."
+          className="flex-1 min-w-[140px] px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          type="button"
+          onClick={onToggleShowYoutube}
+          disabled={!youtubeEmbedId}
+          className="px-3 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+        >
+          {showYoutube ? 'Ocultar' : 'Ver'}
+        </button>
+      </div>
+      {youtubeUrl.trim() && !youtubeEmbedId && (
+        <p className="text-xs text-amber-400/90 mt-2">Enlace de YouTube no válido.</p>
+      )}
+      {showYoutube && youtubeEmbedId && (
+        <>
+          <div className="mt-3 aspect-video rounded-lg overflow-hidden">
+            <YouTubeEmbedFrame
+              videoId={youtubeEmbedId}
+              iframeRef={youtubeIframeRef}
+              autoplay={youtubePlaying}
+              title="YouTube ensayo"
+            />
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <a
+              href={toYouTubeWatchUrl(youtubeEmbedId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-red-400 hover:underline"
+            >
+              Abrir en YouTube
+            </a>
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <button
               type="button"
-              onClick={onSmartYoutubeClick}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium shrink-0 hover:bg-red-500/20"
-              title={youtubeEmbedId ? 'Abrir video' : 'Buscar video en YouTube'}
+              onClick={onYoutubePlayPause}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${youtubePlaying ? 'border-gold text-gold bg-gold/10' : 'border-border text-muted-foreground'}`}
             >
-              <Youtube className="w-4 h-4" />
-              {youtubeEmbedId ? 'Abrir' : 'Buscar'}
+              {youtubePlaying ? <Pause className="w-3 h-3 inline mr-1" /> : <Play className="w-3 h-3 inline mr-1" />}
+              {youtubePlaying ? 'Marcar pausa' : 'Marcar play'} (sesión)
             </button>
-          )}
-          <input
-            value={youtubeUrl}
-            onChange={(e) => onYoutubeUrlChange(e.target.value)}
-            placeholder="Pega el enlace de YouTube..."
-            className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            onClick={onToggleShowYoutube}
-            disabled={!youtubeEmbedId}
-            className="px-3 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
-          >
-            {showYoutube ? 'Ocultar' : 'Ver'}
-          </button>
-        </div>
-        {youtubeUrl.trim() && !youtubeEmbedId && (
-          <p className="text-xs text-amber-400/90 mt-2">Enlace de YouTube no válido.</p>
-        )}
-        {showYoutube && youtubeEmbedId && (
-          <>
-            <div className="mt-3 aspect-video rounded-lg overflow-hidden">
-              <YouTubeEmbedFrame
-                videoId={youtubeEmbedId}
-                iframeRef={youtubeIframeRef}
-                autoplay={youtubePlaying}
-                title="YouTube ensayo"
-              />
-            </div>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <a
-                href={toYouTubeWatchUrl(youtubeEmbedId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-red-400 hover:underline"
-              >
-                Abrir en YouTube
-              </a>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                type="button"
-                onClick={onYoutubePlayPause}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${youtubePlaying ? 'border-gold text-gold bg-gold/10' : 'border-border text-muted-foreground'}`}
-              >
-                {youtubePlaying ? <Pause className="w-3 h-3 inline mr-1" /> : <Play className="w-3 h-3 inline mr-1" />}
-                {youtubePlaying ? 'Marcar pausa' : 'Marcar play'} (sesión)
-              </button>
-              <span className="text-[10px] text-muted-foreground">
-                Usa los controles del video; esto sincroniza la sesión en vivo
+            <span className="text-[10px] text-muted-foreground">
+              Usa los controles del video; esto sincroniza la sesión en vivo
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+              Delay metrónomo
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={5000}
+              step={100}
+              value={ytDelayMs}
+              onChange={(e) => onYtDelayMsChange(Number(e.target.value))}
+              className="flex-1 min-w-[120px] accent-gold"
+            />
+            <span className="text-[10px] font-mono text-foreground w-14 text-right">
+              {(ytDelayMs / 1000).toFixed(1)}s
+            </span>
+            {youtubeDuration > 0 && (
+              <span className="text-[10px] text-muted-foreground w-full">
+                Duración detectada: {Math.floor(youtubeDuration / 60)}:
+                {String(Math.floor(youtubeDuration % 60)).padStart(2, '0')}
               </span>
-            </div>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                Delay metrónomo
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={5000}
-                step={100}
-                value={ytDelayMs}
-                onChange={(e) => onYtDelayMsChange(Number(e.target.value))}
-                className="flex-1 min-w-[120px] accent-gold"
-              />
-              <span className="text-[10px] font-mono text-foreground w-14 text-right">
-                {(ytDelayMs / 1000).toFixed(1)}s
-              </span>
-              {youtubeDuration > 0 && (
-                <span className="text-[10px] text-muted-foreground w-full">
-                  Duración detectada: {Math.floor(youtubeDuration / 60)}:
-                  {String(Math.floor(youtubeDuration % 60)).padStart(2, '0')}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </DraggablePanel>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
 
-      <RehearsalRecorder songId={songId} />
+  if (layout === 'stack') {
+    return (
+      <div className="mt-4 space-y-4" data-rehearsal-tools-root data-layout="stack">
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-gold" /> Metrónomo
+          </h3>
+          {metronomeBody}
+        </div>
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Youtube className="w-4 h-4 text-red-500" /> YouTube
+          </h3>
+          {youtubeBody}
+        </div>
+        <RehearsalRecorder songId={songId} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 glass-card overflow-hidden" data-rehearsal-tools-root data-layout="tabs">
+      <Tabs defaultValue="metronome" className="w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3 pt-3 pb-2 border-b border-border">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground shrink-0 px-1">
+            Ensayo
+          </p>
+          <TabsList className="grid w-full grid-cols-3 h-9">
+            <TabsTrigger value="metronome" className="text-xs gap-1 px-2">
+              <RotateCcw className="w-3.5 h-3.5 hidden sm:inline" />
+              Metrónomo
+            </TabsTrigger>
+            <TabsTrigger value="youtube" className="text-xs gap-1 px-2">
+              <Youtube className="w-3.5 h-3.5 hidden sm:inline" />
+              YouTube
+            </TabsTrigger>
+            <TabsTrigger value="record" className="text-xs gap-1 px-2">
+              <Mic className="w-3.5 h-3.5 hidden sm:inline" />
+              Grabar
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="metronome" className="mt-0 p-4 focus-visible:outline-none">
+          {metronomeBody}
+        </TabsContent>
+        <TabsContent value="youtube" className="mt-0 p-4 focus-visible:outline-none">
+          {youtubeBody}
+        </TabsContent>
+        <TabsContent value="record" className="mt-0 p-4 focus-visible:outline-none">
+          <RehearsalRecorder songId={songId} embedded />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
