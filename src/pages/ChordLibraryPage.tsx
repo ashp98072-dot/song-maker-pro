@@ -87,9 +87,6 @@ export default function ChordLibraryPage() {
         ) : null}
         {tab === 'registro' ? (
           <div className="border-t border-border pt-5 max-w-lg">
-            <p className="text-sm text-muted-foreground mb-4">
-              Descubre tu registro (soprano, tenor, etc.) y úsalo en canciones con el botón “Mi voz”.
-            </p>
             <VocalRangeTestPanel />
           </div>
         ) : null}
