@@ -111,6 +111,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  /** Community public_songs → shared Home catalog (does not overwrite local/cloud rows). */
+  const mergePublicSongsCatalog = async () => {
+    try {
+      const { fetchPublicSongs } = await import('@/features/community/publicSongsApi');
+      const { songDedupeKey } = await import(
+        '@/features/song-import/utils/normalizeImportedSong'
+      );
+      const publicSongs = await fetchPublicSongs(500);
+      if (!publicSongs.length) return;
+      setSongs((prev) => {
+        const ids = new Set(prev.map((s) => s.id));
+        const keys = new Set(prev.map((s) => songDedupeKey(s.title, s.artist)));
+        const incoming = publicSongs.filter(
+          (s) => !ids.has(s.id) && !keys.has(songDedupeKey(s.title, s.artist))
+        );
+        return incoming.length ? [...prev, ...incoming] : prev;
+      });
+    } catch (err) {
+      console.warn('public_songs hydrate failed:', err);
+    }
+  };
+
   const fetchGlobalCloudData = async () => {
     try {
       const [{ data, error }, { data: appRows }] = await Promise.all([
@@ -134,7 +156,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const incoming = seoSongs.filter((s) => !existingIds.has(s.id));
               return incoming.length ? [...incoming, ...prev] : prev;
             });
-            return;
           }
         } catch (seoErr) {
           console.warn('SEO catalog hydrate failed:', seoErr);
@@ -181,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Error al sincronizar datos globales:", err);
     }
+    await mergePublicSongsCatalog();
   };
 
   useEffect(() => {

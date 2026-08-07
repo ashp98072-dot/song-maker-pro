@@ -30,6 +30,7 @@ export function CommunitySongsPanel({ search }: Props) {
   const [keyFilter, setKeyFilter] = useState<string | null>(null);
   const [artist, setArtist] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +82,12 @@ export function CommunitySongsPanel({ search }: Props) {
   const libraryHas = (song: Song) =>
     !!songs.find((s) => s.id === song.id) || !!findLibraryDuplicate(songs, song.title, song.artist);
 
+  const missing = useMemo(
+    () => filtered.filter((s) => !libraryHas(s)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- libraryHas uses songs
+    [filtered, songs]
+  );
+
   const handleAdd = async (song: Song) => {
     if (isGuest) {
       toast.error('Inicia sesión para guardar cantos');
@@ -98,6 +105,33 @@ export function CommunitySongsPanel({ search }: Props) {
       toast.error('No se pudo añadir');
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const handleAddVisible = async () => {
+    if (isGuest) {
+      toast.error('Inicia sesión para guardar cantos');
+      return;
+    }
+    if (!missing.length) {
+      toast.message('Ya tienes todos los cantos visibles');
+      return;
+    }
+    setBatchBusy(true);
+    let ok = 0;
+    try {
+      for (const song of missing) {
+        try {
+          await addSong({ ...song, isNew: true });
+          ok += 1;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      if (ok) toast.success(`${ok} canto(s) añadidos a tu biblioteca`);
+      else toast.error('No se pudo añadir ninguno');
+    } finally {
+      setBatchBusy(false);
     }
   };
 
@@ -142,10 +176,29 @@ export function CommunitySongsPanel({ search }: Props) {
         }}
       />
 
-      <p className="text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground tabular-nums">{filtered.length}</span> cantos
-        {catalog.length > filtered.length ? ` (de ${catalog.length})` : ''}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground tabular-nums">{filtered.length}</span> cantos
+          {catalog.length > filtered.length ? ` (de ${catalog.length})` : ''}
+          {missing.length > 0 ? (
+            <span className="text-muted-foreground">
+              {' '}
+              · {missing.length} nuevos para ti
+            </span>
+          ) : null}
+        </p>
+        {!isGuest && missing.length > 0 ? (
+          <button
+            type="button"
+            disabled={batchBusy}
+            onClick={() => void handleAddVisible()}
+            className="h-8 px-3 rounded-lg border border-gold/40 text-gold text-[11px] font-semibold hover:bg-gold/10 disabled:opacity-50 inline-flex items-center gap-1.5"
+          >
+            {batchBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+            Añadir visibles ({missing.length})
+          </button>
+        ) : null}
+      </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground">
