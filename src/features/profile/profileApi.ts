@@ -271,3 +271,72 @@ export async function fetchOwnAvatarUrl(): Promise<string | null> {
     .maybeSingle();
   return data?.avatar_url ?? null;
 }
+
+export type ProfileLite = {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+};
+
+export async function fetchProfilesByIds(userIds: string[]): Promise<ProfileLite[]> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (!unique.length) return [];
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('user_id, display_name, avatar_url')
+    .in('user_id', unique);
+
+  if (error) {
+    console.error('[profile] fetchProfilesByIds', error);
+    return unique.map((id) => ({
+      userId: id,
+      displayName: 'Músico',
+      avatarUrl: null,
+    }));
+  }
+
+  const byId = new Map(
+    (data ?? []).map((row) => [
+      String(row.user_id),
+      {
+        userId: String(row.user_id),
+        displayName: row.display_name?.trim() || 'Músico',
+        avatarUrl: row.avatar_url ?? null,
+      } satisfies ProfileLite,
+    ])
+  );
+
+  return unique.map(
+    (id) =>
+      byId.get(id) ?? {
+        userId: id,
+        displayName: 'Músico',
+        avatarUrl: null,
+      }
+  );
+}
+
+export async function fetchFollowerIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('user_follows')
+    .select('follower_id')
+    .eq('following_id', userId);
+  if (error) {
+    console.error('[profile] follower ids', error);
+    return [];
+  }
+  return (data ?? []).map((r) => String(r.follower_id));
+}
+
+export async function fetchFollowingIdsForUser(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('user_follows')
+    .select('following_id')
+    .eq('follower_id', userId);
+  if (error) {
+    console.error('[profile] following ids for user', error);
+    return [];
+  }
+  return (data ?? []).map((r) => String(r.following_id));
+}

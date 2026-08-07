@@ -26,6 +26,8 @@ import {
   type PublicListRow,
   type PublicListSongSnapshot,
 } from '@/features/community';
+import { fetchProfilesByIds, type ProfileLite } from '@/features/profile/profileApi';
+import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { bulkSetUserTranspositions } from '@/utils/userTranspositions';
 import { normalizeTitle } from '@/utils/textNormalize';
 import { getSongPath } from '@/utils/songSlug';
@@ -50,6 +52,7 @@ export default function CommunityChainDetailPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removingSongId, setRemovingSongId] = useState<string | null>(null);
+  const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({});
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -70,8 +73,17 @@ export default function CommunityChainDetailPage() {
       if (row) {
         const c = await fetchListComments(row.id);
         setComments(c);
+        const ids = [
+          row.owner_id,
+          ...c.map((x) => x.user_id),
+        ].filter(Boolean);
+        const profiles = await fetchProfilesByIds(ids);
+        const map: Record<string, ProfileLite> = {};
+        for (const p of profiles) map[p.userId] = p;
+        setProfilesById(map);
       } else {
         setComments([]);
+        setProfilesById({});
       }
     } catch {
       toast.error('No se pudo cargar la cadena');
@@ -245,6 +257,10 @@ export default function CommunityChainDetailPage() {
       }
       setComments((prev) => [...prev, result.comment]);
       setCommentBody('');
+      const profiles = await fetchProfilesByIds([result.comment.user_id]);
+      if (profiles[0]) {
+        setProfilesById((prev) => ({ ...prev, [profiles[0].userId]: profiles[0] }));
+      }
       toast.success('Comentario publicado');
     } finally {
       setPosting(false);
@@ -285,17 +301,31 @@ export default function CommunityChainDetailPage() {
           <span className="text-xs font-bold uppercase tracking-wide">Cadena pública</span>
         </div>
         <h1 className="text-3xl font-bold font-display text-foreground mb-1">{list.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          Por{' '}
-          {list.owner_id ? (
-            <Link to={`/perfil/${list.owner_id}`} className="text-gold hover:underline">
-              {list.owner_name || 'Músico'}
-            </Link>
-          ) : (
-            list.owner_name || 'Músico'
-          )}{' '}
-          · {list.song_count} canciones
-        </p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {list.owner_id && (
+            <ProfileAvatar
+              profile={
+                profilesById[list.owner_id] ?? {
+                  userId: list.owner_id,
+                  displayName: list.owner_name || 'Músico',
+                  avatarUrl: null,
+                }
+              }
+              size="sm"
+            />
+          )}
+          <p>
+            Por{' '}
+            {list.owner_id ? (
+              <Link to={`/perfil/${list.owner_id}`} className="text-gold hover:underline">
+                {profilesById[list.owner_id]?.displayName || list.owner_name || 'Músico'}
+              </Link>
+            ) : (
+              list.owner_name || 'Músico'
+            )}{' '}
+            · {list.song_count} canciones
+          </p>
+        </div>
         {list.description && (
           <p className="text-sm text-foreground/80 mt-3">{list.description}</p>
         )}
@@ -512,22 +542,44 @@ export default function CommunityChainDetailPage() {
           {comments.length === 0 && (
             <p className="text-sm text-muted-foreground">Sé el primero en comentar esta cadena.</p>
           )}
-          {comments.map((c) => (
-            <div key={c.id} className="rounded-xl border border-border bg-secondary/40 px-4 py-3">
-              <div className="flex items-baseline justify-between gap-2 mb-1">
-                <span className="text-sm font-semibold text-foreground">{c.author_name}</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {c.created_at
-                    ? new Date(c.created_at).toLocaleDateString('es', {
-                        day: 'numeric',
-                        month: 'short',
-                      })
-                    : ''}
-                </span>
+          {comments.map((c) => {
+            const author = profilesById[c.user_id];
+            return (
+              <div key={c.id} className="rounded-xl border border-border bg-secondary/40 px-4 py-3">
+                <div className="flex items-start gap-3 mb-1">
+                  <ProfileAvatar
+                    profile={
+                      author ?? {
+                        userId: c.user_id,
+                        displayName: c.author_name || 'Músico',
+                        avatarUrl: null,
+                      }
+                    }
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Link
+                        to={`/perfil/${c.user_id}`}
+                        className="text-sm font-semibold text-foreground hover:text-gold truncate"
+                      >
+                        {author?.displayName || c.author_name}
+                      </Link>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {c.created_at
+                          ? new Date(c.created_at).toLocaleDateString('es', {
+                              day: 'numeric',
+                              month: 'short',
+                            })
+                          : ''}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{c.body}</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-foreground/90 whitespace-pre-wrap">{c.body}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="flex gap-2">

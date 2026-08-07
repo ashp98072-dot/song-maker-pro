@@ -8,7 +8,8 @@ import {
   fetchPublicListsByOwners,
   type PublicListRow,
 } from '@/features/community';
-import { fetchFollowingIds } from '@/features/profile/profileApi';
+import { fetchFollowingIds, fetchProfilesByIds, type ProfileLite } from '@/features/profile/profileApi';
+import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -21,6 +22,7 @@ export default function CommunityLibraryPage() {
   const [publicLists, setPublicLists] = useState<PublicListRow[]>([]);
   const [followingLists, setFollowingLists] = useState<PublicListRow[]>([]);
   const [followingCount, setFollowingCount] = useState(0);
+  const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({});
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
 
@@ -37,16 +39,24 @@ export default function CommunityLibraryPage() {
         if (cancelled) return;
         setPublicLists(lists);
 
+        let followLists: PublicListRow[] = [];
         if (loggedIn) {
           const ids = await fetchFollowingIds();
           if (cancelled) return;
           setFollowingCount(ids.length);
-          const fromFollows = await fetchPublicListsByOwners(ids, 80);
-          if (!cancelled) setFollowingLists(fromFollows);
+          followLists = await fetchPublicListsByOwners(ids, 80);
+          if (!cancelled) setFollowingLists(followLists);
         } else {
           setFollowingCount(0);
           setFollowingLists([]);
         }
+
+        const ownerIds = [...lists, ...followLists].map((l) => l.owner_id).filter(Boolean);
+        const profiles = await fetchProfilesByIds(ownerIds);
+        if (cancelled) return;
+        const map: Record<string, ProfileLite> = {};
+        for (const p of profiles) map[p.userId] = p;
+        setProfilesById(map);
       } catch {
         if (!cancelled) {
           setPublicLists([]);
@@ -167,53 +177,70 @@ export default function CommunityLibraryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredLists.map((cadena) => (
-            <div
-              key={cadena.id}
-              className="glass-card p-5 hover:bg-surface-hover transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <Link
-                  to={`/comunidad/cadena/${cadena.slug}`}
-                  className="p-2 rounded-lg bg-gold/10 text-gold shrink-0"
-                >
-                  <ListMusic className="w-5 h-5" />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    to={`/comunidad/cadena/${cadena.slug}`}
-                    className="font-semibold text-foreground truncate block hover:text-gold"
-                  >
-                    {cadena.name}
-                  </Link>
-                  <p className="text-sm text-muted-foreground truncate">
-                    Por{' '}
-                    {cadena.owner_id ? (
-                      <Link
-                        to={`/perfil/${cadena.owner_id}`}
-                        className="text-gold hover:underline"
-                      >
-                        {cadena.owner_name || 'Músico'}
-                      </Link>
-                    ) : (
-                      cadena.owner_name || 'Músico'
-                    )}{' '}
-                    · {cadena.song_count} canciones
-                  </p>
-                  <Link
-                    to={`/comunidad/cadena/${cadena.slug}`}
-                    className="text-xs text-muted-foreground mt-2 line-clamp-2 block"
-                  >
-                    {cadena.songs
-                      .slice(0, 4)
-                      .map((s) => s.title)
-                      .join(' · ')}
-                    {cadena.songs.length > 4 ? '…' : ''}
-                  </Link>
+          {filteredLists.map((cadena) => {
+            const owner = profilesById[cadena.owner_id];
+            const ownerName = owner?.displayName || cadena.owner_name || 'Músico';
+            return (
+              <div
+                key={cadena.id}
+                className="glass-card p-5 hover:bg-surface-hover transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  {cadena.owner_id ? (
+                    <ProfileAvatar
+                      profile={
+                        owner ?? {
+                          userId: cadena.owner_id,
+                          displayName: ownerName,
+                          avatarUrl: null,
+                        }
+                      }
+                      size="md"
+                    />
+                  ) : (
+                    <Link
+                      to={`/comunidad/cadena/${cadena.slug}`}
+                      className="p-2 rounded-lg bg-gold/10 text-gold shrink-0"
+                    >
+                      <ListMusic className="w-5 h-5" />
+                    </Link>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to={`/comunidad/cadena/${cadena.slug}`}
+                      className="font-semibold text-foreground truncate block hover:text-gold"
+                    >
+                      {cadena.name}
+                    </Link>
+                    <p className="text-sm text-muted-foreground truncate">
+                      Por{' '}
+                      {cadena.owner_id ? (
+                        <Link
+                          to={`/perfil/${cadena.owner_id}`}
+                          className="text-gold hover:underline"
+                        >
+                          {ownerName}
+                        </Link>
+                      ) : (
+                        ownerName
+                      )}{' '}
+                      · {cadena.song_count} canciones
+                    </p>
+                    <Link
+                      to={`/comunidad/cadena/${cadena.slug}`}
+                      className="text-xs text-muted-foreground mt-2 line-clamp-2 block"
+                    >
+                      {cadena.songs
+                        .slice(0, 4)
+                        .map((s) => s.title)
+                        .join(' · ')}
+                      {cadena.songs.length > 4 ? '…' : ''}
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

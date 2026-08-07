@@ -14,14 +14,19 @@ import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ensureOwnProfile,
+  fetchFollowerIds,
+  fetchFollowingIdsForUser,
   fetchProfile,
+  fetchProfilesByIds,
   followUser,
   isFollowing,
   unfollowUser,
   updateOwnProfile,
   uploadAvatar,
+  type ProfileLite,
   type PublicProfile,
 } from '@/features/profile/profileApi';
+import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { fetchPublicLists, type PublicListRow } from '@/features/community';
 
 export default function ProfilePage() {
@@ -31,6 +36,9 @@ export default function ProfilePage() {
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [cadenas, setCadenas] = useState<PublicListRow[]>([]);
+  const [followers, setFollowers] = useState<ProfileLite[]>([]);
+  const [followingPeople, setFollowingPeople] = useState<ProfileLite[]>([]);
+  const [peopleTab, setPeopleTab] = useState<'cadenas' | 'followers' | 'following'>('cadenas');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -61,14 +69,22 @@ export default function ProfilePage() {
       if (!routeUserId) {
         await ensureOwnProfile(userName);
       }
-      const [p, lists, fol] = await Promise.all([
+      const [p, lists, fol, followerIds, followingIds] = await Promise.all([
         fetchProfile(id),
         fetchPublicLists(80).then((all) => all.filter((l) => l.owner_id === id)),
         isFollowing(id),
+        fetchFollowerIds(id),
+        fetchFollowingIdsForUser(id),
+      ]);
+      const [followerProfiles, followingProfiles] = await Promise.all([
+        fetchProfilesByIds(followerIds),
+        fetchProfilesByIds(followingIds),
       ]);
       setProfile(p);
       setCadenas(lists);
       setFollowing(fol);
+      setFollowers(followerProfiles);
+      setFollowingPeople(followingProfiles);
       if (p) setDisplayName(p.displayName);
     } catch {
       toast.error('No se pudo cargar el perfil');
@@ -136,25 +152,35 @@ export default function ProfilePage() {
     }
     setFollowBusy(true);
     try {
-      const result = following
+      const wasFollowing = following;
+      const result = wasFollowing
         ? await unfollowUser(targetId)
         : await followUser(targetId);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      setFollowing(!following);
+      setFollowing(!wasFollowing);
       setProfile((p) =>
         p
           ? {
               ...p,
-              followersCount: Math.max(
-                0,
-                p.followersCount + (following ? -1 : 1)
-              ),
+              followersCount: Math.max(0, p.followersCount + (wasFollowing ? -1 : 1)),
             }
           : p
       );
+      if (viewerId) {
+        if (wasFollowing) {
+          setFollowers((prev) => prev.filter((f) => f.userId !== viewerId));
+        } else {
+          const me = (await fetchProfilesByIds([viewerId]))[0];
+          if (me) {
+            setFollowers((prev) =>
+              prev.some((f) => f.userId === me.userId) ? prev : [me, ...prev]
+            );
+          }
+        }
+      }
     } finally {
       setFollowBusy(false);
     }
@@ -273,15 +299,29 @@ export default function ProfilePage() {
                   {profile.displayName}
                 </h1>
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPeopleTab('followers')}
+                    className="inline-flex items-center gap-1 hover:text-gold"
+                  >
                     <Users className="w-4 h-4 text-gold" />
                     {profile.followersCount} seguidores
-                  </span>
-                  <span>{profile.followingCount} siguiendo</span>
-                  <span className="inline-flex items-center gap-1">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPeopleTab('following')}
+                    className="hover:text-gold"
+                  >
+                    {profile.followingCount} siguiendo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPeopleTab('cadenas')}
+                    className="inline-flex items-center gap-1 hover:text-gold"
+                  >
                     <ListMusic className="w-4 h-4 text-gold" />
                     {profile.cadenasCount} cadenas
-                  </span>
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4">
                   {isOwn ? (
@@ -320,31 +360,88 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <h2 className="text-lg font-bold font-display text-foreground mb-4">
-        Cadenas públicas
-      </h2>
-      {cadenas.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {isOwn
-            ? 'Aún no has publicado cadenas. Hazlo desde Mis Listas.'
-            : 'Este músico aún no tiene cadenas públicas.'}
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {cadenas.map((c) => (
-            <Link
-              key={c.id}
-              to={`/comunidad/cadena/${c.slug}`}
-              className="glass-card p-4 block hover:bg-surface-hover transition-colors"
-            >
-              <p className="font-semibold text-foreground">{c.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {c.song_count} canciones
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2 mb-4 border-b border-border">
+        {(
+          [
+            { id: 'cadenas' as const, label: 'Cadenas' },
+            { id: 'followers' as const, label: 'Seguidores' },
+            { id: 'following' as const, label: 'Siguiendo' },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setPeopleTab(tab.id)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              peopleTab === tab.id
+                ? 'border-gold text-gold'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {peopleTab === 'cadenas' &&
+        (cadenas.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {isOwn
+              ? 'Aún no has publicado cadenas. Hazlo desde Mis Listas.'
+              : 'Este músico aún no tiene cadenas públicas.'}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {cadenas.map((c) => (
+              <Link
+                key={c.id}
+                to={`/comunidad/cadena/${c.slug}`}
+                className="glass-card p-4 block hover:bg-surface-hover transition-colors"
+              >
+                <p className="font-semibold text-foreground">{c.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {c.song_count} canciones
+                </p>
+              </Link>
+            ))}
+          </div>
+        ))}
+
+      {peopleTab === 'followers' &&
+        (followers.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aún no hay seguidores.</p>
+        ) : (
+          <div className="space-y-2">
+            {followers.map((p) => (
+              <Link
+                key={p.userId}
+                to={`/perfil/${p.userId}`}
+                className="glass-card p-3 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+              >
+                <ProfileAvatar profile={p} size="sm" linkToProfile={false} />
+                <span className="font-medium text-foreground">{p.displayName}</span>
+              </Link>
+            ))}
+          </div>
+        ))}
+
+      {peopleTab === 'following' &&
+        (followingPeople.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aún no sigue a nadie.</p>
+        ) : (
+          <div className="space-y-2">
+            {followingPeople.map((p) => (
+              <Link
+                key={p.userId}
+                to={`/perfil/${p.userId}`}
+                className="glass-card p-3 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+              >
+                <ProfileAvatar profile={p} size="sm" linkToProfile={false} />
+                <span className="font-medium text-foreground">{p.displayName}</span>
+              </Link>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }
