@@ -2288,6 +2288,7 @@ export default function SongViewPage() {
             floating={mobileTeleprompter || isMobileStageActive}
             role={simpleLive.role}
             code={simpleLive.code}
+            onRevealControls={mobileTeleprompter ? showControls : undefined}
             onLeave={async () => {
               const wasDirector = simpleLive.role === 'director';
               await simpleLive.leave();

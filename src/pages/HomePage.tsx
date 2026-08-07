@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SongCard from '@/components/SongCard';
 import { motion } from 'framer-motion';
@@ -24,6 +24,8 @@ import {
   filterCommunitySongs,
 } from '@/features/community';
 
+const JOIN_WAIT_MS = 18_000;
+
 export default function HomePage() {
   useEffect(() => {
     const s = getRenderDiagStage();
@@ -45,7 +47,10 @@ export default function HomePage() {
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinStatus, setJoinStatus] = useState<string | null>(null);
   const autoJoinTried = useRef(false);
+  const joinNavigatedRef = useRef(false);
 
   const facets = useMemo(() => buildLocalFacets(songs), [songs]);
 
@@ -117,8 +122,17 @@ export default function HomePage() {
     }
 
     if (FEATURES.SIMPLE_LIVE_SYNC && simpleLive) {
+      setJoinBusy(true);
+      setJoinStatus('Conectando…');
+      joinNavigatedRef.current = false;
       const ok = await simpleLive.joinAsFollower(trimmed);
-      if (ok) setPendingSimpleNav(true);
+      if (!ok) {
+        setJoinBusy(false);
+        setJoinStatus(null);
+        return;
+      }
+      setPendingSimpleNav(true);
+      setJoinStatus('Esperando al director… Mantén su app abierta.');
       return;
     }
 
@@ -148,17 +162,48 @@ export default function HomePage() {
   useEffect(() => {
     if (!pendingSimpleNav || !simpleLive) return;
     const state = simpleLive.lastState;
-    if (!state) return;
+    if (!state || joinNavigatedRef.current) return;
 
     const moved = navigateAfterSimpleLiveJoin(navigate, state, songs);
-    if (moved) setPendingSimpleNav(false);
-  }, [
-    pendingSimpleNav,
-    simpleLive?.lastState,
-    navigate,
-    simpleLive,
-    songs,
-  ]);
+    if (moved) {
+      joinNavigatedRef.current = true;
+      setPendingSimpleNav(false);
+      setJoinBusy(false);
+      setJoinStatus(null);
+    }
+  }, [pendingSimpleNav, simpleLive?.lastState, navigate, simpleLive, songs]);
+
+  useEffect(() => {
+    if (!pendingSimpleNav || !simpleLive) return;
+    simpleLive.requestState();
+    const id = window.setInterval(() => simpleLive.requestState(), 3000);
+    return () => window.clearInterval(id);
+  }, [pendingSimpleNav, simpleLive]);
+
+  useEffect(() => {
+    if (!pendingSimpleNav) return;
+    const id = window.setTimeout(() => {
+      if (joinNavigatedRef.current) return;
+      if (simpleLive?.lastState) {
+        const moved = navigateAfterSimpleLiveJoin(navigate, simpleLive.lastState, songs);
+        if (moved) {
+          joinNavigatedRef.current = true;
+          setPendingSimpleNav(false);
+          setJoinBusy(false);
+          setJoinStatus(null);
+          return;
+        }
+      }
+      setPendingSimpleNav(false);
+      setJoinBusy(false);
+      setJoinStatus(null);
+      toast.error(
+        'El director no respondió a tiempo. Pide que abra la canción y vuelve a conectar.'
+      );
+      void simpleLive?.leave();
+    }, JOIN_WAIT_MS);
+    return () => window.clearTimeout(id);
+  }, [pendingSimpleNav, simpleLive, navigate, songs]);
 
   return (
     <div className="container px-4 py-6 max-w-6xl">
@@ -211,16 +256,38 @@ export default function HomePage() {
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="Ej: A1B2C3"
                 maxLength={6}
-                className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase font-mono tracking-widest"
+                disabled={joinBusy}
+                className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase font-mono tracking-widest disabled:opacity-60"
               />
               <button
                 onClick={() => void handleJoinSession()}
-                disabled={joinCode.length < 4}
+                disabled={joinCode.length < 4 || joinBusy}
                 className="px-4 py-2 rounded-lg gold-gradient text-primary-foreground text-sm font-semibold disabled:opacity-50"
               >
-                Conectar
+                {joinBusy ? '…' : 'Conectar'}
               </button>
             </div>
+            {joinBusy || joinStatus ? (
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-2 min-w-0">
+                  {joinBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-gold" /> : null}
+                  <span className="truncate">{joinStatus}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingSimpleNav(false);
+                    setJoinBusy(false);
+                    setJoinStatus(null);
+                    void simpleLive?.leave();
+                    toast.message('Unión cancelada');
+                  }}
+                  className="shrink-0 text-xs font-bold text-destructive border border-destructive/40 rounded-lg px-2 py-1"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : null}
           </div>
         </motion.div>
       )}

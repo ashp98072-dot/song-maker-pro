@@ -3117,6 +3117,7 @@ export default function ContinuousSetlistPage() {
             floating
             role={simpleLive.role}
             code={simpleLive.code}
+            onRevealControls={showControls}
             onLeave={async () => {
               const wasDirector = simpleLive.role === 'director';
               await simpleLive.leave();

@@ -83,6 +83,8 @@ export type SimpleLiveSyncContextValue = {
   dismissResumable: () => void;
   leave: () => Promise<void>;
   publish: (partial: Partial<Omit<SimpleLiveState, 'sessionCode' | 'updatedAt'>>) => void;
+  /** Follower: ask director to republish current state. */
+  requestState: () => void;
   setFollowDirector: (on: boolean) => void;
 };
 
@@ -634,6 +636,18 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
     setFollowDirectorState(on);
   }, []);
 
+  const requestState = useCallback(() => {
+    if (roleRef.current !== 'follower') return;
+    const ch = channelRef.current;
+    if (!ch) return;
+    void ch.send({
+      type: 'broadcast',
+      event: SIMPLE_LIVE_REQUEST_EVENT,
+      payload: { at: new Date().toISOString() },
+    });
+    log('requested current state (manual)');
+  }, []);
+
   const value = useMemo<SimpleLiveSyncContextValue>(
     () => ({
       role,
@@ -650,6 +664,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       dismissResumable,
       leave,
       publish,
+      requestState,
       setFollowDirector,
     }),
     [
@@ -667,6 +682,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       dismissResumable,
       leave,
       publish,
+      requestState,
       setFollowDirector,
     ]
   );

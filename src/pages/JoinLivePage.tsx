@@ -84,6 +84,14 @@ export default function JoinLivePage() {
     };
   }, [code, simpleLive, attempt]);
 
+  // While waiting, keep asking the director for state (helps sleepy phones / missed broadcasts)
+  useEffect(() => {
+    if (phase !== 'waiting') return;
+    simpleLive?.requestState();
+    const id = window.setInterval(() => simpleLive?.requestState(), 3000);
+    return () => window.clearInterval(id);
+  }, [phase, attempt, simpleLive]);
+
   useEffect(() => {
     if (phase !== 'waiting' || !simpleLive?.lastState || navigatedRef.current) return;
     const ok = navigateAfterSimpleLiveJoin(navigate, simpleLive.lastState, songs);

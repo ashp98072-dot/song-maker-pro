@@ -11,6 +11,8 @@ export type MobileLiveSessionBarProps = {
   onLeave: () => void | Promise<void>;
   /** When true, sit above safe-area top (teleprompter / stage). */
   floating?: boolean;
+  /** Tap the status/code area to restore chrome (teleprompter). */
+  onRevealControls?: () => void;
 };
 
 /**
@@ -23,6 +25,7 @@ export function MobileLiveSessionBar({
   code,
   onLeave,
   floating = false,
+  onRevealControls,
 }: MobileLiveSessionBarProps) {
   if (!visible || !code) return null;
 
@@ -77,18 +80,33 @@ export function MobileLiveSessionBar({
             : 'border-emerald-400/40 bg-emerald-950/90 text-emerald-100'
         }`}
       >
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-50" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">
-            {isDirector ? 'Transmitiendo' : 'Siguiendo'}
-          </p>
-          <p className="font-mono text-base font-black tracking-[0.2em] leading-tight truncate">
-            {code}
-          </p>
-        </div>
+        <button
+          type="button"
+          className={`min-w-0 flex-1 flex items-center gap-1.5 text-left ${
+            onRevealControls ? 'active:opacity-80' : ''
+          }`}
+          onClick={() => {
+            if (!onRevealControls) return;
+            worshipHaptic();
+            onRevealControls();
+          }}
+          disabled={!onRevealControls}
+          title={onRevealControls ? 'Toca para mostrar controles' : undefined}
+        >
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-50" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">
+              {isDirector ? 'Transmitiendo' : 'Siguiendo'}
+              {onRevealControls ? ' · tocar' : ''}
+            </p>
+            <p className="font-mono text-base font-black tracking-[0.2em] leading-tight truncate">
+              {code}
+            </p>
+          </div>
+        </button>
         {isDirector ? (
           <>
             <button
