@@ -287,7 +287,7 @@ export default function ContinuousSetlistPage() {
     setFollowDirector(simpleLive.followDirector);
   }, [simpleLive?.role, simpleLive?.followDirector, followDirector, simpleLive]);
 
-  const { list, entries, songIds, resolvedSongIds, resolvedSource } = useSetlistSongs(listId, {
+  const { list, entries, songIds, resolvedSongIds, resolvedSource, missingSongCount } = useSetlistSongs(listId, {
     routeSongIds: routeState.listSongIds,
     sharedSongIds: sharedListSongIds,
     liveSessionSongIds,
@@ -2934,6 +2934,16 @@ export default function ContinuousSetlistPage() {
               className="h-4 w-4 accent-gold"
             />
           </label>
+        </div>
+      )}
+
+      {missingSongCount > 0 && !mobileTeleprompter && (
+        <div className="continuous-teleprompter-chrome sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5">
+          <p className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-200">
+            {missingSongCount === 1
+              ? '1 canción de la lista no está en tu biblioteca y no se muestra.'
+              : `${missingSongCount} canciones de la lista no están en tu biblioteca y no se muestran.`}
+          </p>
         </div>
       )}
 

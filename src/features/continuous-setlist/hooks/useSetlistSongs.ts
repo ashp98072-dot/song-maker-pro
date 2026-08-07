@@ -73,15 +73,19 @@ export function useSetlistSongs(listId: string | undefined, options?: UseSetlist
 
   const entries = useMemo((): SetlistSongEntry[] => {
     if (resolvedSongIds.length === 0) return [];
-    return resolvedSongIds
-      .map((id, index) => {
-        const song = songs.find((s) => s.id === id);
-        return song ? { song, index } : null;
-      })
-      .filter((e): e is SetlistSongEntry => e != null);
+    let denseIndex = 0;
+    const out: SetlistSongEntry[] = [];
+    for (const id of resolvedSongIds) {
+      const song = songs.find((s) => s.id === id);
+      if (!song) continue;
+      out.push({ song, index: denseIndex });
+      denseIndex += 1;
+    }
+    return out;
   }, [resolvedSongIds, songs]);
 
   const songIds = useMemo(() => entries.map((e) => e.song.id), [entries]);
+  const missingSongCount = Math.max(0, resolvedSongIds.length - entries.length);
 
-  return { list, entries, songIds, resolvedSongIds, resolvedSource };
+  return { list, entries, songIds, resolvedSongIds, resolvedSource, missingSongCount };
 }

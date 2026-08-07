@@ -5,9 +5,11 @@ import { getSongPath } from '@/utils/songSlug';
 
 interface SongCardProps {
   song: Song;
+  /** Optional router state (e.g. listId / listSongIds for Modo culto). */
+  linkState?: Record<string, unknown>;
 }
 
-export default function SongCard({ song }: SongCardProps) {
+export default function SongCard({ song, linkState }: SongCardProps) {
   const { songs } = useApp();
   // Priorizamos el tono personalizado (key) sobre el original
   const currentKey = song.key || song.originalKey;
@@ -17,7 +19,11 @@ export default function SongCard({ song }: SongCardProps) {
   const isMinor = song.scaleMode === 'minor' || currentKey.toLowerCase().includes('m');
 
   return (
-    <Link to={getSongPath(song, songs)} className="glass-card p-4 hover:bg-surface-hover transition-colors group block">
+    <Link
+      to={getSongPath(song, songs)}
+      state={linkState}
+      className="glass-card p-4 hover:bg-surface-hover transition-colors group block"
+    >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground truncate group-hover:text-gold transition-colors">

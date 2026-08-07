@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronDown,
   ChevronLeft,
@@ -33,7 +33,7 @@ import { useSingerVocalProfile } from '@/features/vocal-test';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { buildLiveJoinUrl, liveJoinQrImageUrl } from '@/features/simple-live-sync/liveJoinUrl';
 import { normalizeSessionCode } from '@/features/director-session/types';
-import { resolveWorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
+import { startWorshipServiceMode } from '@/features/mobile-worship/utils/worshipServiceMode';
 
 const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 
@@ -82,6 +82,8 @@ export function WorshipControlSheet({
   const [liveBusy, setLiveBusy] = useState(false);
   const [joinDraft, setJoinDraft] = useState('');
   const [showLiveQr, setShowLiveQr] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!open) return;
@@ -484,25 +486,22 @@ export function WorshipControlSheet({
                       worshipHaptic();
                       setLiveBusy(true);
                       try {
-                        const resolved = resolveWorshipServiceModeInput({
-                          songId: serviceModeInput.songId,
-                          listId: serviceModeInput.listId ?? null,
-                          listSongIds: serviceModeInput.listSongIds ?? [],
-                          currentIndex: serviceModeInput.currentIndex ?? 0,
-                          viewMode: serviceModeInput.viewMode ?? 'musician',
-                          semitones: serviceModeInput.semitones ?? 0,
-                          genderShift: serviceModeInput.genderShift ?? 'original',
-                          sectionAnchor: serviceModeInput.sectionAnchor ?? null,
-                        });
-                        await simpleLive.createAsDirector({
-                          songId: resolved.songId,
-                          listId: resolved.listId ?? null,
-                          listSongIds: resolved.listSongIds ?? [],
-                          currentIndex: resolved.currentIndex ?? 0,
-                          viewMode: resolved.viewMode ?? 'musician',
-                          semitones: resolved.semitones ?? 0,
-                          genderShift: resolved.genderShift ?? 'original',
-                          sectionAnchor: resolved.sectionAnchor ?? null,
+                        await startWorshipServiceMode({
+                          live: simpleLive,
+                          hideControls: () => onOpenChange(false),
+                          input: {
+                            songId: serviceModeInput.songId,
+                            listId: serviceModeInput.listId ?? null,
+                            listSongIds: serviceModeInput.listSongIds ?? [],
+                            currentIndex: serviceModeInput.currentIndex ?? 0,
+                            viewMode: serviceModeInput.viewMode ?? 'musician',
+                            semitones: serviceModeInput.semitones ?? 0,
+                            genderShift: serviceModeInput.genderShift ?? 'original',
+                            sectionAnchor: serviceModeInput.sectionAnchor ?? null,
+                          },
+                          share: true,
+                          navigate,
+                          currentPathname: location.pathname,
                         });
                       } finally {
                         setLiveBusy(false);

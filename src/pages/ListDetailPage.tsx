@@ -52,9 +52,22 @@ export default function ListDetailPage() {
   const [publishingCadena, setPublishingCadena] = useState(false);
 
   // Hooks must run unconditionally — keep above any early return.
-  const listSongs = useMemo(
-    () => (list ? songs.filter(s => list.songIds.includes(s.id)) : []),
-    [songs, list]
+  const listSongs = useMemo(() => {
+    if (!list) return [];
+    return list.songIds
+      .map((id) => songs.find((s) => s.id === id))
+      .filter((s): s is NonNullable<typeof s> => !!s);
+  }, [songs, list]);
+
+  const listNavState = useMemo(
+    () =>
+      list
+        ? {
+            listId: list.id,
+            listSongIds: list.songIds,
+          }
+        : undefined,
+    [list]
   );
 
   if (!list) {
@@ -91,8 +104,24 @@ export default function ListDetailPage() {
             <ChevronLeft className="w-8 h-8" />
           </button>
 
-          <div className="flex-1 cursor-pointer transform active:scale-[0.98] transition-transform" onClick={() => navigate(getSongPath(song, songs))}>
-            <SongCard song={song} />
+          <div
+            className="flex-1 cursor-pointer transform active:scale-[0.98] transition-transform"
+            onClick={() =>
+              navigate(getSongPath(song, songs), {
+                state: {
+                  ...listNavState,
+                  currentIndex: currentIdx,
+                },
+              })
+            }
+          >
+            <SongCard
+              song={song}
+              linkState={{
+                ...listNavState,
+                currentIndex: currentIdx,
+              }}
+            />
           </div>
 
           <button 
@@ -159,7 +188,8 @@ export default function ListDetailPage() {
     navigate(getSongPath(listSongs[0], songs), {
       state: {
         listId: list.id,
-        listSongIds: listSongs.map((s) => s.id),
+        listSongIds: list.songIds,
+        currentIndex: 0,
       },
     });
   };
@@ -171,7 +201,7 @@ export default function ListDetailPage() {
     navigate(`/setlist/${list.id}/live`, {
       state: {
         listId: list.id,
-        listSongIds: listSongs.map((s) => s.id),
+        listSongIds: list.songIds,
       },
     });
   };
@@ -184,7 +214,7 @@ export default function ListDetailPage() {
       state: {
         startServiceMode: true,
         listId: list.id,
-        listSongIds: listSongs.map((s) => s.id),
+        listSongIds: list.songIds,
       },
     });
   };
@@ -265,16 +295,18 @@ export default function ListDetailPage() {
               type="button"
               onClick={() => startServiceMode()}
               disabled={!list?.id}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gold/40 bg-card text-foreground text-sm font-bold hover:bg-gold/10 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gold-gradient text-primary-foreground text-sm font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-gold/20 disabled:opacity-40 disabled:pointer-events-none"
               title="Continuo + en vivo + teleprompter + enlace para unirse"
             >
-              <Church className="w-4 h-4 text-gold" /> Iniciar culto
+              <Church className="w-4 h-4" /> Iniciar culto
             </button>
             <button
+              type="button"
               onClick={startLiveSession}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl gold-gradient text-primary-foreground text-sm font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-gold/20"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-bold hover:bg-secondary transition-all active:scale-95"
+              title="Abre la primera canción con el contexto de la lista (usa Culto para la cadena completa)"
             >
-              <PlayCircle className="w-4 h-4" /> Sesión en Vivo
+              <PlayCircle className="w-4 h-4 text-gold" /> Abrir 1ª canción
             </button>
           </div>
         )}
@@ -295,7 +327,13 @@ export default function ListDetailPage() {
               <div key={`${song.id}-${idx}`} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
                 <div className="relative group">
                   <div className="transform transition-transform group-hover:translate-x-1">
-                    <SongCard song={song} />
+                    <SongCard
+                      song={song}
+                      linkState={{
+                        ...listNavState,
+                        currentIndex: idx,
+                      }}
+                    />
                   </div>
                   <button 
                     onClick={() => handleRemoveSong(song.id)}
