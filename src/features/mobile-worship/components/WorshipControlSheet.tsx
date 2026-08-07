@@ -264,7 +264,7 @@ export function WorshipControlSheet({
                   </button>
                 ) : (
                   <Link
-                    to="/registro-vocal"
+                    to="/acordes?tab=registro"
                     onClick={minimize}
                     className="shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold border border-dashed border-gold/40 text-gold"
                   >
@@ -437,12 +437,24 @@ export function WorshipControlSheet({
               <Link
                 to="/acordes?tab=afinador"
                 onClick={minimize}
-                className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-3"
+                className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-3 mb-2"
               >
                 <div>
                   <p className="text-sm font-semibold text-foreground">Abrir afinador</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Guitarra, bajo y violín.
+                  </p>
+                </div>
+              </Link>
+              <Link
+                to="/acordes?tab=registro"
+                onClick={minimize}
+                className="flex items-start gap-3 rounded-xl border border-border p-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Test de registro vocal</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Descubre tu voz y aplica “Mi voz” en canciones.
                   </p>
                 </div>
               </Link>

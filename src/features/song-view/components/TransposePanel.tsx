@@ -128,7 +128,7 @@ export default function TransposePanel({
               Mi voz: {preferredLabel}
             </button>
             <Link
-              to="/registro-vocal"
+              to="/acordes?tab=registro"
               className="shrink-0 px-2.5 py-2 rounded-lg border border-border text-[10px] font-bold text-muted-foreground hover:text-foreground"
             >
               Test
@@ -136,7 +136,7 @@ export default function TransposePanel({
           </div>
         ) : (
           <Link
-            to="/registro-vocal"
+            to="/acordes?tab=registro"
             className="mb-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-dashed border-gold/40 text-xs font-semibold text-gold hover:bg-gold/5"
           >
             Descubrir mi registro

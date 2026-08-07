@@ -16,9 +16,10 @@ const tabs = [
     icon: ListMusic,
   },
   {
-    label: 'Acordes',
+    label: 'Herramientas',
     path: '/acordes',
-    match: (p: string) => p.startsWith('/acordes') || p.startsWith('/afinador'),
+    match: (p: string) =>
+      p.startsWith('/acordes') || p.startsWith('/afinador') || p.startsWith('/registro-vocal'),
     icon: Library,
   },
   {

@@ -10,7 +10,9 @@ describe('isPublicAppPath', () => {
     expect(isPublicAppPath('/unirse/AB12')).toBe(true);
     expect(isPublicAppPath('/perfil')).toBe(true);
     expect(isPublicAppPath('/perfil/abc')).toBe(true);
-    expect(isPublicAppPath('/')).toBe(true);
+    expect(isPublicAppPath('/acordes')).toBe(true);
+    expect(isPublicAppPath('/afinador')).toBe(true);
+    expect(isPublicAppPath('/registro-vocal')).toBe(true);
   });
 
   it('blocks private app routes', () => {
