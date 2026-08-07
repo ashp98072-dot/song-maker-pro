@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RehearsalAutoScrollToolbar } from '@/features/rehearsal/components/RehearsalTools';
 import { RehearsalTools } from '@/features/rehearsal/components/RehearsalTools';
+import { ChordLibraryPanel } from '@/components/chord-diagram/ChordLibraryPanel';
 import type { WorshipControlSheetProps } from '@/features/mobile-worship/types';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
@@ -118,18 +119,21 @@ export function WorshipControlSheet({
         </SheetHeader>
 
         <Tabs defaultValue="music" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4 shrink-0">
-            <TabsTrigger value="music" className="text-[10px] px-1">
-              🎵 Música
+          <TabsList className="grid w-full grid-cols-5 shrink-0 h-auto gap-0.5 p-1">
+            <TabsTrigger value="music" className="text-[9px] sm:text-[10px] px-0.5 py-1.5">
+              Música
             </TabsTrigger>
-            <TabsTrigger value="rehearsal" className="text-[10px] px-1">
-              🎤 Ensayo
+            <TabsTrigger value="rehearsal" className="text-[9px] sm:text-[10px] px-0.5 py-1.5">
+              Ensayo
             </TabsTrigger>
-            <TabsTrigger value="tools" className="text-[10px] px-1">
-              🛠 Herram.
+            <TabsTrigger value="chords" className="text-[9px] sm:text-[10px] px-0.5 py-1.5">
+              Acordes
             </TabsTrigger>
-            <TabsTrigger value="notes" className="text-[10px] px-1">
-              📝 Notas
+            <TabsTrigger value="tools" className="text-[9px] sm:text-[10px] px-0.5 py-1.5">
+              Herram.
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="text-[9px] sm:text-[10px] px-0.5 py-1.5">
+              Notas
             </TabsTrigger>
           </TabsList>
 
@@ -242,6 +246,10 @@ export function WorshipControlSheet({
               <div className="max-h-[45vh] overflow-y-auto">
                 <RehearsalTools {...rehearsal} layout="stack" />
               </div>
+            </TabsContent>
+
+            <TabsContent value="chords" className="mt-0">
+              <ChordLibraryPanel compact />
             </TabsContent>
 
             <TabsContent value="tools" className="mt-0 space-y-3">

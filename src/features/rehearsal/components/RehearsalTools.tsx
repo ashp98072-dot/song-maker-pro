@@ -1,9 +1,10 @@
 import type { RefObject } from 'react';
-import { Play, Pause, Youtube, RotateCcw, StopCircle, Mic } from 'lucide-react';
+import { Play, Pause, Youtube, RotateCcw, StopCircle, Mic, Library } from 'lucide-react';
 import RehearsalRecorder from '@/components/RehearsalRecorder';
 import { YouTubeEmbedFrame } from '@/components/YouTubeEmbedFrame';
 import { toYouTubeWatchUrl } from '@/features/youtube-search/utils/youtubeUrl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChordLibraryPanel } from '@/components/chord-diagram/ChordLibraryPanel';
 
 /** Root: metrónomo, YouTube y grabador — listo para dock móvil / stage overlay futuro. */
 export interface RehearsalToolsProps {
@@ -205,22 +206,26 @@ export function RehearsalTools({
   return (
     <div className="mt-6 glass-card overflow-hidden" data-rehearsal-tools-root data-layout="tabs">
       <Tabs defaultValue="metronome" className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3 pt-3 pb-2 border-b border-border">
+        <div className="flex flex-col gap-2 px-3 pt-3 pb-2 border-b border-border">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground shrink-0 px-1">
             Ensayo
           </p>
-          <TabsList className="grid w-full grid-cols-3 h-9">
-            <TabsTrigger value="metronome" className="text-xs gap-1 px-2">
-              <RotateCcw className="w-3.5 h-3.5 hidden sm:inline" />
-              Metrónomo
+          <TabsList className="grid w-full grid-cols-4 h-9">
+            <TabsTrigger value="metronome" className="text-[10px] sm:text-xs gap-1 px-1 sm:px-2">
+              <RotateCcw className="w-3.5 h-3.5 hidden md:inline" />
+              Metro
             </TabsTrigger>
-            <TabsTrigger value="youtube" className="text-xs gap-1 px-2">
-              <Youtube className="w-3.5 h-3.5 hidden sm:inline" />
+            <TabsTrigger value="youtube" className="text-[10px] sm:text-xs gap-1 px-1 sm:px-2">
+              <Youtube className="w-3.5 h-3.5 hidden md:inline" />
               YouTube
             </TabsTrigger>
-            <TabsTrigger value="record" className="text-xs gap-1 px-2">
-              <Mic className="w-3.5 h-3.5 hidden sm:inline" />
+            <TabsTrigger value="record" className="text-[10px] sm:text-xs gap-1 px-1 sm:px-2">
+              <Mic className="w-3.5 h-3.5 hidden md:inline" />
               Grabar
+            </TabsTrigger>
+            <TabsTrigger value="chords" className="text-[10px] sm:text-xs gap-1 px-1 sm:px-2">
+              <Library className="w-3.5 h-3.5 hidden md:inline" />
+              Acordes
             </TabsTrigger>
           </TabsList>
         </div>
@@ -232,6 +237,9 @@ export function RehearsalTools({
         </TabsContent>
         <TabsContent value="record" className="mt-0 p-4 focus-visible:outline-none">
           <RehearsalRecorder songId={songId} embedded />
+        </TabsContent>
+        <TabsContent value="chords" className="mt-0 p-4 focus-visible:outline-none">
+          <ChordLibraryPanel compact />
         </TabsContent>
       </Tabs>
     </div>

@@ -107,6 +107,11 @@ const GUITAR_CHORDS: Record<string, { frets: number[]; barFret?: number; startFr
   'Gmaj7/B':{ frets: [-1, 2, 0, 0, 0, 2] },
 };
 
+/** Sorted names with a curated guitar voicing (for the chord library browser). */
+export function listKnownChordNames(): string[] {
+  return Object.keys(GUITAR_CHORDS).sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+}
+
 const PIANO_KEYS: Record<string, string[]> = {
   'C':  ['C', 'E', 'G'],
   'Cm': ['C', 'Eb', 'G'],
