@@ -128,7 +128,8 @@ export async function startWorshipServiceMode(opts: {
   }
 
   const resolvedCode = readSimpleLiveHint()?.code || live.code;
-  if (share && resolvedCode) {
+  const shouldShare = share && !!resolvedCode && plan.needsCreate;
+  if (shouldShare && resolvedCode) {
     const url = buildLiveJoinUrl(resolvedCode);
     await shareNative({
       title: 'Worship Transpose — Modo culto',
@@ -138,7 +139,11 @@ export async function startWorshipServiceMode(opts: {
   }
 
   if (resolvedCode) {
-    toast.success(`Modo culto activo · ${resolvedCode}`);
+    toast.success(
+      plan.needsCreate
+        ? `Modo culto activo · ${resolvedCode}`
+        : `Modo culto listo · ${resolvedCode}`
+    );
   } else {
     toast.success('Modo culto activo');
   }

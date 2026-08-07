@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ChevronRight,
+  Church,
   Download,
   Eye,
   Loader2,
   ListMusic,
   MessageCircle,
   Pencil,
+  ScrollText,
   Send,
   Trash2,
 } from 'lucide-react';
@@ -32,11 +34,12 @@ import { bulkSetUserTranspositions } from '@/utils/userTranspositions';
 import { normalizeTitle } from '@/utils/textNormalize';
 import { getSongPath } from '@/utils/songSlug';
 import { supabase } from '@/integrations/supabase/client';
+import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
 
 export default function CommunityChainDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { songs, addSong, createList, setListSongs, isGuest, userName } = useApp();
+  const { songs, addSong, createList, setListSongs, isGuest, userName, lists } = useApp();
   const [list, setList] = useState<PublicListRow | null>(null);
   const [comments, setComments] = useState<PublicListComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +56,7 @@ export default function CommunityChainDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [removingSongId, setRemovingSongId] = useState<string | null>(null);
   const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({});
+  const [serviceBusy, setServiceBusy] = useState(false);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -99,25 +103,84 @@ export default function CommunityChainDetailPage() {
 
   const isOwner = !!(list && userId && list.owner_id === userId);
 
-  const openSongInViewer = async (snap: PublicListSongSnapshot) => {
-    const key = `${snap.song_id}`;
-    if (openingId) return;
-    setOpeningId(key);
-    try {
+  /** Ensure every cadena song is in the library; return ordered local ids + semitone map. */
+  const materializeCadenaSongs = useCallback(async () => {
+    if (!list) return null;
+    const songIds: string[] = [];
+    const transpositions: Record<string, number> = {};
+    let catalog = songs;
+
+    for (const snap of list.songs) {
       const asSong = snapshotToSong(snap);
-      const existing = songs.find(
+      const existing = catalog.find(
         (s) =>
           s.id === asSong.id ||
           (normalizeTitle(s.title) === normalizeTitle(asSong.title) &&
             normalizeTitle(s.artist) === normalizeTitle(asSong.artist))
       );
-      const song = existing ?? asSong;
+      const id = existing?.id ?? asSong.id;
       if (!existing) {
         await addSong(asSong);
+        catalog = [asSong, ...catalog];
       }
-      const catalog = existing ? songs : [song, ...songs];
+      songIds.push(id);
+      if (snap.semitones) transpositions[id] = snap.semitones;
+    }
+
+    return { songIds, transpositions, catalog };
+  }, [list, songs, addSong]);
+
+  /** Import (or reuse) a local list that matches this cadena order. */
+  const ensureLocalListFromCadena = useCallback(async () => {
+    const materialized = await materializeCadenaSongs();
+    if (!materialized) return null;
+    const { songIds, transpositions } = materialized;
+
+    const sameOrder = (a: string[], b: string[]) =>
+      a.length === b.length && a.every((id, i) => id === b[i]);
+
+    const existingList = lists.find(
+      (l) => l.name === list!.name && sameOrder(l.songIds, songIds)
+    );
+    if (existingList) {
+      if (Object.keys(transpositions).length) {
+        await bulkSetUserTranspositions(transpositions);
+      }
+      return { listId: existingList.id, songIds };
+    }
+
+    const newId = await createList(list!.name);
+    if (!newId) return null;
+    await setListSongs(newId, songIds);
+    if (Object.keys(transpositions).length) {
+      await bulkSetUserTranspositions(transpositions);
+    }
+    return { listId: newId, songIds };
+  }, [materializeCadenaSongs, lists, list, createList, setListSongs]);
+
+  const openSongInViewer = async (snap: PublicListSongSnapshot, index: number) => {
+    const key = `${snap.song_id}`;
+    if (openingId) return;
+    setOpeningId(key);
+    try {
+      const local = await ensureLocalListFromCadena();
+      if (!local) {
+        toast.error('No se pudo abrir la canción');
+        return;
+      }
+      const songId = local.songIds[index] ?? snap.song_id;
+      const song =
+        songs.find((s) => s.id === songId) ??
+        snapshotToSong(snap);
+      const catalog = songs.some((s) => s.id === song.id) ? songs : [song, ...songs];
       navigate(getSongPath(song, catalog), {
-        state: { seedSong: song, fromCadena: list?.slug },
+        state: {
+          seedSong: song,
+          fromCadena: list?.slug,
+          listId: local.listId,
+          listSongIds: local.songIds,
+          currentIndex: index,
+        },
       });
     } catch (err) {
       console.error(err);
@@ -131,41 +194,67 @@ export default function CommunityChainDetailPage() {
     if (!list || importing) return;
     setImporting(true);
     try {
-      const songIds: string[] = [];
-      const transpositions: Record<string, number> = {};
-
-      for (const snap of list.songs) {
-        const asSong = snapshotToSong(snap);
-        const existing = songs.find(
-          (s) =>
-            s.id === asSong.id ||
-            (normalizeTitle(s.title) === normalizeTitle(asSong.title) &&
-              normalizeTitle(s.artist) === normalizeTitle(asSong.artist))
-        );
-        const id = existing?.id ?? asSong.id;
-        if (!existing) {
-          await addSong(asSong);
-        }
-        songIds.push(id);
-        if (snap.semitones) transpositions[id] = snap.semitones;
-      }
-
-      const newId = await createList(list.name);
-      if (!newId) {
+      const local = await ensureLocalListFromCadena();
+      if (!local) {
         toast.error('No se pudo crear la lista');
         return;
       }
-      await setListSongs(newId, songIds);
-      if (Object.keys(transpositions).length) {
-        await bulkSetUserTranspositions(transpositions);
-      }
-      toast.success(`Cadena importada · ${songIds.length} canciones`);
-      navigate(`/lista/${newId}`);
+      toast.success(`Cadena lista · ${local.songIds.length} canciones`);
+      navigate(`/lista/${local.listId}`);
     } catch (err) {
       console.error(err);
       toast.error('Error al importar la cadena');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const startCadenaContinuous = async () => {
+    if (!list || serviceBusy) return;
+    setServiceBusy(true);
+    try {
+      const local = await ensureLocalListFromCadena();
+      if (!local) {
+        toast.error('No se pudo preparar la cadena');
+        return;
+      }
+      clearManualExitContinuous();
+      navigate(`/setlist/${local.listId}/live`, {
+        state: {
+          listId: local.listId,
+          listSongIds: local.songIds,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo abrir el modo continuo');
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const startCadenaCulto = async () => {
+    if (!list || serviceBusy) return;
+    setServiceBusy(true);
+    try {
+      const local = await ensureLocalListFromCadena();
+      if (!local) {
+        toast.error('No se pudo preparar la cadena');
+        return;
+      }
+      clearManualExitContinuous();
+      navigate(`/setlist/${local.listId}/live?culto=1`, {
+        state: {
+          startServiceMode: true,
+          listId: local.listId,
+          listSongIds: local.songIds,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo iniciar el culto');
+    } finally {
+      setServiceBusy(false);
     }
   };
 
@@ -355,13 +444,34 @@ export default function CommunityChainDetailPage() {
         </div>
       )}
 
+      <div className="grid gap-2 mb-4 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => void startCadenaContinuous()}
+          disabled={serviceBusy || importing || list.songs.length === 0}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gold/50 bg-gold/10 text-gold font-semibold text-sm hover:bg-gold/20 disabled:opacity-60"
+        >
+          {serviceBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
+          Modo continuo
+        </button>
+        <button
+          type="button"
+          onClick={() => void startCadenaCulto()}
+          disabled={serviceBusy || importing || list.songs.length === 0}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-60"
+        >
+          {serviceBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Church className="w-4 h-4" />}
+          Iniciar culto
+        </button>
+      </div>
+
       <button
         type="button"
         onClick={() => void handleImport()}
-        disabled={importing}
-        className="w-full mb-8 py-3 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+        disabled={importing || serviceBusy}
+        className="w-full mb-8 py-3 rounded-xl border border-border bg-card text-foreground font-semibold text-sm hover:bg-secondary disabled:opacity-60 flex items-center justify-center gap-2"
       >
-        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-gold" />}
         {importing ? 'Importando…' : 'Importar a Mis Listas'}
       </button>
 
@@ -375,7 +485,7 @@ export default function CommunityChainDetailPage() {
             >
               <button
                 type="button"
-                onClick={() => void openSongInViewer(snap)}
+                onClick={() => void openSongInViewer(snap, idx)}
                 disabled={!!openingId}
                 className="flex-1 min-w-0 flex items-center gap-3 text-left hover:opacity-90 transition-opacity disabled:opacity-60"
               >
@@ -511,8 +621,9 @@ export default function CommunityChainDetailPage() {
                 type="button"
                 onClick={() => {
                   const snap = preview;
+                  const idx = list.songs.findIndex((s) => s.song_id === snap.song_id);
                   setPreview(null);
-                  void openSongInViewer(snap);
+                  void openSongInViewer(snap, idx >= 0 ? idx : 0);
                 }}
                 className="flex-1 py-2.5 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm"
               >
