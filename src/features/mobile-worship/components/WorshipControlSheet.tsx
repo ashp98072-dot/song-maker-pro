@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   ChevronDown,
@@ -26,8 +28,8 @@ const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 const SEMITONE_PRESETS = [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6] as const;
 
 /**
- * Panel inferior no-modal (sin Dialog/Radix Sheet).
- * Evita el “trabado” de toques y permite minimizar para ver la letra.
+ * Panel inferior no-modal: portal a body, sin Radix Dialog/Sheet.
+ * Evita aria-hidden en <main> y el bloqueo de toques en móvil.
  */
 export function WorshipControlSheet({
   open,
@@ -64,7 +66,20 @@ export function WorshipControlSheet({
     tools,
   } = props;
 
-  if (!open) return null;
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    // Saca el foco del botón «Más» (si quedara dentro de un ancestro oculto).
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+    const id = window.setTimeout(() => {
+      panelRef.current?.querySelector<HTMLElement>('button, [href], input')?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [open]);
+
+  if (!open || typeof document === 'undefined') return null;
 
   const minimize = () => {
     worshipHaptic();
@@ -77,17 +92,30 @@ export function WorshipControlSheet({
     onHideControls?.();
   };
 
-  return (
+  return createPortal(
     <div
-      className="lg:hidden fixed inset-x-0 bottom-0 z-[150] pointer-events-none"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-[200]"
       data-worship-control-sheet
+      style={{ pointerEvents: 'auto' }}
     >
+      {/* Zona superior: toque cierra (minimiza) sin oscurecer la letra */}
+      <button
+        type="button"
+        aria-label="Minimizar panel"
+        className="absolute inset-x-0 bottom-full h-[48vh] w-full bg-transparent"
+        style={{ pointerEvents: 'auto' }}
+        onClick={minimize}
+      />
       <div
-        className="pointer-events-auto mx-0 max-h-[min(52vh,420px)] flex flex-col rounded-t-2xl border border-border/80 border-b-0 bg-background shadow-[0_-8px_32px_rgba(0,0,0,0.2)] pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative mx-0 max-h-[min(52vh,420px)] flex flex-col rounded-t-2xl border border-border/80 border-b-0 bg-background shadow-[0_-8px_32px_rgba(0,0,0,0.2)] pb-[max(0.5rem,env(safe-area-inset-bottom))] outline-none"
         role="dialog"
+        aria-modal="false"
         aria-label="Más herramientas"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Handle + actions */}
         <div className="shrink-0 px-3 pt-2 pb-1">
           <button
             type="button"
@@ -143,7 +171,7 @@ export function WorshipControlSheet({
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain mt-2 min-h-0 pb-2">
+          <div className="flex-1 overflow-y-auto overscroll-contain mt-2 min-h-0 pb-2 touch-pan-y">
             <TabsContent value="music" className="mt-0 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-mono text-gold">
@@ -234,7 +262,9 @@ export function WorshipControlSheet({
                 <p className="text-[11px] text-muted-foreground">
                   Cejilla {capoInfo.capo} — tocar como {displayCapoPlayAs ?? capoInfo.playAs}
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Sin cejilla detectada</p>
+              )}
             </TabsContent>
 
             <TabsContent value="rehearsal" className="mt-0 space-y-3">
@@ -393,6 +423,7 @@ export function WorshipControlSheet({
           </div>
         </Tabs>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

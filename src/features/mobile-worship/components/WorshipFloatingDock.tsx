@@ -115,7 +115,8 @@ export function WorshipFloatingDock({
   };
 
   const openSheet = () => setSheetOpen(true);
-  const showDockChrome = dockVisible && !sheetOpen;
+  /** Dock chrome only when sheet is closed — unmount avoids focus + aria-hidden traps. */
+  const showDock = dockVisible && !sheetOpen;
 
   const actionProps = {
     onOpenSheet: openSheet,
@@ -124,54 +125,55 @@ export function WorshipFloatingDock({
     serviceModeInput,
   };
 
+  const sheetNode = (
+    <WorshipControlSheet
+      {...sheet}
+      open={sheetOpen}
+      onOpenChange={setSheetOpen}
+      onHideControls={onHideControls ? handleHide : undefined}
+      serviceModeInput={serviceModeInput}
+    />
+  );
+
   if (landscapeDock) {
     return (
       <>
-        <div
-          className="lg:hidden fixed right-0 top-1/2 z-[122] pointer-events-none -translate-y-1/2 transition-transform duration-300 ease-out"
-          style={{
-            paddingRight: 'max(0.35rem, env(safe-area-inset-right))',
-            paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-            paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-            transform: `translateY(-50%) translateX(${showDockChrome ? '0' : '120%'})`,
-          }}
-          data-worship-floating-dock
-          data-worship-landscape
-          aria-hidden={sheetOpen || undefined}
-        >
-          <div className="pointer-events-auto flex flex-col gap-1.5 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
-            <QuickTransposeControls {...transposeProps} layout="vertical" />
-            <DockActionButtons {...actionProps} layout="vertical" />
+        {showDock ? (
+          <div
+            className="lg:hidden fixed right-0 top-1/2 z-[122] pointer-events-none -translate-y-1/2"
+            style={{
+              paddingRight: 'max(0.35rem, env(safe-area-inset-right))',
+              paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+              paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+              transform: 'translateY(-50%)',
+            }}
+            data-worship-floating-dock
+            data-worship-landscape
+          >
+            <div className="pointer-events-auto flex flex-col gap-1.5 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
+              <QuickTransposeControls {...transposeProps} layout="vertical" />
+              <DockActionButtons {...actionProps} layout="vertical" />
+            </div>
           </div>
-        </div>
-        <WorshipControlSheet
-          {...sheet}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          onHideControls={onHideControls ? handleHide : undefined}
-          serviceModeInput={serviceModeInput}
-        />
+        ) : null}
+        {sheetNode}
       </>
     );
   }
 
   return (
     <>
-      <div className="lg:hidden" data-worship-floating-dock aria-hidden={sheetOpen || undefined}>
-        <FloatingDockShell visible controlsVisible={showDockChrome} compact onPointerDown={() => {}}>
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-            <QuickTransposeControls {...transposeProps} layout="horizontal" />
-            <DockActionButtons {...actionProps} layout="horizontal" />
-          </div>
-        </FloatingDockShell>
-      </div>
-      <WorshipControlSheet
-        {...sheet}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onHideControls={onHideControls ? handleHide : undefined}
-        serviceModeInput={serviceModeInput}
-      />
+      {showDock ? (
+        <div className="lg:hidden" data-worship-floating-dock>
+          <FloatingDockShell visible controlsVisible compact onPointerDown={() => {}}>
+            <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+              <QuickTransposeControls {...transposeProps} layout="horizontal" />
+              <DockActionButtons {...actionProps} layout="horizontal" />
+            </div>
+          </FloatingDockShell>
+        </div>
+      ) : null}
+      {sheetNode}
     </>
   );
 }
