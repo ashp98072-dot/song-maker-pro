@@ -4,11 +4,11 @@ import { Mic, MicOff, Piano, RotateCcw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   detectPitchHz,
-  hzFromMidi,
   midiFromHz,
   noteNameFromMidi,
 } from '@/features/tuner/tunerMath';
 import { useSingerVocalProfile } from '@/features/vocal-test/useSingerVocalProfile';
+import { startPianoTone, stopPianoTone } from '@/features/vocal-test/pianoTone';
 import {
   KEYBOARD_MIDI_HIGH,
   KEYBOARD_MIDI_LOW,
@@ -32,36 +32,13 @@ const KEYS = Array.from(
 const UI_THROTTLE_MS = 100;
 const STABLE_FRAMES = 18;
 
-let beepCtx: AudioContext | null = null;
-
-function playBeep(midi: number) {
-  try {
-    if (!beepCtx || beepCtx.state === 'closed') beepCtx = new AudioContext();
-    const ctx = beepCtx;
-    void ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = hzFromMidi(midi);
-    gain.gain.value = 0.08;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const t0 = ctx.currentTime;
-    osc.start(t0);
-    gain.gain.setValueAtTime(0.08, t0);
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
-    osc.stop(t0 + 0.4);
-  } catch {
-    /* ignore */
-  }
-}
-
 export function VocalRangeTestPanel({ className = '' }: { className?: string }) {
   const { profile, saveProfile, clearProfile } = useSingerVocalProfile();
   const [mode, setMode] = useState<Mode>('keyboard');
   const [lowMidi, setLowMidi] = useState<number | null>(profile?.lowMidi ?? null);
   const [highMidi, setHighMidi] = useState<number | null>(profile?.highMidi ?? null);
   const [marking, setMarking] = useState<'low' | 'high'>('low');
+  const [playingMidi, setPlayingMidi] = useState<number | null>(null);
 
   const [micPhase, setMicPhase] = useState<MicPhase>('idle');
   const [listening, setListening] = useState(false);
@@ -82,6 +59,8 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
   const micHighRef = useRef<number | null>(null);
   const lastUiAt = useRef(0);
   const sessionRef = useRef(0);
+  const markingRef = useRef(marking);
+  markingRef.current = marking;
 
   phaseRef.current = micPhase;
 
@@ -105,7 +84,35 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
     setLiveNote(null);
   }, []);
 
-  useEffect(() => () => stopMic(), [stopMic]);
+  useEffect(
+    () => () => {
+      stopMic();
+      stopPianoTone();
+    },
+    [stopMic]
+  );
+
+  const releaseKey = useCallback((midi: number, select: boolean) => {
+    stopPianoTone();
+    setPlayingMidi((prev) => (prev === midi ? null : prev));
+    if (!select) return;
+    if (markingRef.current === 'low') {
+      setLowMidi(midi);
+      setMarking('high');
+    } else {
+      setHighMidi(midi);
+    }
+  }, []);
+
+  const pressKey = useCallback((midi: number, target: HTMLElement, pointerId: number) => {
+    try {
+      target.setPointerCapture(pointerId);
+    } catch {
+      /* ignore */
+    }
+    startPianoTone(midi);
+    setPlayingMidi(midi);
+  }, []);
 
   const tick = useCallback(() => {
     const analyser = analyserRef.current;
@@ -169,6 +176,7 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
   const startMic = async (phase: 'low' | 'high') => {
     setMicError(null);
+    stopPianoTone();
     stopMic();
     const session = sessionRef.current;
     try {
@@ -241,16 +249,6 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
     setMicPhase('done');
   };
 
-  const onKeyPick = (midi: number) => {
-    playBeep(midi);
-    if (marking === 'low') {
-      setLowMidi(midi);
-      setMarking('high');
-    } else {
-      setHighMidi(midi);
-    }
-  };
-
   const handleSave = (method: VocalTestMethod) => {
     if (!matched || lowMidi == null || highMidi == null) return;
     const norm = normalizeRange(lowMidi, highMidi);
@@ -266,6 +264,8 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
   const reset = () => {
     stopMic();
+    stopPianoTone();
+    setPlayingMidi(null);
     setLowMidi(null);
     setHighMidi(null);
     setMarking('low');
@@ -281,11 +281,36 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
   return (
     <div className={className} data-vocal-range-test>
+      <div className="rounded-xl border border-border bg-secondary/30 px-3 py-3 mb-4 text-xs text-muted-foreground space-y-1.5 leading-relaxed">
+        <p className="font-semibold text-foreground text-[13px]">Cómo medir tu rango</p>
+        <ol className="list-decimal pl-4 space-y-1">
+          <li>
+            Elige la nota más <span className="text-foreground font-medium">grave</span> que
+            cantes con comodidad (sin forzar ni soplar).
+          </li>
+          <li>
+            Luego la más <span className="text-foreground font-medium">aguda</span> cómoda (sin
+            gritar ni falsete forzado).
+          </li>
+          <li>
+            Guarda el resultado y, en una canción, toca{' '}
+            <span className="text-gold font-medium">Mi voz</span> para ajustar la tesitura.
+          </li>
+        </ol>
+        <p className="pt-0.5">
+          {mode === 'keyboard'
+            ? 'Teclado: mantén pulsada una tecla para oír la nota sostenida; al soltarla se marca.'
+            : 'Micrófono: canta estable unos segundos y confirma cada extremo.'}
+        </p>
+      </div>
+
       <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 mb-4">
         <button
           type="button"
           onClick={() => {
             stopMic();
+            stopPianoTone();
+            setPlayingMidi(null);
             setMicPhase('idle');
             setMode('keyboard');
           }}
@@ -297,7 +322,11 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
         </button>
         <button
           type="button"
-          onClick={() => setMode('microphone')}
+          onClick={() => {
+            stopPianoTone();
+            setPlayingMidi(null);
+            setMode('microphone');
+          }}
           className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${
             mode === 'microphone' ? 'bg-background text-gold shadow-sm' : 'text-muted-foreground'
           }`}
@@ -331,10 +360,14 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
       {mode === 'keyboard' ? (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-sm text-center font-medium text-foreground">
             {marking === 'low'
-              ? '1. Toca la nota más grave que cantes cómoda'
-              : '2. Toca la nota más aguda cómoda'}
+              ? 'Paso 1 · Mantén y suelta tu nota más grave cómoda'
+              : 'Paso 2 · Mantén y suelta tu nota más aguda cómoda'}
+          </p>
+          <p className="text-[11px] text-muted-foreground text-center">
+            Mantén pulsada la tecla para oír el tono. Cántala junto al teclado; si te sale fácil,
+            suéltala para marcarla.
           </p>
           <div className="flex gap-2 justify-center text-[11px] font-mono">
             <span className={lowMidi != null ? 'text-gold font-bold' : 'text-muted-foreground'}>
@@ -345,10 +378,11 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
               Agudo: {highMidi != null ? midiNoteLabel(highMidi) : '—'}
             </span>
           </div>
-          <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1 px-0.5">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1 px-0.5 touch-pan-x">
             {KEYS.map((midi) => {
               const isLow = lowMidi === midi;
               const isHigh = highMidi === midi;
+              const playing = playingMidi === midi;
               const inRange =
                 lowMidi != null &&
                 highMidi != null &&
@@ -358,13 +392,28 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
                 <button
                   key={midi}
                   type="button"
-                  onClick={() => onKeyPick(midi)}
-                  className={`shrink-0 w-9 h-14 rounded-md border text-[9px] font-mono font-bold ${
-                    isLow || isHigh
-                      ? 'border-gold bg-gold text-primary-foreground'
-                      : inRange
-                        ? 'border-gold/40 bg-gold/15 text-gold'
-                        : 'border-border bg-secondary/40 text-muted-foreground'
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    pressKey(midi, e.currentTarget, e.pointerId);
+                  }}
+                  onPointerUp={(e) => {
+                    if (e.button !== 0) return;
+                    releaseKey(midi, true);
+                  }}
+                  onPointerCancel={() => releaseKey(midi, false)}
+                  onLostPointerCapture={() => {
+                    stopPianoTone();
+                    setPlayingMidi((prev) => (prev === midi ? null : prev));
+                  }}
+                  className={`shrink-0 w-9 h-14 rounded-md border text-[9px] font-mono font-bold select-none touch-none transition-colors ${
+                    playing
+                      ? 'border-gold bg-gold/80 text-primary-foreground scale-105'
+                      : isLow || isHigh
+                        ? 'border-gold bg-gold text-primary-foreground'
+                        : inRange
+                          ? 'border-gold/40 bg-gold/15 text-gold'
+                          : 'border-border bg-secondary/40 text-muted-foreground'
                   }`}
                 >
                   {midiNoteLabel(midi)}
@@ -400,12 +449,15 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-sm text-center font-medium text-foreground">
             {micPhase === 'idle' || micPhase === 'low'
-              ? 'Canta tu nota más grave con claridad, luego confirma.'
+              ? 'Paso 1 · Canta tu nota más grave (estable)'
               : micPhase === 'high'
-                ? 'Ahora canta tu nota más aguda cómoda.'
-                : 'Rango capturado.'}
+                ? 'Paso 2 · Canta tu nota más aguda cómoda'
+                : 'Rango capturado'}
+          </p>
+          <p className="text-[11px] text-muted-foreground text-center">
+            Mantén la nota 2–3 segundos sin vibrato fuerte. Confirma cuando veas la nota correcta.
           </p>
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
