@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
 import { NOTES_SHARP, encodeListShare } from '@/utils/transpose';
 import { getUserSemitones } from '@/utils/userTranspositions';
-import { getSongPath, getSongPathById } from '@/utils/songSlug';
+import { getSongPath } from '@/utils/songSlug';
 import { shareNative } from '@/utils/shareNative';
 import { publishListAsCadena } from '@/features/community';
 
