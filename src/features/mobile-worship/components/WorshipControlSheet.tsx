@@ -77,7 +77,8 @@ export function WorshipControlSheet({
       <SheetContent
         side="bottom"
         data-worship-control-sheet
-        className="z-[130] max-h-[min(90vh,760px)] flex flex-col rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+        overlayClassName="z-[140]"
+        className="z-[150] max-h-[min(90vh,760px)] flex flex-col rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="text-left pb-2 shrink-0">
           <div className="flex items-start justify-between gap-2">

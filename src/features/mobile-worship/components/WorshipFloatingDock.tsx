@@ -1,4 +1,4 @@
-import { MoreHorizontal, Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { useIsLandscape } from '@/features/mobile-stage/hooks/useIsMobileViewport';
 import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
@@ -65,11 +65,17 @@ function DockActionButtons({
         {autoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
       </DockButton>
       <DockButton
-        onClick={onOpenSheet}
+        onClick={(e) => {
+          e.stopPropagation();
+          worshipHaptic();
+          onOpenSheet();
+        }}
         active={sheetOpen}
-        label="Más herramientas"
+        label="Más herramientas: metrónomo, YouTube, acordes…"
+        className="min-w-[2.75rem] border-gold/50 bg-gold/15 text-gold"
       >
-        <MoreHorizontal className="w-4 h-4" />
+        <SlidersHorizontal className="w-4 h-4" />
+        <span className="text-[9px] font-bold leading-none mt-0.5">Más</span>
       </DockButton>
     </div>
   );
@@ -138,6 +144,9 @@ export function WorshipFloatingDock({
 
   const openSheet = () => setSheetOpen(true);
 
+  /** Hide dock chrome while sheet is open so it can't sit above / steal taps from the sheet. */
+  const showDockChrome = dockVisible && !sheetOpen;
+
   if (landscapeDock) {
     return (
       <>
@@ -147,10 +156,11 @@ export function WorshipFloatingDock({
             paddingRight: 'max(0.35rem, env(safe-area-inset-right))',
             paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
             paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-            transform: `translateY(-50%) translateX(${dockVisible ? '0' : '120%'})`,
+            transform: `translateY(-50%) translateX(${showDockChrome ? '0' : '120%'})`,
           }}
           data-worship-floating-dock
           data-worship-landscape
+          aria-hidden={sheetOpen || undefined}
         >
           <div className="pointer-events-auto flex flex-col gap-1 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
             <QuickTransposeControls {...transposeProps} layout="vertical" />
@@ -179,8 +189,8 @@ export function WorshipFloatingDock({
 
   return (
     <>
-      <div className="lg:hidden" data-worship-floating-dock>
-        <FloatingDockShell visible controlsVisible={dockVisible} compact onPointerDown={() => {}}>
+      <div className="lg:hidden" data-worship-floating-dock aria-hidden={sheetOpen || undefined}>
+        <FloatingDockShell visible controlsVisible={showDockChrome} compact onPointerDown={() => {}}>
           <div className="flex items-center justify-between gap-1 px-1.5 py-1">
             <QuickTransposeControls {...transposeProps} layout="horizontal" />
             <DockActionButtons

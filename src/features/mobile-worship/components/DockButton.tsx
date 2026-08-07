@@ -1,8 +1,8 @@
 import { forwardRef } from 'react';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
 export interface DockButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  onClick?: () => void;
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
   label: string;
   children: ReactNode;
