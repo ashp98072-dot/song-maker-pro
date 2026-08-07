@@ -53,6 +53,38 @@ export async function fetchProfile(userId: string): Promise<PublicProfile | null
   };
 }
 
+async function saveProfileRow(payload: {
+  user_id: string;
+  display_name: string;
+  updated_at: string;
+  avatar_url?: string | null;
+}): Promise<{ error: Error | null }> {
+  const { data: existing, error: selectError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('user_id', payload.user_id)
+    .maybeSingle();
+
+  if (selectError) {
+    return { error: selectError as unknown as Error };
+  }
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        display_name: payload.display_name,
+        updated_at: payload.updated_at,
+        ...(payload.avatar_url !== undefined ? { avatar_url: payload.avatar_url } : {}),
+      })
+      .eq('user_id', payload.user_id);
+    return { error: error as unknown as Error | null };
+  }
+
+  const { error } = await supabase.from('profiles').insert(payload);
+  return { error: error as unknown as Error | null };
+}
+
 export async function ensureOwnProfile(displayName?: string): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return;
@@ -62,17 +94,21 @@ export async function ensureOwnProfile(displayName?: string): Promise<void> {
     (typeof auth.user.user_metadata?.full_name === 'string'
       ? auth.user.user_metadata.full_name
       : null) ||
+    (typeof auth.user.user_metadata?.display_name === 'string'
+      ? auth.user.user_metadata.display_name
+      : null) ||
+    (typeof auth.user.user_metadata?.name === 'string'
+      ? auth.user.user_metadata.name
+      : null) ||
     auth.user.email?.split('@')[0] ||
     'Músico';
 
-  await supabase.from('profiles').upsert(
-    {
-      user_id: auth.user.id,
-      display_name: name,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' }
-  );
+  const { error } = await saveProfileRow({
+    user_id: auth.user.id,
+    display_name: name,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) console.error('[profile] ensureOwnProfile', error);
 }
 
 export async function updateOwnProfile(input: {
@@ -101,9 +137,7 @@ export async function updateOwnProfile(input: {
     payload.avatar_url = input.avatarUrl;
   }
 
-  const { error } = await supabase.from('profiles').upsert(payload, {
-    onConflict: 'user_id',
-  });
+  const { error } = await saveProfileRow(payload);
 
   if (error) {
     console.error('[profile] update', error);
