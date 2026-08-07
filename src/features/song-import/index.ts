@@ -11,3 +11,8 @@ export {
   importSongId,
   songDedupeKey,
 } from '@/features/song-import/utils/normalizeImportedSong';
+export {
+  parseBulkPastedSongs,
+  parsePastedSongChunk,
+  splitBulkSongText,
+} from '@/features/song-import/utils/pasteBulkSongs';

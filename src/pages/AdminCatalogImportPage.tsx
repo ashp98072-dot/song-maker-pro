@@ -4,7 +4,9 @@ import {
   CheckSquare,
   ChevronDown,
   ChevronUp,
+  ClipboardPaste,
   FileMusic,
+  ListMusic,
   Loader2,
   Square,
   Trash2,
@@ -19,6 +21,7 @@ import {
 } from '@/features/song-import';
 import {
   COMMUNITY_GENRES,
+  publishListAsCadena,
   publishSongToPublicLibrary,
   type CommunityGenreId,
 } from '@/features/community';
@@ -33,17 +36,22 @@ type ReviewRow = {
   expanded: boolean;
 };
 
+type ImportMode = 'library' | 'publish' | 'cadena';
+
 /**
- * Admin: ChordPro batch → review → library and/or public_songs.
- * Rights: files must be yours or licensed; no scraping.
+ * Admin: ChordPro / paste batch → review → library, public_songs, and optional cadena.
+ * Rights: files/paste must be yours or licensed; no scraping.
  */
 export default function AdminCatalogImportPage() {
-  const { isAdmin, isGuest, songs, addSong } = useApp();
+  const { isAdmin, isGuest, songs, addSong, createList, setListSongs } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ReviewRow[]>([]);
   const [parseErrors, setParseErrors] = useState<{ file?: string; message: string }[]>([]);
   const [defaultGenre, setDefaultGenre] = useState<CommunityGenreId>('adoracion');
-  const [busy, setBusy] = useState<'library' | 'publish' | null>(null);
+  const [pasteText, setPasteText] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
+  const [cadenaName, setCadenaName] = useState('');
+  const [busy, setBusy] = useState<ImportMode | null>(null);
   const [parsing, setParsing] = useState(false);
 
   const selected = useMemo(() => rows.filter((r) => r.selected), [rows]);
@@ -57,6 +65,28 @@ export default function AdminCatalogImportPage() {
     return <Navigate to="/perfil" replace />;
   }
 
+  const enqueuePartials = (
+    partials: Parameters<typeof normalizeImportedSong>[0][],
+    fileNames?: string[]
+  ) => {
+    const next: ReviewRow[] = [];
+    partials.forEach((partial, i) => {
+      const song = normalizeImportedSong(partial, i);
+      if (!song) return;
+      next.push({
+        localId: `${song.id}-${i}-${Date.now()}`,
+        song,
+        selected: true,
+        genre: defaultGenre,
+        fileName: fileNames?.[i],
+        expanded: false,
+      });
+    });
+    if (!next.length) return 0;
+    setRows((prev) => [...next, ...prev]);
+    return next.length;
+  };
+
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
@@ -68,31 +98,44 @@ export default function AdminCatalogImportPage() {
         return;
       }
       const result = await provider.parseFiles(Array.from(files));
-      const next: ReviewRow[] = [];
-      result.songs.forEach((partial, i) => {
-        const song = normalizeImportedSong(partial, i);
-        if (!song) return;
-        next.push({
-          localId: `${song.id}-${i}-${Date.now()}`,
-          song,
-          selected: true,
-          genre: defaultGenre,
-          fileName: undefined,
-          expanded: false,
-        });
-      });
-      if (next.length && next.length <= files.length) {
-        Array.from(files).forEach((f, i) => {
-          if (next[i]) next[i].fileName = f.name;
-        });
-      }
-      setRows((prev) => [...next, ...prev]);
+      const names = Array.from(files).map((f) => f.name);
+      const n = enqueuePartials(result.songs, names);
       setParseErrors(result.errors);
-      if (next.length) toast.success(`${next.length} canción(es) listas para revisar`);
+      if (n) toast.success(`${n} canción(es) listas para revisar`);
       if (result.errors.length) toast.error(`${result.errors.length} archivo(s) con error`);
     } finally {
       setParsing(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handlePasteImport = async () => {
+    if (!pasteText.trim()) {
+      toast.error('Pega al menos un canto');
+      return;
+    }
+    setParsing(true);
+    try {
+      const provider = getSongImportProvider('ai-ingest');
+      if (!provider?.parseText) {
+        toast.error('Pegado inteligente no disponible');
+        return;
+      }
+      const result = await provider.parseText(pasteText);
+      const n = enqueuePartials(result.songs);
+      setParseErrors(result.errors);
+      if (n) {
+        toast.success(`${n} canción(es) desde pegado`);
+        setPasteText('');
+        setShowPaste(false);
+      } else {
+        toast.error('No se detectaron cantos en el texto');
+      }
+      if (result.errors.length && !n) {
+        toast.error(result.errors[0]?.message || 'Error al interpretar');
+      }
+    } finally {
+      setParsing(false);
     }
   };
 
@@ -128,20 +171,25 @@ export default function AdminCatalogImportPage() {
     setParseErrors([]);
   };
 
-  const runImport = async (mode: 'library' | 'publish') => {
+  const runImport = async (mode: ImportMode) => {
     if (!selected.length) {
       toast.error('Selecciona al menos una canción');
       return;
     }
+    if (mode === 'cadena' && !cadenaName.trim()) {
+      toast.error('Pon un nombre para la cadena');
+      return;
+    }
     setBusy(mode);
     const succeeded = new Set<string>();
+    const publishedSongs: Song[] = [];
     let fail = 0;
     try {
       for (const row of selected) {
         const song: Song = { ...row.song, genre: row.genre, isNew: true };
         try {
           await addSong(song);
-          if (mode === 'publish') {
+          if (mode === 'publish' || mode === 'cadena') {
             const published = await publishSongToPublicLibrary({
               song,
               genre: row.genre,
@@ -154,18 +202,48 @@ export default function AdminCatalogImportPage() {
             }
           }
           succeeded.add(row.localId);
+          publishedSongs.push(song);
         } catch (err) {
           fail += 1;
           console.error(err);
         }
       }
-      if (succeeded.size) {
+
+      if (mode === 'cadena' && publishedSongs.length) {
+        const listId = await createList(cadenaName.trim());
+        if (listId) {
+          await setListSongs(
+            listId,
+            publishedSongs.map((s) => s.id)
+          );
+          const cadena = await publishListAsCadena({
+            name: cadenaName.trim(),
+            description: `Importación admin · ${publishedSongs.length} cantos`,
+            songs: publishedSongs,
+            sourceListId: listId,
+          });
+          if (cadena.ok) {
+            toast.success(
+              `${publishedSongs.length} publicadas y cadena “${cadenaName.trim()}” creada`
+            );
+          } else {
+            toast.error(cadena.error);
+            toast.success(`${publishedSongs.length} publicadas (cadena falló)`);
+          }
+        } else {
+          toast.success(`${publishedSongs.length} publicadas (no se pudo crear lista)`);
+        }
+      } else if (succeeded.size) {
         toast.success(
           mode === 'publish'
             ? `${succeeded.size} publicada(s) en comunidad`
             : `${succeeded.size} guardada(s) en tu biblioteca`
         );
+      }
+
+      if (succeeded.size) {
         setRows((prev) => prev.filter((r) => !succeeded.has(r.localId)));
+        if (mode === 'cadena') setCadenaName('');
       }
       if (fail) toast.error(`${fail} no se pudieron procesar`);
     } finally {
@@ -191,8 +269,8 @@ export default function AdminCatalogImportPage() {
           Importar catálogo
         </h1>
         <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
-          Sube un lote ChordPro (.pro / .chopro / .txt), revisa título y acordes, y publica en la
-          biblioteca comunitaria. Solo material propio o con licencia — sin scrapear la web.
+          Importa ChordPro o pega varios cantos (sepáralos con ---), revisa y publica. Solo material
+          propio o con licencia — sin scrapear la web.
         </p>
       </header>
 
@@ -231,7 +309,41 @@ export default function AdminCatalogImportPage() {
             {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             Subir ChordPro
           </button>
+          <button
+            type="button"
+            disabled={parsing}
+            onClick={() => setShowPaste((v) => !v)}
+            className="h-10 px-4 rounded-xl border border-border font-semibold text-sm flex items-center justify-center gap-2 hover:bg-secondary disabled:opacity-60"
+          >
+            <ClipboardPaste className="w-4 h-4" />
+            Pegar texto
+          </button>
         </div>
+
+        {showPaste ? (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Pega uno o varios cantos. Separa con una línea <code className="text-gold">---</code>.
+              También acepta bloques ChordPro con {'{title: …}'}.
+            </p>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              rows={8}
+              placeholder={`Título: Santo Espíritu\nArtista: Hillsong\n\nG     C\nletra…\n---\nTítulo: Otro canto\n…`}
+              className="w-full rounded-xl bg-background/70 border border-border p-3 font-mono text-xs leading-relaxed"
+            />
+            <button
+              type="button"
+              disabled={parsing || !pasteText.trim()}
+              onClick={() => void handlePasteImport()}
+              className="h-10 px-4 rounded-xl border border-gold/40 text-gold font-semibold text-sm hover:bg-gold/10 disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardPaste className="w-4 h-4" />}
+              Detectar y añadir a la cola
+            </button>
+          </div>
+        ) : null}
 
         {rows.length > 0 ? (
           <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
@@ -436,25 +548,48 @@ export default function AdminCatalogImportPage() {
             })}
           </ul>
 
-          <div className="sticky bottom-3 z-10 flex flex-col sm:flex-row gap-2 p-3 rounded-2xl border border-border bg-card/95 backdrop-blur shadow-lg">
-            <button
-              type="button"
-              disabled={!!busy || selected.length === 0}
-              onClick={() => void runImport('library')}
-              className="flex-1 h-11 rounded-xl border border-border font-semibold text-sm hover:bg-secondary disabled:opacity-50 inline-flex items-center justify-center gap-2"
-            >
-              {busy === 'library' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Solo biblioteca ({selected.length})
-            </button>
-            <button
-              type="button"
-              disabled={!!busy || selected.length === 0}
-              onClick={() => void runImport('publish')}
-              className="flex-1 h-11 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2"
-            >
-              {busy === 'publish' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Publicar en comunidad ({selected.length})
-            </button>
+          <div className="sticky bottom-3 z-10 flex flex-col gap-2 p-3 rounded-2xl border border-border bg-card/95 backdrop-blur shadow-lg">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                disabled={!!busy || selected.length === 0}
+                onClick={() => void runImport('library')}
+                className="flex-1 h-11 rounded-xl border border-border font-semibold text-sm hover:bg-secondary disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {busy === 'library' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Solo biblioteca ({selected.length})
+              </button>
+              <button
+                type="button"
+                disabled={!!busy || selected.length === 0}
+                onClick={() => void runImport('publish')}
+                className="flex-1 h-11 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {busy === 'publish' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Publicar en comunidad ({selected.length})
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <input
+                value={cadenaName}
+                onChange={(e) => setCadenaName(e.target.value)}
+                placeholder="Nombre de cadena (opcional)"
+                className="flex-1 h-11 px-3 rounded-xl bg-secondary border border-border text-sm"
+              />
+              <button
+                type="button"
+                disabled={!!busy || selected.length === 0 || !cadenaName.trim()}
+                onClick={() => void runImport('cadena')}
+                className="h-11 px-4 rounded-xl border border-gold/40 text-gold font-semibold text-sm hover:bg-gold/10 disabled:opacity-50 inline-flex items-center justify-center gap-2 shrink-0"
+              >
+                {busy === 'cadena' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ListMusic className="w-4 h-4" />
+                )}
+                Publicar + cadena
+              </button>
+            </div>
           </div>
         </>
       )}

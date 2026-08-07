@@ -1,20 +1,24 @@
 import type { ImportBatchResult, SongImportProvider } from '@/features/song-import/types';
+import { parseBulkPastedSongs } from '@/features/song-import/utils/pasteBulkSongs';
 
 /**
- * AI ingestion (PDF/DOCX/image) — server-side only; requires explicit user upload consent.
+ * Client-side “AI-ish” ingest: smart paste + multi-song split.
+ * No web scraping — user pastes material they have rights to use.
+ * Server/OCR can plug in later via the same parseText contract.
  */
 export const aiIngestProvider: SongImportProvider = {
   id: 'ai-ingest',
-  label: 'IA — PDF, imagen o texto pegado',
-  licenseNote: 'Procesamiento en servidor; el usuario confirma derechos sobre el material.',
+  label: 'Pegado inteligente (texto / lote)',
+  licenseNote: 'El usuario confirma derechos sobre el material pegado; sin scrapear la web.',
   canBulkImport: true,
   async parseText(text) {
+    const { songs, errors, skipped } = parseBulkPastedSongs(text);
     return {
       source: 'ai-ingest',
-      imported: 0,
-      skipped: 1,
-      errors: [{ message: 'Ingestión IA pendiente de conectar al backend' }],
-      songs: [],
+      imported: songs.length,
+      skipped,
+      errors,
+      songs,
     } satisfies ImportBatchResult;
   },
 };
