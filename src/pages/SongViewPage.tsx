@@ -31,7 +31,7 @@ import SetlistNav from '@/components/SetlistNav';
 import type { DirectorSessionConnection, SharedSessionState } from '@/features/director-session/types';
 import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
 import { FollowerDirectorSyncLoader } from '@/features/director-session/components/FollowerDirectorSyncLoader';
-import { SimpleLiveSyncPanel, MobileLiveSessionBar, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { shouldApplyRemoteSectionAnchor } from '@/features/director-session/utils/shouldApplyRemoteSectionAnchor';
 import { useSessionOriginMismatch } from '@/features/director-session/hooks/useSessionOriginMismatch';
 import { useReportSessionPageContext } from '@/features/director-session/hooks/useReportSessionPageContext';
@@ -2240,7 +2240,7 @@ export default function SongViewPage() {
         </button>
       )}
 
-      {/* Desktop / legacy sticky chip — en móvil usamos MobileLiveSessionBar */}
+      {/* Desktop sticky chip — en móvil la sesión vive en Más → Sesión */}
       {!mobileTeleprompter &&
         !isMobileViewport &&
         (sessionConnection ||
@@ -2277,30 +2277,6 @@ export default function SongViewPage() {
           )}
         </div>
       )}
-
-      {FEATURES.SIMPLE_LIVE_SYNC &&
-        isMobileViewport &&
-        simpleLive &&
-        (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
-        simpleLive.code && (
-          <MobileLiveSessionBar
-            visible
-            floating={mobileTeleprompter || isMobileStageActive}
-            role={simpleLive.role}
-            code={simpleLive.code}
-            onRevealControls={mobileTeleprompter ? showControls : undefined}
-            followDirector={followDirector}
-            onFollowDirectorChange={(on) => {
-              handleFollowDirectorChange(on);
-              simpleLive.setFollowDirector(on);
-            }}
-            onLeave={async () => {
-              const wasDirector = simpleLive.role === 'director';
-              await simpleLive.leave();
-              toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
-            }}
-          />
-        )}
 
       {liveNote && !mobileTeleprompter && (
         <div className="sticky top-2 z-40 mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-500/40 backdrop-blur animate-in slide-in-from-top-2">
@@ -2628,14 +2604,7 @@ export default function SongViewPage() {
       </div>
     </div>
     <TeleprompterLivePill
-      visible={
-        mobileTeleprompter &&
-        !(
-          FEATURES.SIMPLE_LIVE_SYNC &&
-          simpleLive &&
-          (simpleLive.role === 'director' || simpleLive.role === 'follower')
-        )
-      }
+      visible={mobileTeleprompter}
       role={
         (FEATURES.SIMPLE_LIVE_SYNC ? simpleLive?.role : sessionConnection?.role) ?? 'idle'
       }

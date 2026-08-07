@@ -9,6 +9,7 @@ import { WorshipServiceModeButton } from '@/features/mobile-worship/components/W
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import type { WorshipFloatingDockProps } from '@/features/mobile-worship/types';
 import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
+import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 
 function DockActionButtons({
   onOpenSheet,
@@ -16,12 +17,14 @@ function DockActionButtons({
   layout,
   onHideControls,
   serviceModeInput,
+  liveActive,
 }: {
   onOpenSheet: () => void;
   sheetOpen: boolean;
   layout: 'horizontal' | 'vertical';
   onHideControls?: () => void;
   serviceModeInput?: WorshipServiceModeInput | null;
+  liveActive?: boolean;
 }) {
   const wrapClass =
     layout === 'vertical'
@@ -47,12 +50,18 @@ function DockActionButtons({
           worshipHaptic();
           onOpenSheet();
         }}
-        aria-label="Más herramientas"
+        aria-label={liveActive ? 'Más herramientas · sesión en vivo' : 'Más herramientas'}
         aria-expanded={sheetOpen}
-        className="flex items-center gap-1.5 min-h-[2.75rem] px-3 rounded-xl border border-gold bg-gold text-primary-foreground text-xs font-bold shadow-md transition-all active:scale-95"
+        className="relative flex items-center gap-1.5 min-h-[2.75rem] px-3 rounded-xl border border-gold bg-gold text-primary-foreground text-xs font-bold shadow-md transition-all active:scale-95"
       >
         <Menu className="w-4 h-4 shrink-0" aria-hidden />
         Más
+        {liveActive ? (
+          <span
+            className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-400 animate-pulse"
+            aria-hidden
+          />
+        ) : null}
       </button>
     </div>
   );
@@ -85,6 +94,11 @@ export function WorshipFloatingDock({
   const isLandscape = useIsLandscape();
   const isMobile = mobileViewport;
   const landscapeDock = isMobile && isLandscape;
+  const simpleLive = useSimpleLiveSyncOptional();
+  const liveActive =
+    !!simpleLive &&
+    (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
+    !!simpleLive.code;
 
   const dockEnabled = visible && isMobile && !controlsHidden;
 
@@ -123,6 +137,7 @@ export function WorshipFloatingDock({
     sheetOpen,
     onHideControls: onHideControls ? handleHide : undefined,
     serviceModeInput,
+    liveActive,
   };
 
   const sheetNode = (

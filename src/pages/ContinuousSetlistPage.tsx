@@ -2,7 +2,7 @@ import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'reac
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
-import { SimpleLiveSyncPanel, MobileLiveSessionBar, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';
@@ -2866,7 +2866,6 @@ export default function ContinuousSetlistPage() {
     mobileTeleprompter ? 'is-teleprompter-hidden' : '',
     // Smooth scroll only for director — followers snap instantly (less drift / lag).
     isDirector && !isFollower ? 'is-director-smooth' : '',
-    FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle' ? 'has-live-bar' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -2991,11 +2990,11 @@ export default function ContinuousSetlistPage() {
           (showSession || (FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle'))
             ? `continuous-session-panel${
                 FEATURES.SIMPLE_LIVE_SYNC && simpleLive && simpleLive.role !== 'idle'
-                  ? ' is-live-bar'
-                  : ''
+                  ? ' is-live-bar max-lg:sr-only max-lg:pointer-events-none'
+                  : ' max-lg:mb-2'
               }`
             : FEATURES.SIMPLE_LIVE_SYNC && showSession
-              ? 'continuous-session-panel'
+              ? 'continuous-session-panel max-lg:mb-2'
               : 'sr-only h-0 overflow-hidden'
         }
         aria-hidden={
@@ -3085,14 +3084,7 @@ export default function ContinuousSetlistPage() {
       </div>
 
       <TeleprompterLivePill
-        visible={
-          mobileTeleprompter &&
-          !(
-            FEATURES.SIMPLE_LIVE_SYNC &&
-            simpleLive &&
-            (simpleLive.role === 'director' || simpleLive.role === 'follower')
-          )
-        }
+        visible={mobileTeleprompter}
         role={
           (FEATURES.SIMPLE_LIVE_SYNC ? simpleLive?.role : sessionConnection?.role) ?? 'idle'
         }
@@ -3105,31 +3097,6 @@ export default function ContinuousSetlistPage() {
         followDirector={followDirector}
         onTap={showControls}
       />
-
-      {FEATURES.SIMPLE_LIVE_SYNC &&
-        isMobile &&
-        mobileTeleprompter &&
-        simpleLive &&
-        (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
-        simpleLive.code && (
-          <MobileLiveSessionBar
-            visible
-            floating
-            role={simpleLive.role}
-            code={simpleLive.code}
-            onRevealControls={showControls}
-            followDirector={followDirector}
-            onFollowDirectorChange={(on) => {
-              handleFollowDirectorChange(on);
-              simpleLive.setFollowDirector(on);
-            }}
-            onLeave={async () => {
-              const wasDirector = simpleLive.role === 'director';
-              await simpleLive.leave();
-              toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
-            }}
-          />
-        )}
 
       <MobileControlsRestoreFab
         visible={isMobile && showDock && controlsHidden}

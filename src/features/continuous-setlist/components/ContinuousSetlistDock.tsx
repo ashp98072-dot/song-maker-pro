@@ -2,18 +2,26 @@ import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
+  Copy,
   ListMusic,
+  LogOut,
   Maximize,
   Minimize,
   Pause,
   Play,
+  Radio,
+  Share2,
   SkipBack,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
 import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
+import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { buildLiveJoinUrl } from '@/features/simple-live-sync/liveJoinUrl';
+import { shareNative } from '@/utils/shareNative';
 
 export interface ContinuousSetlistDockProps {
   visible: boolean;
@@ -78,6 +86,12 @@ export function ContinuousSetlistDock({
   onHideControls,
   serviceModeInput = null,
 }: ContinuousSetlistDockProps) {
+  const simpleLive = useSimpleLiveSyncOptional();
+  const liveActive =
+    !!simpleLive &&
+    (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
+    !!simpleLive.code;
+
   if (!visible) return null;
 
   return (
@@ -96,6 +110,79 @@ export function ContinuousSetlistDock({
             </span>
           </div>
           <p className="text-xs font-medium text-foreground truncate">{currentTitle}</p>
+
+          {liveActive && !controlsHidden ? (
+            <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-1.5">
+              <Radio className="w-3.5 h-3.5 shrink-0 text-amber-300" />
+              <span className="font-mono text-xs font-black tracking-widest text-gold truncate">
+                {simpleLive!.code}
+              </span>
+              {simpleLive!.role === 'director' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(simpleLive!.code!);
+                        toast.success('Código copiado');
+                      } catch {
+                        toast.message(simpleLive!.code!);
+                      }
+                    }}
+                    className="shrink-0 p-1.5 rounded-md border border-white/15"
+                    aria-label="Copiar código"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = buildLiveJoinUrl(simpleLive!.code!);
+                      const ok = await shareNative({
+                        title: 'Sesión en vivo',
+                        text: `Únete con el código ${simpleLive!.code}`,
+                        url,
+                      });
+                      if (!ok) {
+                        try {
+                          await navigator.clipboard.writeText(url);
+                          toast.success('Enlace copiado');
+                        } catch {
+                          toast.message(simpleLive!.code!);
+                        }
+                      }
+                    }}
+                    className="shrink-0 p-1.5 rounded-md border border-gold/40 text-gold"
+                    aria-label="Compartir"
+                  >
+                    <Share2 className="w-3 h-3" />
+                  </button>
+                </>
+              ) : (
+                <label className="shrink-0 flex items-center gap-1 text-[10px] font-bold">
+                  <input
+                    type="checkbox"
+                    checked={simpleLive!.followDirector}
+                    onChange={(e) => simpleLive!.setFollowDirector(e.target.checked)}
+                    className="h-3 w-3 accent-gold"
+                  />
+                  Seguir
+                </label>
+              )}
+              <button
+                type="button"
+                onClick={async () => {
+                  const wasDirector = simpleLive!.role === 'director';
+                  await simpleLive!.leave();
+                  toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
+                }}
+                className="shrink-0 ml-auto flex items-center gap-1 px-2 py-1 rounded-md border border-red-400/40 text-red-300 text-[10px] font-bold"
+              >
+                <LogOut className="w-3 h-3" />
+                {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
+              </button>
+            </div>
+          ) : null}
 
           {!controlsHidden ? (
             <QuickTransposeControls

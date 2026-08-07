@@ -173,7 +173,7 @@ export function WorshipControlSheet({
           </div>
         </div>
 
-        <Tabs defaultValue="music" className="flex-1 flex flex-col min-h-0 px-3">
+        <Tabs defaultValue={liveActive ? 'tools' : 'music'} className="flex-1 flex flex-col min-h-0 px-3">
           <TabsList className="grid w-full grid-cols-5 shrink-0 h-8">
             <TabsTrigger value="music" className="text-[10px] px-0.5">
               Música
@@ -184,8 +184,14 @@ export function WorshipControlSheet({
             <TabsTrigger value="chords" className="text-[10px] px-0.5">
               Acordes
             </TabsTrigger>
-            <TabsTrigger value="tools" className="text-[10px] px-0.5">
+            <TabsTrigger value="tools" className="text-[10px] px-0.5 relative">
               Más
+              {liveActive ? (
+                <span
+                  className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"
+                  aria-hidden
+                />
+              ) : null}
             </TabsTrigger>
             <TabsTrigger value="notes" className="text-[10px] px-0.5">
               Afinar
@@ -354,7 +360,7 @@ export function WorshipControlSheet({
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                     <Radio className="w-3.5 h-3.5" />
-                    {simpleLive!.role === 'director' ? 'Sesión (director)' : 'Sesión (invitado)'}
+                    Sesión · {simpleLive!.role === 'director' ? 'Transmitiendo' : 'Invitado'}
                   </p>
                   <p className="font-mono text-xl font-black tracking-[0.2em] text-gold">
                     {simpleLive!.code}
@@ -426,16 +432,14 @@ export function WorshipControlSheet({
                       {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
                     </button>
                   </div>
-                  {simpleLive!.role === 'director' ? (
-                    <p className="text-[10px] text-muted-foreground">
-                      El código también queda arriba en la barra. Compártelo con tu equipo.
-                    </p>
-                  ) : null}
+                  <p className="text-[10px] text-muted-foreground">
+                    Código y compartir solo aquí — la letra queda a pantalla completa.
+                  </p>
                 </div>
               ) : serviceModeInput && simpleLive ? (
                 <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5" /> En vivo
+                    <Radio className="w-3.5 h-3.5" /> Sesión en vivo
                   </p>
                   <button
                     type="button"
