@@ -71,6 +71,10 @@ function DockButton({
   );
 }
 
+/**
+ * Escenario: fila compacta solo con lo esencial.
+ * Metrónomo / YouTube / BPM viven en “Más” (expandido).
+ */
 export function MobileStageDock({
   visible,
   controlsVisible,
@@ -116,6 +120,25 @@ export function MobileStageDock({
       >
         {expansion === 'expanded' && (
           <div className="px-3 pt-3 pb-2 space-y-3 border-b border-white/10">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Extra · {displayKey}
+            </p>
+            <div className="flex items-center justify-around gap-1">
+              <DockButton onClick={onToggleMetronome} active={metronomeActive} label="Metrónomo">
+                {metronomeActive ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </DockButton>
+              <DockButton onClick={onToggleYoutube} active={youtubeActive} label="YouTube">
+                <Youtube className="w-5 h-5" />
+              </DockButton>
+              <button
+                type="button"
+                onClick={onToggleAutoHide}
+                className="flex items-center gap-1.5 px-2 py-2 rounded-xl border border-white/10 text-[10px] text-muted-foreground"
+              >
+                {autoHideControls ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                Auto-ocultar
+              </button>
+            </div>
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground w-12">
                 BPM
@@ -146,19 +169,6 @@ export function MobileStageDock({
                 />
               </div>
             )}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Tono: <span className="text-gold font-semibold">{displayKey}</span>
-              </span>
-              <button
-                type="button"
-                onClick={onToggleAutoHide}
-                className="flex items-center gap-1 text-muted-foreground"
-              >
-                {autoHideControls ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                Auto-ocultar
-              </button>
-            </div>
           </div>
         )}
 
@@ -173,27 +183,25 @@ export function MobileStageDock({
               <List className="w-5 h-5" />
             </DockButton>
           ) : null}
-          <DockButton onClick={onToggleMetronome} active={metronomeActive} label="Metrónomo">
-            {metronomeActive ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-          </DockButton>
           <DockButton onClick={onToggleAutoScroll} active={autoScrolling} label="Autoscroll">
             {autoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </DockButton>
           <DockButton onClick={onTransposeDown} label="Bajar semitono">
             <Minus className="w-5 h-5" />
           </DockButton>
+          <span className="text-[10px] font-mono font-bold text-gold px-0.5 max-w-[2.5rem] truncate text-center">
+            {displayKey}
+          </span>
           <DockButton onClick={onTransposeUp} label="Subir semitono">
             <Plus className="w-5 h-5" />
-          </DockButton>
-          <DockButton onClick={onToggleYoutube} active={youtubeActive} label="YouTube">
-            <Youtube className="w-5 h-5" />
           </DockButton>
           <DockButton onClick={onToggleFullscreen} active={isFullscreen} label="Pantalla completa">
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </DockButton>
           <DockButton
             onClick={toggleExpansion}
-            label={expansion === 'compact' ? 'Expandir controles' : 'Contraer'}
+            active={expansion === 'expanded'}
+            label={expansion === 'compact' ? 'Más opciones' : 'Menos'}
           >
             {expansion === 'compact' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </DockButton>

@@ -392,6 +392,27 @@ export function WorshipControlSheet({
                     </p>
                   ) : null}
                 </div>
+              ) : serviceModeInput && simpleLive ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    worshipHaptic();
+                    const ok = await simpleLive.createAsDirector({
+                      songId: serviceModeInput.songId,
+                      listId: serviceModeInput.listId ?? null,
+                      listSongIds: serviceModeInput.listSongIds ?? [],
+                      currentIndex: serviceModeInput.currentIndex ?? 0,
+                      viewMode: serviceModeInput.viewMode ?? 'musician',
+                      semitones: serviceModeInput.semitones ?? 0,
+                      genderShift: serviceModeInput.genderShift ?? 'original',
+                      sectionAnchor: serviceModeInput.sectionAnchor ?? null,
+                    });
+                    if (ok) minimize();
+                  }}
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-lg border border-gold/40 bg-gold/10 text-gold text-sm font-bold"
+                >
+                  Crear sesión en vivo
+                </button>
               ) : null}
               {onHideControls && serviceModeInput ? (
                 <WorshipServiceModeButton
