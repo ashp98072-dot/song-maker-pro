@@ -7,7 +7,6 @@ import {
   LogOut,
   ChevronDown,
   Globe,
-  Database,
   Heart as HeartIcon,
   Sun,
   Moon,
@@ -162,16 +161,9 @@ export default function Navbar() {
                   <Plus className="w-4 h-4" /> Agregar canción
                 </Link>
                 <Link
-                  to="/backup"
-                  onClick={() => setMenuOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  <Database className="w-4 h-4" /> Backup
-                </Link>
-                <Link
                   to="/donaciones"
                   onClick={() => setMenuOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gold hover:bg-secondary transition-colors font-medium"
+                  className="sm:hidden w-full flex items-center gap-2 px-3 py-2 text-sm text-gold hover:bg-secondary transition-colors font-medium"
                 >
                   <HeartIcon className="w-4 h-4" fill="currentColor" /> Donar
                 </Link>

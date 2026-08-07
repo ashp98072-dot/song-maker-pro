@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Download, Upload, Database } from 'lucide-react';
 import { exportLibrary, parseBackupFile } from '@/utils/libraryBackup';
@@ -51,47 +52,66 @@ export default function BackupPage() {
   };
 
   return (
-    <div className="container px-4 py-6 max-w-2xl">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+    <div className="container px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
+        <Link
+          to="/perfil"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-gold text-sm mb-4"
+        >
+          ← Volver al perfil
+        </Link>
         <div className="flex items-center gap-3 mb-2">
-          <Database className="w-6 h-6 text-gold" />
-          <h1 className="text-2xl font-bold font-display text-foreground">Backup y Restauración</h1>
+          <Database className="w-6 h-6 text-gold shrink-0" />
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground">
+            Backup y Restauración
+          </h1>
         </div>
-        <p className="text-muted-foreground text-sm">Exporta o importa tu biblioteca completa para no perder tus canciones.</p>
+        <p className="text-muted-foreground text-sm">
+          Exporta o importa tu biblioteca completa para no perder tus canciones.
+        </p>
       </motion.div>
 
-      <div className="space-y-4">
-        <div className="glass-card p-6">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="glass-card p-4 sm:p-6">
           <h2 className="font-display font-bold text-foreground mb-2 flex items-center gap-2">
             <Download className="w-5 h-5 text-gold" /> Exportar Biblioteca
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Descarga un archivo JSON con todas tus canciones personales ({customSongs.length}), favoritos ({favorites.length}) y listas ({lists.length}).
+            Descarga un archivo JSON con todas tus canciones personales ({customSongs.length}),
+            favoritos ({favorites.length}) y listas ({lists.length}).
           </p>
-          <button onClick={handleExport}
-            className="w-full py-3 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+          <button
+            onClick={handleExport}
+            className="w-full py-3 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
             <Download className="w-4 h-4" /> Descargar Backup
           </button>
         </div>
 
-        <div className="glass-card p-6">
+        <div className="glass-card p-4 sm:p-6">
           <h2 className="font-display font-bold text-foreground mb-2 flex items-center gap-2">
             <Upload className="w-5 h-5 text-gold" /> Importar Biblioteca
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Restaura tus canciones desde un archivo de backup. Las canciones duplicadas no se agregarán dos veces.
+            Restaura tus canciones desde un archivo de backup. Las canciones duplicadas no se
+            agregarán dos veces.
           </p>
           <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-          <button onClick={() => fileRef.current?.click()}
-            className="w-full py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-secondary transition-colors flex items-center justify-center gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="w-full py-3 rounded-xl border border-border text-foreground font-semibold text-sm hover:bg-secondary transition-colors flex items-center justify-center gap-2"
+          >
             <Upload className="w-4 h-4" /> Seleccionar Archivo
           </button>
         </div>
 
-        <motion.div className="glass-card p-6">
-          <h2 className="font-display font-bold text-foreground mb-2">Importación masiva (ChordPro)</h2>
+        <motion.div className="glass-card p-4 sm:p-6">
+          <h2 className="font-display font-bold text-foreground mb-2">
+            Importación masiva (ChordPro)
+          </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Sube varios archivos .pro, .chopro o .txt con acordes. Cada archivo se convierte en una canción nueva.
+            Sube varios archivos .pro, .chopro o .txt con acordes. Cada archivo se convierte en una
+            canción nueva.
           </p>
           <input
             ref={chordProRef}
