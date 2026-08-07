@@ -9,13 +9,30 @@
     --safe-area-left: env(safe-area-inset-left, 0px);
     --safe-area-right: env(safe-area-inset-right, 0px);
     --app-nav-bar-height: 3.5rem;
+    --app-tab-bar-height: 3.25rem;
     --app-header-inset-top: max(12px, env(safe-area-inset-top, 0px));
     --app-chrome-top: calc(var(--app-nav-bar-height) + var(--app-header-inset-top));
     --app-dock-pad-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    --app-chrome-bottom: calc(
+      var(--app-tab-bar-height) + max(0px, env(safe-area-inset-bottom, 0px))
+    );
   }
 
   .app-navbar-safe {
     padding-top: var(--app-header-inset-top);
+  }
+
+  .app-tab-bar-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Space for Facebook-style bottom tabs on browse screens */
+  .app-shell-with-tabs {
+    padding-bottom: var(--app-chrome-bottom);
+  }
+
+  .app-shell-with-tabs[data-hide-tab-pad='true'] {
+    padding-bottom: 0;
   }
 
   .app-spectator-banner-safe {
@@ -90,7 +107,8 @@
 
   /* Mobile teleprompter: lyrics + minimal FAB only (no navbar / resume banner) */
   html[data-mobile-teleprompter] .app-navbar-safe,
-  html[data-mobile-teleprompter] [data-simple-live-resume-banner] {
+  html[data-mobile-teleprompter] [data-simple-live-resume-banner],
+  html[data-mobile-teleprompter] [data-mobile-tab-bar] {
     display: none !important;
   }
 

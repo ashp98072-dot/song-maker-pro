@@ -85,60 +85,64 @@ export default function CommunityLibraryPage() {
   }, [sourceLists, search]);
 
   return (
-    <div className="container px-4 py-6 max-w-6xl">
+    <div className="container px-3 sm:px-4 py-4 sm:py-6 max-w-6xl">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="mb-4 sm:mb-6"
       >
-        <div className="flex items-center gap-3 mb-2">
-          <Globe className="w-6 h-6 text-gold" />
-          <h1 className="text-2xl font-bold font-display text-foreground">Comunidad</h1>
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-1 sm:mb-2">
+          <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-gold shrink-0" />
+          <h1 className="text-xl sm:text-2xl font-bold font-display text-foreground">
+            Comunidad
+          </h1>
         </div>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Cadenas compartidas. Sigue a músicos y ve sus listas en «Siguiendo».
         </p>
       </motion.div>
 
-      <div className="flex gap-2 mb-5">
-        <button
-          type="button"
-          onClick={() => setTab('all')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${
-            tab === 'all'
-              ? 'bg-gold/15 border-gold text-gold'
-              : 'bg-secondary border-border text-muted-foreground'
-          }`}
-        >
-          Todas
-          {publicLists.length > 0 && (
-            <span className="ml-1 text-[10px] opacity-80">({publicLists.length})</span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('following')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors inline-flex items-center gap-2 ${
-            tab === 'following'
-              ? 'bg-gold/15 border-gold text-gold'
-              : 'bg-secondary border-border text-muted-foreground'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          Siguiendo
-          {followingCount > 0 && (
-            <span className="text-[10px] opacity-80">({followingLists.length})</span>
-          )}
-        </button>
+      <div className="sticky top-[var(--app-chrome-top,3.5rem)] z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 mb-3 sm:mb-5 bg-background/95 backdrop-blur-sm border-b border-border/60 sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:static sm:z-auto">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setTab('all')}
+            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${
+              tab === 'all'
+                ? 'bg-gold/15 border-gold text-gold'
+                : 'bg-secondary border-border text-muted-foreground'
+            }`}
+          >
+            Todas
+            {publicLists.length > 0 && (
+              <span className="ml-1 text-[10px] opacity-80">({publicLists.length})</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('following')}
+            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold border transition-colors inline-flex items-center gap-2 ${
+              tab === 'following'
+                ? 'bg-gold/15 border-gold text-gold'
+                : 'bg-secondary border-border text-muted-foreground'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Siguiendo
+            {followingCount > 0 && (
+              <span className="text-[10px] opacity-80">({followingLists.length})</span>
+            )}
+          </button>
+        </div>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="relative mb-4 sm:mb-6">
+        <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar cadena por nombre, autor o canción..."
-          className="w-full max-w-2xl pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+          placeholder="Buscar cadena, autor o canción…"
+          className="w-full max-w-2xl pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
         />
       </div>
 
@@ -176,14 +180,14 @@ export default function CommunityLibraryPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {filteredLists.map((cadena) => {
             const owner = profilesById[cadena.owner_id];
             const ownerName = owner?.displayName || cadena.owner_name || 'Músico';
             return (
               <div
                 key={cadena.id}
-                className="glass-card p-5 hover:bg-surface-hover transition-colors"
+                className="glass-card p-4 sm:p-5 hover:bg-surface-hover transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {cadena.owner_id ? (

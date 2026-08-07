@@ -287,7 +287,7 @@ export default function CommunityChainDetailPage() {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-3xl animate-in fade-in">
+    <div className="container px-3 sm:px-4 py-4 sm:py-6 max-w-3xl animate-in fade-in">
       <Link
         to="/comunidad"
         className="flex items-center gap-2 text-muted-foreground hover:text-gold text-sm mb-6 transition-colors"
@@ -301,7 +301,7 @@ export default function CommunityChainDetailPage() {
           <span className="text-xs font-bold uppercase tracking-wide">Cadena pública</span>
         </div>
         <h1 className="text-3xl font-bold font-display text-foreground mb-1">{list.name}</h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           {list.owner_id && (
             <ProfileAvatar
               profile={
@@ -314,7 +314,7 @@ export default function CommunityChainDetailPage() {
               size="sm"
             />
           )}
-          <p>
+          <p className="min-w-0">
             Por{' '}
             {list.owner_id ? (
               <Link to={`/perfil/${list.owner_id}`} className="text-gold hover:underline">

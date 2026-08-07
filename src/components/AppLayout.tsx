@@ -1,6 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
+import MobileBottomTabBar, {
+  shouldShowMobileTabBar,
+} from '@/components/MobileBottomTabBar';
 import VisitedSongsRegistrar from '@/pwa/VisitedSongsRegistrar';
 import SetlistOfflinePrefetcher from '@/pwa/SetlistOfflinePrefetcher';
 import { PwaInstallBanner } from '@/pwa/PwaInstallBanner';
@@ -22,12 +25,16 @@ export default function AppLayout() {
     const s = getRenderDiagStage();
     return s < 99 && s >= 2;
   })();
+  const showTabPad = shouldShowMobileTabBar(location.pathname);
 
   if (!layoutAuthBypass && !userName && !isPublicAppPath(location.pathname)) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   const main = (
-    <main className="min-h-screen bg-background">
+    <main
+      className="min-h-screen bg-background app-shell-with-tabs lg:!pb-0"
+      data-hide-tab-pad={showTabPad ? undefined : 'true'}
+    >
       <VisitedSongsRegistrar />
       <SetlistOfflinePrefetcher />
       <Navbar />
@@ -44,6 +51,7 @@ export default function AppLayout() {
         </>
       )}
       <Outlet />
+      <MobileBottomTabBar />
     </main>
   );
 

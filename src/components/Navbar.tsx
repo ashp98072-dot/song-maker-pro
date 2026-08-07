@@ -67,21 +67,26 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm app-navbar-safe">
-      <div className="container flex items-center justify-between h-14 px-4">
-        <Link to="/" className="flex items-center gap-2">
+      <div className="container flex items-center justify-between h-14 px-3 sm:px-4 gap-2">
+        <Link to="/" className="flex items-center gap-2 min-w-0 shrink-0">
           <img
             src={logoUrl}
             alt="Worship Transpose"
             className="w-9 h-9 rounded-full object-cover ring-1 ring-gold/40"
           />
-          <span className="font-display font-bold text-foreground hidden sm:inline">
+          <span className="font-display font-bold text-foreground hidden sm:inline truncate">
             Worship Transpose
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        {/* Desktop: full top nav. Mobile: bottom tab bar (Facebook-style). */}
+        <nav className="hidden lg:flex items-center gap-1">
           {navItems.map((item) => {
-            const active = location.pathname === item.path;
+            const active =
+              item.path === '/'
+                ? location.pathname === '/'
+                : location.pathname === item.path ||
+                  (item.path !== '/' && location.pathname.startsWith(item.path));
             return (
               <Link
                 key={item.path}
@@ -91,13 +96,22 @@ export default function Navbar() {
                 }`}
               >
                 <item.icon className="w-4 h-4" />
-                <span className="hidden md:inline">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link
+            to="/agregar"
+            className="lg:hidden p-2 rounded-lg border border-border text-muted-foreground hover:text-gold transition-colors"
+            aria-label="Agregar canción"
+            title="Agregar"
+          >
+            <Plus className="w-4 h-4" />
+          </Link>
+
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-gold transition-colors"
@@ -109,11 +123,11 @@ export default function Navbar() {
 
           <Link
             to="/donaciones"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg gold-gradient text-primary-foreground text-sm font-semibold shadow-md hover:opacity-90 hover:shadow-lg transition-all active:scale-[0.98]"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg gold-gradient text-primary-foreground text-sm font-semibold shadow-md hover:opacity-90 hover:shadow-lg transition-all active:scale-[0.98]"
             aria-label="Donar"
           >
             <HeartIcon className="w-4 h-4" fill="currentColor" />
-            <span className="hidden sm:inline">Donar</span>
+            <span className="hidden md:inline">Donar</span>
           </Link>
 
           <div className="relative" ref={menuRef}>
@@ -132,13 +146,20 @@ export default function Navbar() {
               <ChevronDown className="w-3 h-3" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 rounded-lg bg-card border border-border shadow-lg py-1">
+              <div className="absolute right-0 mt-2 w-44 rounded-lg bg-card border border-border shadow-lg py-1 z-50">
                 <Link
                   to="/perfil"
                   onClick={() => setMenuOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
                   <User className="w-4 h-4" /> Mi perfil
+                </Link>
+                <Link
+                  to="/agregar"
+                  onClick={() => setMenuOpen(false)}
+                  className="lg:hidden w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Agregar canción
                 </Link>
                 <Link
                   to="/backup"

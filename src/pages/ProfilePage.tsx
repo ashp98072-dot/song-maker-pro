@@ -210,21 +210,21 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container px-4 py-6 max-w-3xl animate-in fade-in">
+    <div className="container px-3 sm:px-4 py-4 sm:py-6 max-w-3xl animate-in fade-in">
       {routeUserId && (
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-gold text-sm mb-6"
+          className="flex items-center gap-2 text-muted-foreground hover:text-gold text-sm mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
       )}
 
-      <div className="glass-card p-6 mb-8">
-        <div className="flex flex-col sm:flex-row gap-5 items-start">
-          <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-full bg-secondary overflow-hidden ring-2 ring-gold/30 flex items-center justify-center text-3xl font-bold text-foreground">
+      <div className="glass-card p-4 sm:p-6 mb-5 sm:mb-8">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start">
+          <div className="relative shrink-0 self-center sm:self-start">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-secondary overflow-hidden ring-2 ring-gold/30 flex items-center justify-center text-2xl sm:text-3xl font-bold text-foreground">
               {profile.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
@@ -360,27 +360,29 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4 border-b border-border">
-        {(
-          [
-            { id: 'cadenas' as const, label: 'Cadenas' },
-            { id: 'followers' as const, label: 'Seguidores' },
-            { id: 'following' as const, label: 'Siguiendo' },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setPeopleTab(tab.id)}
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              peopleTab === tab.id
-                ? 'border-gold text-gold'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="sticky top-[var(--app-chrome-top,3.5rem)] z-20 -mx-3 sm:mx-0 px-3 sm:px-0 bg-background/95 backdrop-blur-sm mb-4 border-b border-border">
+        <div className="flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
+          {(
+            [
+              { id: 'cadenas' as const, label: 'Cadenas' },
+              { id: 'followers' as const, label: 'Seguidores' },
+              { id: 'following' as const, label: 'Siguiendo' },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setPeopleTab(tab.id)}
+              className={`shrink-0 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                peopleTab === tab.id
+                  ? 'border-gold text-gold'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {peopleTab === 'cadenas' &&
