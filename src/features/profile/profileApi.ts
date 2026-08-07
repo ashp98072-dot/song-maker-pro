@@ -114,6 +114,7 @@ export async function updateOwnProfile(input: {
     data: { display_name: displayName, full_name: displayName },
   });
 
+  emitProfileUpdated();
   return { ok: true };
 }
 
@@ -202,4 +203,37 @@ export async function unfollowUser(
     return { ok: false, error: error.message || 'No se pudo dejar de seguir' };
   }
   return { ok: true };
+}
+
+export const PROFILE_UPDATED_EVENT = 'wt-profile-updated';
+
+export function emitProfileUpdated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
+  }
+}
+
+export async function fetchFollowingIds(): Promise<string[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [];
+  const { data, error } = await supabase
+    .from('user_follows')
+    .select('following_id')
+    .eq('follower_id', auth.user.id);
+  if (error) {
+    console.error('[profile] following ids', error);
+    return [];
+  }
+  return (data ?? []).map((r) => String(r.following_id));
+}
+
+export async function fetchOwnAvatarUrl(): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+  const { data } = await supabase
+    .from('profiles')
+    .select('avatar_url')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  return data?.avatar_url ?? null;
 }

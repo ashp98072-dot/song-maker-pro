@@ -62,6 +62,27 @@ export async function fetchPublicLists(limit = 60): Promise<PublicListRow[]> {
   return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
 }
 
+/** Active public cadenas owned by any of the given user ids. */
+export async function fetchPublicListsByOwners(
+  ownerIds: string[],
+  limit = 80
+): Promise<PublicListRow[]> {
+  if (!ownerIds.length) return [];
+  const { data, error } = await supabase
+    .from('public_lists')
+    .select('*')
+    .eq('is_active', true)
+    .in('owner_id', ownerIds)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[community] fetchPublicListsByOwners', error);
+    throw error;
+  }
+  return (data ?? []).map((row) => mapListRow(row as Record<string, unknown>));
+}
+
 export async function fetchPublicListBySlug(
   slug: string
 ): Promise<PublicListRow | null> {

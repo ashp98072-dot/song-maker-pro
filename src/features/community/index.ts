@@ -20,6 +20,7 @@ export {
   fetchListComments,
   fetchPublicListBySlug,
   fetchPublicLists,
+  fetchPublicListsByOwners,
   postListComment,
   publishListAsCadena,
   updatePublicListMeta,

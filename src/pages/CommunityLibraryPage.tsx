@@ -1,28 +1,57 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Globe, Loader2, ListMusic } from 'lucide-react';
+import { Search, Globe, Loader2, ListMusic, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { matchesSearch } from '@/utils/textNormalize';
-import { fetchPublicLists, type PublicListRow } from '@/features/community';
+import {
+  fetchPublicLists,
+  fetchPublicListsByOwners,
+  type PublicListRow,
+} from '@/features/community';
+import { fetchFollowingIds } from '@/features/profile/profileApi';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Comunidad = cadenas públicas (listas compartidas).
- * Las canciones se exploran en Inicio.
+ * Pestaña Siguiendo: cadenas de músicos que sigues.
  */
 export default function CommunityLibraryPage() {
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<'all' | 'following'>('all');
   const [publicLists, setPublicLists] = useState<PublicListRow[]>([]);
+  const [followingLists, setFollowingLists] = useState<PublicListRow[]>([]);
+  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
+        const { data: auth } = await supabase.auth.getUser();
+        const loggedIn = !!auth.user;
+        if (!cancelled) setHasSession(loggedIn);
+
         const lists = await fetchPublicLists(80);
-        if (!cancelled) setPublicLists(lists);
+        if (cancelled) return;
+        setPublicLists(lists);
+
+        if (loggedIn) {
+          const ids = await fetchFollowingIds();
+          if (cancelled) return;
+          setFollowingCount(ids.length);
+          const fromFollows = await fetchPublicListsByOwners(ids, 80);
+          if (!cancelled) setFollowingLists(fromFollows);
+        } else {
+          setFollowingCount(0);
+          setFollowingLists([]);
+        }
       } catch {
-        if (!cancelled) setPublicLists([]);
+        if (!cancelled) {
+          setPublicLists([]);
+          setFollowingLists([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -32,16 +61,18 @@ export default function CommunityLibraryPage() {
     };
   }, []);
 
+  const sourceLists = tab === 'following' ? followingLists : publicLists;
+
   const filteredLists = useMemo(() => {
     const q = search.trim();
-    if (!q) return publicLists;
-    return publicLists.filter(
+    if (!q) return sourceLists;
+    return sourceLists.filter(
       (l) =>
         matchesSearch(l.name, q) ||
         matchesSearch(l.owner_name, q) ||
         l.songs.some((s) => matchesSearch(s.title, q) || matchesSearch(s.artist, q))
     );
-  }, [publicLists, search]);
+  }, [sourceLists, search]);
 
   return (
     <div className="container px-4 py-6 max-w-6xl">
@@ -55,9 +86,41 @@ export default function CommunityLibraryPage() {
           <h1 className="text-2xl font-bold font-display text-foreground">Comunidad</h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Cadenas (listas) compartidas. Importa, comenta y visita perfiles de otros músicos.
+          Cadenas compartidas. Sigue a músicos y ve sus listas en «Siguiendo».
         </p>
       </motion.div>
+
+      <div className="flex gap-2 mb-5">
+        <button
+          type="button"
+          onClick={() => setTab('all')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${
+            tab === 'all'
+              ? 'bg-gold/15 border-gold text-gold'
+              : 'bg-secondary border-border text-muted-foreground'
+          }`}
+        >
+          Todas
+          {publicLists.length > 0 && (
+            <span className="ml-1 text-[10px] opacity-80">({publicLists.length})</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('following')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors inline-flex items-center gap-2 ${
+            tab === 'following'
+              ? 'bg-gold/15 border-gold text-gold'
+              : 'bg-secondary border-border text-muted-foreground'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Siguiendo
+          {followingCount > 0 && (
+            <span className="text-[10px] opacity-80">({followingLists.length})</span>
+          )}
+        </button>
+      </div>
 
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -74,16 +137,32 @@ export default function CommunityLibraryPage() {
           <Loader2 className="w-5 h-5 animate-spin" />
           Cargando cadenas…
         </div>
+      ) : tab === 'following' && !hasSession ? (
+        <div className="text-center py-16">
+          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+          <p className="text-muted-foreground mb-2">Inicia sesión para ver a quién sigues.</p>
+          <Link to="/login" className="text-gold text-sm font-semibold hover:underline">
+            Iniciar sesión
+          </Link>
+        </div>
       ) : filteredLists.length === 0 ? (
         <div className="text-center py-16">
           <ListMusic className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground mb-2">
             {search
               ? 'No hay cadenas con ese criterio.'
-              : 'Aún no hay cadenas públicas. Publica una desde Mis Listas.'}
+              : tab === 'following'
+                ? followingCount === 0
+                  ? 'Aún no sigues a nadie. Abre un perfil y pulsa Seguir.'
+                  : 'Las personas que sigues aún no tienen cadenas públicas.'
+                : 'Aún no hay cadenas públicas. Publica una desde Mis Listas.'}
           </p>
-          <Link to="/listas" className="text-gold text-sm font-semibold hover:underline">
-            Ir a Mis Listas
+          <Link
+            to={tab === 'following' ? '/comunidad' : '/listas'}
+            className="text-gold text-sm font-semibold hover:underline"
+            onClick={() => tab === 'following' && setTab('all')}
+          >
+            {tab === 'following' ? 'Explorar todas' : 'Ir a Mis Listas'}
           </Link>
         </div>
       ) : (
