@@ -3,5 +3,7 @@ export { useSingerVocalProfile } from '@/features/vocal-test/useSingerVocalProfi
 export {
   matchClosestRegister,
   midiNoteLabel,
+  canClassifyRange,
+  parseSingerVocalProfile,
   type SingerVocalProfile,
 } from '@/features/vocal-test/vocalTestMath';

@@ -12,8 +12,11 @@ import { useSingerVocalProfile } from '@/features/vocal-test/useSingerVocalProfi
 import {
   KEYBOARD_MIDI_HIGH,
   KEYBOARD_MIDI_LOW,
+  MIN_RANGE_SEMITONES,
+  canClassifyRange,
   matchClosestRegister,
   midiNoteLabel,
+  normalizeRange,
   type VocalTestMethod,
 } from '@/features/vocal-test/vocalTestMath';
 import { getRegisterInfo } from '@/utils/vocalRange';
@@ -26,9 +29,16 @@ const KEYS = Array.from(
   (_, i) => KEYBOARD_MIDI_LOW + i
 );
 
+const UI_THROTTLE_MS = 100;
+const STABLE_FRAMES = 18;
+
+let beepCtx: AudioContext | null = null;
+
 function playBeep(midi: number) {
   try {
-    const ctx = new AudioContext();
+    if (!beepCtx || beepCtx.state === 'closed') beepCtx = new AudioContext();
+    const ctx = beepCtx;
+    void ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -36,10 +46,11 @@ function playBeep(midi: number) {
     gain.gain.value = 0.08;
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-    osc.stop(ctx.currentTime + 0.4);
-    window.setTimeout(() => void ctx.close().catch(() => undefined), 500);
+    const t0 = ctx.currentTime;
+    osc.start(t0);
+    gain.gain.setValueAtTime(0.08, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+    osc.stop(t0 + 0.4);
   } catch {
     /* ignore */
   }
@@ -67,15 +78,21 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
   const phaseRef = useRef<MicPhase>('idle');
   const stableCount = useRef(0);
   const lastMidi = useRef<number | null>(null);
+  const micLowRef = useRef<number | null>(null);
+  const micHighRef = useRef<number | null>(null);
+  const lastUiAt = useRef(0);
+  const sessionRef = useRef(0);
 
   phaseRef.current = micPhase;
 
-  const matched =
-    lowMidi != null && highMidi != null && lowMidi < highMidi
-      ? matchClosestRegister(lowMidi, highMidi)
-      : null;
+  const rangeReady =
+    lowMidi != null && highMidi != null && canClassifyRange(lowMidi, highMidi);
+  const matched = rangeReady ? matchClosestRegister(lowMidi!, highMidi!) : null;
+  const spanTooSmall =
+    lowMidi != null && highMidi != null && !canClassifyRange(lowMidi, highMidi);
 
   const stopMic = useCallback(() => {
+    sessionRef.current += 1;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = 0;
     analyserRef.current?.disconnect();
@@ -103,16 +120,20 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
       hzMax: 1200,
     });
 
+    const now = performance.now();
+
     if (hz == null) {
       stableCount.current = 0;
       lastMidi.current = null;
-      setLiveNote(null);
+      if (now - lastUiAt.current >= UI_THROTTLE_MS) {
+        lastUiAt.current = now;
+        setLiveNote(null);
+      }
       rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
     const midi = Math.round(midiFromHz(hz));
-    setLiveNote(noteNameFromMidi(midi));
 
     if (lastMidi.current != null && Math.abs(lastMidi.current - midi) <= 1) {
       stableCount.current += 1;
@@ -121,14 +142,26 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
       lastMidi.current = midi;
     }
 
-    // Capture after ~0.4s stable
-    if (stableCount.current >= 18) {
+    if (stableCount.current >= STABLE_FRAMES) {
       const phase = phaseRef.current;
       if (phase === 'low') {
-        setMicLow((prev) => (prev == null ? midi : Math.min(prev, midi)));
+        const next = micLowRef.current == null ? midi : Math.min(micLowRef.current, midi);
+        if (next !== micLowRef.current) {
+          micLowRef.current = next;
+          setMicLow(next);
+        }
       } else if (phase === 'high') {
-        setMicHigh((prev) => (prev == null ? midi : Math.max(prev, midi)));
+        const next = micHighRef.current == null ? midi : Math.max(micHighRef.current, midi);
+        if (next !== micHighRef.current) {
+          micHighRef.current = next;
+          setMicHigh(next);
+        }
       }
+    }
+
+    if (now - lastUiAt.current >= UI_THROTTLE_MS) {
+      lastUiAt.current = now;
+      setLiveNote(noteNameFromMidi(midi));
     }
 
     rafRef.current = requestAnimationFrame(tick);
@@ -137,6 +170,7 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
   const startMic = async (phase: 'low' | 'high') => {
     setMicError(null);
     stopMic();
+    const session = sessionRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -145,6 +179,10 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
           autoGainControl: false,
         },
       });
+      if (session !== sessionRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -160,36 +198,45 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
       setListening(true);
       rafRef.current = requestAnimationFrame(tick);
     } catch {
-      setMicError('No se pudo acceder al micrófono.');
-      stopMic();
+      if (session === sessionRef.current) {
+        setMicError('No se pudo acceder al micrófono.');
+        stopMic();
+      }
     }
   };
 
   const confirmMicLow = () => {
-    if (micLow == null) {
+    const captured = micLowRef.current ?? micLow;
+    if (captured == null) {
       toast.message('Canta una nota grave estable unos segundos');
       return;
     }
-    setLowMidi(micLow);
-    stopMic();
+    setLowMidi(captured);
+    micHighRef.current = null;
     setMicHigh(null);
+    stopMic();
     setMicPhase('high');
     void startMic('high');
   };
 
   const confirmMicHigh = () => {
-    if (micHigh == null) {
+    const high = micHighRef.current ?? micHigh;
+    const low = micLowRef.current ?? micLow ?? lowMidi;
+    if (high == null) {
       toast.message('Canta una nota aguda estable unos segundos');
       return;
     }
-    const low = micLow ?? lowMidi;
-    const high = micHigh;
     if (low == null || high <= low) {
       toast.error('El agudo debe ser más alto que el grave');
       return;
     }
-    setLowMidi(low);
-    setHighMidi(high);
+    if (!canClassifyRange(low, high)) {
+      toast.error(`Amplía el rango (mín. ${MIN_RANGE_SEMITONES} semitonos)`);
+      return;
+    }
+    const norm = normalizeRange(low, high);
+    setLowMidi(norm.low);
+    setHighMidi(norm.high);
     stopMic();
     setMicPhase('done');
   };
@@ -206,9 +253,10 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
   const handleSave = (method: VocalTestMethod) => {
     if (!matched || lowMidi == null || highMidi == null) return;
+    const norm = normalizeRange(lowMidi, highMidi);
     saveProfile({
-      lowMidi: Math.min(lowMidi, highMidi),
-      highMidi: Math.max(lowMidi, highMidi),
+      lowMidi: norm.low,
+      highMidi: norm.high,
       register: matched.id,
       method,
       updatedAt: Date.now(),
@@ -222,9 +270,14 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
     setHighMidi(null);
     setMarking('low');
     setMicPhase('idle');
+    micLowRef.current = null;
+    micHighRef.current = null;
     setMicLow(null);
     setMicHigh(null);
   };
+
+  const micDisplayLow = micLow ?? (micPhase === 'high' || micPhase === 'done' ? lowMidi : null);
+  const micDisplayHigh = micHigh ?? (micPhase === 'done' ? highMidi : null);
 
   return (
     <div className={className} data-vocal-range-test>
@@ -233,6 +286,7 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
           type="button"
           onClick={() => {
             stopMic();
+            setMicPhase('idle');
             setMode('keyboard');
           }}
           className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 ${
@@ -296,7 +350,10 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
               const isLow = lowMidi === midi;
               const isHigh = highMidi === midi;
               const inRange =
-                lowMidi != null && highMidi != null && midi >= Math.min(lowMidi, highMidi) && midi <= Math.max(lowMidi, highMidi);
+                lowMidi != null &&
+                highMidi != null &&
+                midi >= Math.min(lowMidi, highMidi) &&
+                midi <= Math.max(lowMidi, highMidi);
               return (
                 <button
                   key={midi}
@@ -335,6 +392,11 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
               Marcar agudo
             </button>
           </div>
+          {spanTooSmall ? (
+            <p className="text-[11px] text-amber-500 text-center">
+              Amplía el rango (mín. {MIN_RANGE_SEMITONES} semitonos) para clasificar tu registro.
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-3">
@@ -353,8 +415,8 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
               {liveNote ?? '—'}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1 font-mono">
-              Grave: {micLow != null || lowMidi != null ? midiNoteLabel(micLow ?? lowMidi!) : '—'} ·
-              Agudo: {micHigh != null || highMidi != null ? midiNoteLabel(micHigh ?? highMidi!) : '—'}
+              Grave: {micDisplayLow != null ? midiNoteLabel(micDisplayLow) : '—'} · Agudo:{' '}
+              {micDisplayHigh != null ? midiNoteLabel(micDisplayHigh) : '—'}
             </p>
           </div>
           {micError ? <p className="text-xs text-destructive text-center">{micError}</p> : null}
@@ -363,6 +425,8 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
               <button
                 type="button"
                 onClick={() => {
+                  micLowRef.current = null;
+                  micHighRef.current = null;
                   setMicLow(null);
                   setMicHigh(null);
                   void startMic('low');
