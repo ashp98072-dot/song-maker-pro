@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function BackupPage() {
-  const { songs, favorites, lists, importLibrary } = useApp();
+  const { songs, favorites, lists, importLibrary, isAdmin } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
   const chordProRef = useRef<HTMLInputElement>(null);
 
@@ -111,7 +111,17 @@ export default function BackupPage() {
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
             Sube varios archivos .pro, .chopro o .txt con acordes. Cada archivo se convierte en una
-            canción nueva.
+            canción nueva en tu biblioteca.
+            {isAdmin ? (
+              <>
+                {' '}
+                Para revisar y publicar en comunidad usa{' '}
+                <Link to="/admin/importar-catalogo" className="text-gold hover:underline font-medium">
+                  Importar catálogo
+                </Link>
+                .
+              </>
+            ) : null}
           </p>
           <input
             ref={chordProRef}

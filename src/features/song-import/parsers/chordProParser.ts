@@ -9,18 +9,22 @@ export function parseChordProDocument(text: string, filename?: string): Partial<
   let title = filename?.replace(/\.(pro|chopro|txt)$/i, '') || 'Importada';
   let artist = '';
   let originalKey = 'C';
+  let bpm: number | undefined;
   const body: string[] = [];
 
   for (const raw of lines) {
     const line = raw.trimEnd();
-    const meta = line.match(/^\{(\w+):\s*(.+)\}$/i);
+    const meta = line.match(/^\{(\w+)\s*:\s*(.+)\}$/i);
     if (meta) {
       const key = meta[1].toLowerCase();
       const val = meta[2].trim();
       if (key === 'title') title = val;
       else if (key === 'artist' || key === 'subtitle') artist = val;
       else if (key === 'key') originalKey = val;
-      else if (key.startsWith('start_of')) body.push(`[${val}]`);
+      else if (key === 'tempo' || key === 'bpm') {
+        const n = parseInt(val, 10);
+        if (!Number.isNaN(n) && n > 0) bpm = n;
+      } else if (key.startsWith('start_of')) body.push(`[${val}]`);
       continue;
     }
     if (line.startsWith('#')) continue;
@@ -36,9 +40,10 @@ export function parseChordProDocument(text: string, filename?: string): Partial<
     artist: artist || 'Desconocido',
     originalKey,
     originalGender: 'male',
-    scaleMode: 'major',
+    scaleMode: /m$/i.test(originalKey) && !/maj/i.test(originalKey) ? 'minor' : 'major',
     lyrics: '',
     chords,
     key: originalKey,
+    bpm,
   };
 }

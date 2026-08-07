@@ -32,6 +32,7 @@ import ChordLibraryPage from "@/pages/ChordLibraryPage";
 import TunerPage from "@/pages/TunerPage";
 import VocalRangeTestPage from "@/pages/VocalRangeTestPage";
 import BackupPage from "@/pages/BackupPage";
+import AdminCatalogImportPage from "@/pages/AdminCatalogImportPage";
 import DonatePage from "@/pages/DonatePage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound.tsx";
@@ -321,6 +322,7 @@ function ProductionApp() {
                   <Route path="/afinador" element={<TunerPage />} />
                   <Route path="/registro-vocal" element={<VocalRangeTestPage />} />
                   <Route path="/backup" element={<BackupPage />} />
+                  <Route path="/admin/importar-catalogo" element={<AdminCatalogImportPage />} />
                   <Route path="/donaciones" element={<DonatePage />} />
                   <Route path="/payment-success" element={<PaymentSuccessPage />} />
                 </Route>

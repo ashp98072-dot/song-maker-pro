@@ -10,6 +10,7 @@ import {
   Users,
   Database,
   Library,
+  FileMusic,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
@@ -34,7 +35,7 @@ import { fetchPublicLists, type PublicListRow } from '@/features/community';
 export default function ProfilePage() {
   const { userId: routeUserId } = useParams();
   const navigate = useNavigate();
-  const { userName, login, isGuest } = useApp();
+  const { userName, login, isGuest, isAdmin } = useApp();
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [cadenas, setCadenas] = useState<PublicListRow[]>([]);
@@ -478,6 +479,22 @@ export default function ProfilePage() {
                 <p className="text-sm font-semibold text-foreground">Backup y restauración</p>
                 <p className="text-xs text-muted-foreground">
                   Exporta o importa tu biblioteca (JSON / ChordPro)
+                </p>
+              </div>
+            </Link>
+          )}
+          {isOwn && isAdmin && (
+            <Link
+              to="/admin/importar-catalogo"
+              className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
+            >
+              <div className="p-2 rounded-lg bg-secondary text-gold shrink-0">
+                <FileMusic className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Importar catálogo (admin)</p>
+                <p className="text-xs text-muted-foreground">
+                  Lote ChordPro → revisar → publicar en comunidad
                 </p>
               </div>
             </Link>
