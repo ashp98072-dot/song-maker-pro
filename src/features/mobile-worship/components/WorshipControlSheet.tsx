@@ -33,6 +33,7 @@ import { useSingerVocalProfile } from '@/features/vocal-test';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { buildLiveJoinUrl, liveJoinQrImageUrl } from '@/features/simple-live-sync/liveJoinUrl';
 import { normalizeSessionCode } from '@/features/director-session/types';
+import { resolveWorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
 
 const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 
@@ -483,7 +484,7 @@ export function WorshipControlSheet({
                       worshipHaptic();
                       setLiveBusy(true);
                       try {
-                        await simpleLive.createAsDirector({
+                        const resolved = resolveWorshipServiceModeInput({
                           songId: serviceModeInput.songId,
                           listId: serviceModeInput.listId ?? null,
                           listSongIds: serviceModeInput.listSongIds ?? [],
@@ -492,6 +493,16 @@ export function WorshipControlSheet({
                           semitones: serviceModeInput.semitones ?? 0,
                           genderShift: serviceModeInput.genderShift ?? 'original',
                           sectionAnchor: serviceModeInput.sectionAnchor ?? null,
+                        });
+                        await simpleLive.createAsDirector({
+                          songId: resolved.songId,
+                          listId: resolved.listId ?? null,
+                          listSongIds: resolved.listSongIds ?? [],
+                          currentIndex: resolved.currentIndex ?? 0,
+                          viewMode: resolved.viewMode ?? 'musician',
+                          semitones: resolved.semitones ?? 0,
+                          genderShift: resolved.genderShift ?? 'original',
+                          sectionAnchor: resolved.sectionAnchor ?? null,
                         });
                       } finally {
                         setLiveBusy(false);

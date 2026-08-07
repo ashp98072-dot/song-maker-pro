@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Church, Loader2 } from 'lucide-react';
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import {
@@ -16,7 +17,7 @@ type Props = {
 };
 
 /**
- * One-tap: create/join as director live + teleprompter + share link.
+ * One-tap: create as director live + open full setlist when needed + teleprompter + share.
  */
 export function WorshipServiceModeButton({
   hideControls,
@@ -25,6 +26,8 @@ export function WorshipServiceModeButton({
   onStarted,
 }: Props) {
   const live = useSimpleLiveSyncOptional();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [busy, setBusy] = useState(false);
 
   const onClick = async () => {
@@ -37,6 +40,8 @@ export function WorshipServiceModeButton({
         hideControls,
         input,
         share: true,
+        navigate,
+        currentPathname: location.pathname,
       });
       if (ok) onStarted?.();
     } finally {
@@ -52,7 +57,7 @@ export function WorshipServiceModeButton({
         disabled={busy}
         className="flex flex-col items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-xl border border-amber-400/40 bg-amber-500/15 text-[9px] font-bold text-amber-200 disabled:opacity-50"
         aria-label="Modo culto"
-        title="Modo culto: en vivo + teleprompter + compartir"
+        title="Modo culto: lista completa en continuo + en vivo + teleprompter"
       >
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Church className="w-4 h-4" />}
         <span>Culto</span>

@@ -168,7 +168,12 @@ export default function ListDetailPage() {
   const startContinuousMode = () => {
     if (!list?.id || listSongs.length === 0) return;
     clearManualExitContinuous();
-    navigate(`/setlist/${list.id}/live`);
+    navigate(`/setlist/${list.id}/live`, {
+      state: {
+        listId: list.id,
+        listSongIds: listSongs.map((s) => s.id),
+      },
+    });
   };
 
   /** Continuo + live director + teleprompter + compartir unión. */
@@ -176,7 +181,11 @@ export default function ListDetailPage() {
     if (!list?.id || listSongs.length === 0) return;
     clearManualExitContinuous();
     navigate(`/setlist/${list.id}/live?culto=1`, {
-      state: { startServiceMode: true },
+      state: {
+        startServiceMode: true,
+        listId: list.id,
+        listSongIds: listSongs.map((s) => s.id),
+      },
     });
   };
 

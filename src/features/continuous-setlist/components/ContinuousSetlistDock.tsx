@@ -24,6 +24,7 @@ import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/wo
 import { normalizeSessionCode } from '@/features/director-session/types';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { buildLiveJoinUrl } from '@/features/simple-live-sync/liveJoinUrl';
+import { resolveWorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
 import { shareNative } from '@/utils/shareNative';
 
 export interface ContinuousSetlistDockProps {
@@ -193,7 +194,7 @@ export function ContinuousSetlistDock({
                 onClick={async () => {
                   setLiveBusy(true);
                   try {
-                    await simpleLive!.createAsDirector({
+                    const resolved = resolveWorshipServiceModeInput({
                       songId: serviceModeInput!.songId,
                       listId: serviceModeInput!.listId ?? null,
                       listSongIds: serviceModeInput!.listSongIds ?? [],
@@ -202,6 +203,16 @@ export function ContinuousSetlistDock({
                       semitones: serviceModeInput!.semitones ?? 0,
                       genderShift: serviceModeInput!.genderShift ?? 'original',
                       sectionAnchor: serviceModeInput!.sectionAnchor ?? null,
+                    });
+                    await simpleLive!.createAsDirector({
+                      songId: resolved.songId,
+                      listId: resolved.listId ?? null,
+                      listSongIds: resolved.listSongIds ?? [],
+                      currentIndex: resolved.currentIndex ?? 0,
+                      viewMode: resolved.viewMode ?? 'continuous',
+                      semitones: resolved.semitones ?? 0,
+                      genderShift: resolved.genderShift ?? 'original',
+                      sectionAnchor: resolved.sectionAnchor ?? null,
                     });
                   } finally {
                     setLiveBusy(false);

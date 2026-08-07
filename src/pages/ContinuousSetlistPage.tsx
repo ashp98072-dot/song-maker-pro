@@ -170,6 +170,8 @@ type ContinuousRouteState = {
   recoverySource?: 'shared-session' | 'db' | 'route' | 'fallback';
   /** From ListDetail “Iniciar culto” — auto-start live + teleprompter once. */
   startServiceMode?: boolean;
+  /** After Modo culto from SongView — enter teleprompter without recreating session. */
+  hideControlsOnMount?: boolean;
 };
 
 export type { ExitContinuousNavState } from '@/features/director-session/utils/exitContinuousNavigation';
@@ -932,8 +934,21 @@ export default function ContinuousSetlistPage() {
   autoScrollingRef.current = autoScrolling;
 
   const serviceModeBootRef = useRef(false);
+  const hideControlsBootRef = useRef(false);
   const wantsServiceModeBoot =
     routeState.startServiceMode === true || searchParams.get('culto') === '1';
+
+  useEffect(() => {
+    if (hideControlsBootRef.current) return;
+    if (!routeState.hideControlsOnMount) return;
+    hideControlsBootRef.current = true;
+    hideControls();
+    const { hideControlsOnMount: _drop, ...restState } = routeState;
+    navigate(
+      { pathname: location.pathname, search: location.search },
+      { replace: true, state: restState }
+    );
+  }, [routeState, hideControls, navigate, location.pathname, location.search]);
 
   useEffect(() => {
     if (!wantsServiceModeBoot || serviceModeBootRef.current) return;
@@ -959,6 +974,8 @@ export default function ContinuousSetlistPage() {
         sectionAnchor: directorSectionAnchor || visibility.currentSection || null,
       },
       share: true,
+      navigate,
+      currentPathname: location.pathname,
     }).then((ok) => {
       const next = new URLSearchParams(searchParams);
       next.delete('culto');
