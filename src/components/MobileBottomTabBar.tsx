@@ -18,7 +18,7 @@ const tabs = [
   {
     label: 'Acordes',
     path: '/acordes',
-    match: (p: string) => p.startsWith('/acordes'),
+    match: (p: string) => p.startsWith('/acordes') || p.startsWith('/afinador'),
     icon: Library,
   },
   {

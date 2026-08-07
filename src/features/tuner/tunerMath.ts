@@ -13,10 +13,16 @@ export type TunerInstrument = {
   id: TunerInstrumentId;
   label: string;
   strings: TunerString[];
+  /** Reject detections outside this Hz band (reduces noise / harmonics chaos) */
+  hzMin: number;
+  hzMax: number;
 };
 
 /** A4 = 440 Hz */
 export const A4_HZ = 440;
+
+/** Only treat as "near a string" within this window (cents). */
+export const LOCK_CENTS = 90;
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 
@@ -38,6 +44,8 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
   {
     id: 'guitar',
     label: 'Guitarra',
+    hzMin: 70,
+    hzMax: 400,
     strings: [
       { label: '6ª', note: 'E2', hz: hzFromMidi(40) },
       { label: '5ª', note: 'A2', hz: hzFromMidi(45) },
@@ -50,6 +58,8 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
   {
     id: 'bass',
     label: 'Bajo',
+    hzMin: 35,
+    hzMax: 220,
     strings: [
       { label: '4ª', note: 'E1', hz: hzFromMidi(28) },
       { label: '3ª', note: 'A1', hz: hzFromMidi(33) },
@@ -60,6 +70,8 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
   {
     id: 'violin',
     label: 'Violín',
+    hzMin: 170,
+    hzMax: 800,
     strings: [
       { label: '4ª', note: 'G3', hz: hzFromMidi(55) },
       { label: '3ª', note: 'D4', hz: hzFromMidi(62) },
@@ -69,50 +81,81 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
   },
 ];
 
-/** Autocorrelation pitch detection (YIN-ish, light). Returns Hz or null. */
-export function detectPitchHz(buffer: Float32Array, sampleRate: number): number | null {
+/**
+ * Autocorrelation pitch with clarity gate.
+ * Returns null for silence / noisy / unclear signals.
+ */
+export function detectPitchHz(
+  buffer: Float32Array,
+  sampleRate: number,
+  opts?: { rmsMin?: number; hzMin?: number; hzMax?: number }
+): number | null {
   const SIZE = buffer.length;
-  if (SIZE < 512) return null;
+  if (SIZE < 1024) return null;
+
+  const rmsMin = opts?.rmsMin ?? 0.025;
+  const hzMin = opts?.hzMin ?? 40;
+  const hzMax = opts?.hzMax ?? 1000;
 
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return null;
+  if (rms < rmsMin) return null;
 
-  const maxSamples = Math.floor(SIZE / 2);
-  const correlations = new Float32Array(maxSamples);
-  for (let lag = 0; lag < maxSamples; lag++) {
+  const minLag = Math.floor(sampleRate / hzMax);
+  const maxLag = Math.min(Math.floor(sampleRate / hzMin), Math.floor(SIZE / 2));
+  if (minLag >= maxLag) return null;
+
+  // Difference function (YIN-style)
+  const yin = new Float32Array(maxLag + 1);
+  for (let lag = minLag; lag <= maxLag; lag++) {
     let sum = 0;
-    for (let i = 0; i < maxSamples; i++) {
-      sum += buffer[i] * buffer[i + lag];
+    for (let i = 0; i < SIZE - lag; i++) {
+      const d = buffer[i] - buffer[i + lag];
+      sum += d * d;
     }
-    correlations[lag] = sum;
+    yin[lag] = sum;
   }
 
-  let d = 0;
-  while (d < maxSamples - 1 && correlations[d] > correlations[d + 1]) d++;
+  // Cumulative mean normalized difference
+  yin[minLag] = 1;
+  let running = 0;
+  for (let lag = minLag + 1; lag <= maxLag; lag++) {
+    running += yin[lag];
+    yin[lag] = yin[lag] * (lag - minLag + 1) / (running || 1);
+  }
 
-  let maxVal = -1;
-  let maxPos = -1;
-  for (let i = d; i < maxSamples; i++) {
-    if (correlations[i] > maxVal) {
-      maxVal = correlations[i];
-      maxPos = i;
+  const threshold = 0.15;
+  let bestLag = -1;
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
+    if (yin[lag] < threshold && yin[lag] < yin[lag - 1] && yin[lag] <= yin[lag + 1]) {
+      bestLag = lag;
+      break;
     }
   }
-  if (maxPos <= 0) return null;
+  if (bestLag < 0) {
+    // Fallback: absolute minimum in range
+    let minVal = Infinity;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      if (yin[lag] < minVal) {
+        minVal = yin[lag];
+        bestLag = lag;
+      }
+    }
+    if (minVal > 0.35 || bestLag < 0) return null;
+  }
 
-  const x1 = correlations[maxPos - 1] ?? 0;
-  const x2 = correlations[maxPos] ?? 0;
-  const x3 = correlations[maxPos + 1] ?? 0;
-  const a = (x1 + x3 - 2 * x2) / 2;
-  const b = (x3 - x1) / 2;
-  const shift = a ? -b / (2 * a) : 0;
-  const period = maxPos + shift;
+  // Parabolic interpolation
+  const y0 = yin[bestLag - 1] ?? yin[bestLag];
+  const y1 = yin[bestLag];
+  const y2 = yin[bestLag + 1] ?? yin[bestLag];
+  const denom = 2 * (2 * y1 - y0 - y2);
+  const shift = denom !== 0 ? (y0 - y2) / denom : 0;
+  const period = bestLag + shift;
   if (period <= 0) return null;
 
   const hz = sampleRate / period;
-  if (hz < 40 || hz > 2000) return null;
+  if (hz < hzMin || hz > hzMax) return null;
   return hz;
 }
 
@@ -126,13 +169,33 @@ export function nearestString(
 ): { string: TunerString; cents: number } | null {
   if (!strings.length) return null;
   let best = strings[0];
-  let bestCents = Math.abs(centsOff(hz, best.hz));
+  let bestAbs = Math.abs(centsOff(hz, best.hz));
   for (const s of strings) {
-    const c = Math.abs(centsOff(hz, s.hz));
-    if (c < bestCents) {
+    const a = Math.abs(centsOff(hz, s.hz));
+    if (a < bestAbs) {
       best = s;
-      bestCents = c;
+      bestAbs = a;
     }
   }
   return { string: best, cents: centsOff(hz, best.hz) };
+}
+
+/**
+ * Resolve which string to compare against.
+ * Locked string only applies when pitch is near it; otherwise nearest-in-range or null.
+ */
+export function resolveTunerTarget(
+  hz: number,
+  strings: TunerString[],
+  locked: TunerString | null
+): { string: TunerString; cents: number; lockedApplied: boolean } | null {
+  if (locked) {
+    const c = centsOff(hz, locked.hz);
+    if (Math.abs(c) <= LOCK_CENTS) {
+      return { string: locked, cents: c, lockedApplied: true };
+    }
+  }
+  const near = nearestString(hz, strings);
+  if (!near || Math.abs(near.cents) > LOCK_CENTS) return null;
+  return { string: near.string, cents: near.cents, lockedApplied: false };
 }

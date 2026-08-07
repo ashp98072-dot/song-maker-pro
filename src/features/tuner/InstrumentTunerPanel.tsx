@@ -2,37 +2,53 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import {
   TUNER_INSTRUMENTS,
-  centsOff,
   detectPitchHz,
-  nearestString,
   noteNameFromMidi,
   midiFromHz,
+  resolveTunerTarget,
   type TunerInstrumentId,
   type TunerString,
 } from '@/features/tuner/tunerMath';
+
+const SMOOTH = 0.28;
+const STABLE_FRAMES = 3;
+const LOST_FRAMES = 12;
 
 export function InstrumentTunerPanel({ className = '' }: { className?: string }) {
   const [instrumentId, setInstrumentId] = useState<TunerInstrumentId>('guitar');
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hz, setHz] = useState<number | null>(null);
-  const [cents, setCents] = useState(0);
+  const [cents, setCents] = useState<number | null>(null);
   const [matched, setMatched] = useState<TunerString | null>(null);
-  const [selectedString, setSelectedString] = useState<TunerString | null>(null);
+  /** null = auto (nearest string) */
+  const [lockedString, setLockedString] = useState<TunerString | null>(null);
+  const [signalOk, setSignalOk] = useState(false);
 
   const audioRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const bufferRef = useRef<Float32Array | null>(null);
+  const smoothHzRef = useRef<number | null>(null);
+  const stableRef = useRef(0);
+  const lostRef = useRef(0);
+  const lockedRef = useRef<TunerString | null>(null);
+  const instrumentRef = useRef(TUNER_INSTRUMENTS[0]);
 
   const instrument = TUNER_INSTRUMENTS.find((i) => i.id === instrumentId)!;
+  instrumentRef.current = instrument;
+  lockedRef.current = lockedString;
 
   useEffect(() => {
-    setSelectedString(instrument.strings[0] ?? null);
+    setLockedString(null);
     setMatched(null);
     setHz(null);
-  }, [instrumentId, instrument.strings]);
+    setCents(null);
+    setSignalOk(false);
+    smoothHzRef.current = null;
+    stableRef.current = 0;
+  }, [instrumentId]);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -43,7 +59,12 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
     streamRef.current = null;
     void audioRef.current?.close();
     audioRef.current = null;
+    smoothHzRef.current = null;
     setListening(false);
+    setSignalOk(false);
+    setHz(null);
+    setCents(null);
+    setMatched(null);
   }, []);
 
   useEffect(() => () => stop(), [stop]);
@@ -52,26 +73,61 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
     const analyser = analyserRef.current;
     const ctx = audioRef.current;
     const buf = bufferRef.current;
+    const inst = instrumentRef.current;
     if (!analyser || !ctx || !buf) return;
 
     analyser.getFloatTimeDomainData(buf as Float32Array & { buffer: ArrayBuffer });
-    const detected = detectPitchHz(buf, ctx.sampleRate);
-    if (detected) {
-      setHz(detected);
-      const target = selectedString ?? nearestString(detected, instrument.strings)?.string;
-      if (target) {
-        setMatched(target);
-        setCents(centsOff(detected, target.hz));
-      } else {
-        const near = nearestString(detected, instrument.strings);
-        if (near) {
-          setMatched(near.string);
-          setCents(near.cents);
-        }
+    const raw = detectPitchHz(buf, ctx.sampleRate, {
+      rmsMin: 0.03,
+      hzMin: inst.hzMin,
+      hzMax: inst.hzMax,
+    });
+
+    if (raw == null) {
+      lostRef.current += 1;
+      stableRef.current = 0;
+      if (lostRef.current >= LOST_FRAMES) {
+        smoothHzRef.current = null;
+        setSignalOk(false);
+        setHz(null);
+        setCents(null);
+        setMatched(null);
       }
+      rafRef.current = requestAnimationFrame(tick);
+      return;
     }
+
+    lostRef.current = 0;
+    const prev = smoothHzRef.current;
+    const smoothed = prev == null ? raw : prev * (1 - SMOOTH) + raw * SMOOTH;
+    // Jump reset if octave/harmonic leap
+    if (prev != null && (smoothed > prev * 1.6 || smoothed < prev / 1.6)) {
+      smoothHzRef.current = raw;
+      stableRef.current = 0;
+    } else {
+      smoothHzRef.current = smoothed;
+      stableRef.current += 1;
+    }
+
+    if (stableRef.current < STABLE_FRAMES) {
+      rafRef.current = requestAnimationFrame(tick);
+      return;
+    }
+
+    const hzNow = smoothHzRef.current!;
+    const target = resolveTunerTarget(hzNow, inst.strings, lockedRef.current);
+    setSignalOk(true);
+    setHz(hzNow);
+    if (target) {
+      setMatched(target.string);
+      setCents(target.cents);
+    } else {
+      setMatched(null);
+      setCents(null);
+    }
+
     rafRef.current = requestAnimationFrame(tick);
-  }, [instrument.strings, selectedString]);
+  }, []);
 
   const start = async () => {
     setError(null);
@@ -86,13 +142,17 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 2048;
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0.2;
       source.connect(analyser);
 
       streamRef.current = stream;
       audioRef.current = ctx;
       analyserRef.current = analyser;
       bufferRef.current = new Float32Array(analyser.fftSize);
+      smoothHzRef.current = null;
+      stableRef.current = 0;
+      lostRef.current = 0;
       setListening(true);
       rafRef.current = requestAnimationFrame(tick);
     } catch {
@@ -107,22 +167,27 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
     rafRef.current = requestAnimationFrame(tick);
   }, [listening, tick]);
 
-  const needle = Math.max(-50, Math.min(50, cents));
-  const inTune = Math.abs(cents) < 8 && hz != null;
-  const detectedNote = hz ? noteNameFromMidi(Math.round(midiFromHz(hz))) : '—';
+  const hasTune = signalOk && cents != null && matched != null;
+  const needle = hasTune ? Math.max(-45, Math.min(45, cents)) : 0;
+  const inTune = hasTune && Math.abs(cents) < 8;
+  const detectedNote = hz != null && signalOk ? noteNameFromMidi(Math.round(midiFromHz(hz))) : '—';
+
+  const toggleLock = (s: TunerString) => {
+    setLockedString((prev) => (prev?.note === s.note ? null : s));
+  };
 
   return (
     <div className={className} data-instrument-tuner>
-      <div className="grid grid-cols-3 gap-1.5 mb-4">
+      <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 mb-4">
         {TUNER_INSTRUMENTS.map((inst) => (
           <button
             key={inst.id}
             type="button"
             onClick={() => setInstrumentId(inst.id)}
-            className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
               instrumentId === inst.id
-                ? 'border-gold text-gold bg-gold/10'
-                : 'border-border text-muted-foreground hover:text-foreground'
+                ? 'bg-background text-gold shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {inst.label}
@@ -130,14 +195,25 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-4 justify-center">
+      <div className="flex flex-wrap gap-1.5 mb-1 justify-center">
+        <button
+          type="button"
+          onClick={() => setLockedString(null)}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border ${
+            lockedString == null
+              ? 'border-gold text-gold bg-gold/10'
+              : 'border-border text-muted-foreground'
+          }`}
+        >
+          Auto
+        </button>
         {instrument.strings.map((s) => (
           <button
             key={s.note}
             type="button"
-            onClick={() => setSelectedString(s)}
+            onClick={() => toggleLock(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border ${
-              selectedString?.note === s.note
+              lockedString?.note === s.note
                 ? 'border-gold text-gold bg-gold/10'
                 : 'border-border text-muted-foreground'
             }`}
@@ -146,6 +222,11 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
           </button>
         ))}
       </div>
+      <p className="text-[10px] text-muted-foreground text-center mb-4">
+        {lockedString
+          ? `Fijado a ${lockedString.note} · solo mide cerca de esa cuerda`
+          : 'Auto: elige la cuerda más cercana'}
+      </p>
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 mb-4 text-center">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
@@ -153,26 +234,38 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
         </p>
         <p className="text-4xl font-display font-bold text-gold tabular-nums">{detectedNote}</p>
         <p className="text-xs text-muted-foreground mt-1 font-mono">
-          {hz ? `${hz.toFixed(1)} Hz` : 'Toca una cuerda…'}
-          {matched ? ` → ${matched.note}` : ''}
+          {!listening
+            ? 'Activa el micrófono'
+            : !signalOk
+              ? 'Toca una cuerda con claridad…'
+              : `${hz!.toFixed(1)} Hz${matched ? ` · cerca de ${matched.note}` : ' · fuera de rango'}`}
         </p>
 
         <div className="relative h-3 mt-5 mb-2 rounded-full bg-secondary overflow-hidden">
           <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-foreground/40 z-10" />
-          <div
-            className={`absolute top-0 bottom-0 w-3 rounded-full -ml-1.5 transition-all ${
-              inTune ? 'bg-green-500' : 'bg-gold'
-            }`}
-            style={{ left: `${50 + needle}%` }}
-          />
+          {hasTune ? (
+            <div
+              className={`absolute top-0 bottom-0 w-3 rounded-full -ml-1.5 transition-[left] duration-75 ${
+                inTune ? 'bg-green-500' : 'bg-gold'
+              }`}
+              style={{ left: `${50 + needle}%` }}
+            />
+          ) : null}
         </div>
         <p
           className={`text-sm font-mono font-bold ${
-            inTune ? 'text-green-500' : Math.abs(cents) > 25 ? 'text-destructive' : 'text-foreground'
+            !hasTune
+              ? 'text-muted-foreground'
+              : inTune
+                ? 'text-green-500'
+                : Math.abs(cents!) > 25
+                  ? 'text-amber-500'
+                  : 'text-foreground'
           }`}
         >
-          {hz == null ? '—' : `${cents > 0 ? '+' : ''}${cents.toFixed(0)} cents`}
-          {inTune ? ' · afinado' : ''}
+          {!hasTune
+            ? '—'
+            : `${cents! > 0 ? '+' : ''}${cents!.toFixed(0)} cents${inTune ? ' · afinado' : ''}`}
         </p>
       </div>
 
@@ -197,9 +290,6 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
           </>
         )}
       </button>
-      <p className="text-[10px] text-muted-foreground text-center mt-2">
-        Usa el micrófono del dispositivo. Elige instrumento y, si quieres, la cuerda objetivo.
-      </p>
     </div>
   );
 }

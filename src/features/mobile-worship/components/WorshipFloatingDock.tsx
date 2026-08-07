@@ -30,15 +30,15 @@ function DockActionButtons({
 
   return (
     <div className={wrapClass}>
+      {onHideControls ? (
+        <MobileHideControlsButton compact onHide={onHideControls} />
+      ) : null}
       {onHideControls && serviceModeInput ? (
         <WorshipServiceModeButton
           compact
           hideControls={onHideControls}
           input={serviceModeInput}
         />
-      ) : null}
-      {onHideControls ? (
-        <MobileHideControlsButton compact onHide={onHideControls} />
       ) : null}
       <button
         type="button"
