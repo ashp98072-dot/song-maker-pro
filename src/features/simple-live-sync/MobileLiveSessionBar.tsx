@@ -13,6 +13,8 @@ export type MobileLiveSessionBarProps = {
   floating?: boolean;
   /** Tap the status/code area to restore chrome (teleprompter). */
   onRevealControls?: () => void;
+  followDirector?: boolean;
+  onFollowDirectorChange?: (on: boolean) => void;
 };
 
 /**
@@ -26,6 +28,8 @@ export function MobileLiveSessionBar({
   onLeave,
   floating = false,
   onRevealControls,
+  followDirector,
+  onFollowDirectorChange,
 }: MobileLiveSessionBarProps) {
   if (!visible || !code) return null;
 
@@ -128,6 +132,19 @@ export function MobileLiveSessionBar({
               <Share2 className="h-3.5 w-3.5" />
             </button>
           </>
+        ) : onFollowDirectorChange ? (
+          <label className="shrink-0 flex items-center gap-1 rounded-lg border border-white/15 bg-black/25 px-2 py-1.5 text-[10px] font-bold">
+            <input
+              type="checkbox"
+              checked={!!followDirector}
+              onChange={(e) => {
+                worshipHaptic();
+                onFollowDirectorChange(e.target.checked);
+              }}
+              className="h-3 w-3 accent-gold"
+            />
+            Seguir
+          </label>
         ) : null}
         <button
           type="button"

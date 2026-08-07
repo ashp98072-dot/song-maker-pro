@@ -2289,6 +2289,11 @@ export default function SongViewPage() {
             role={simpleLive.role}
             code={simpleLive.code}
             onRevealControls={mobileTeleprompter ? showControls : undefined}
+            followDirector={followDirector}
+            onFollowDirectorChange={(on) => {
+              handleFollowDirectorChange(on);
+              simpleLive.setFollowDirector(on);
+            }}
             onLeave={async () => {
               const wasDirector = simpleLive.role === 'director';
               await simpleLive.leave();

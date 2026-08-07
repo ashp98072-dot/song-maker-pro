@@ -3118,6 +3118,11 @@ export default function ContinuousSetlistPage() {
             role={simpleLive.role}
             code={simpleLive.code}
             onRevealControls={showControls}
+            followDirector={followDirector}
+            onFollowDirectorChange={(on) => {
+              handleFollowDirectorChange(on);
+              simpleLive.setFollowDirector(on);
+            }}
             onLeave={async () => {
               const wasDirector = simpleLive.role === 'director';
               await simpleLive.leave();
