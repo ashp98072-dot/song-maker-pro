@@ -1,26 +1,22 @@
-import { Play, Pause, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { useIsLandscape } from '@/features/mobile-stage/hooks/useIsMobileViewport';
 import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
-import { DockButton } from '@/features/mobile-worship/components/DockButton';
 import { WorshipControlSheet } from '@/features/mobile-worship/components/WorshipControlSheet';
+import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import type { WorshipFloatingDockProps } from '@/features/mobile-worship/types';
 import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/worshipServiceMode';
 
 function DockActionButtons({
-  autoScrolling,
-  onToggleAutoScroll,
   onOpenSheet,
   sheetOpen,
   layout,
   onHideControls,
   serviceModeInput,
 }: {
-  autoScrolling: boolean;
-  onToggleAutoScroll: () => void;
   onOpenSheet: () => void;
   sheetOpen: boolean;
   layout: 'horizontal' | 'vertical';
@@ -41,14 +37,9 @@ function DockActionButtons({
           input={serviceModeInput}
         />
       ) : null}
-      <DockButton
-        onClick={onToggleAutoScroll}
-        active={autoScrolling}
-        label={autoScrolling ? 'Detener auto-scroll' : 'Iniciar auto-scroll'}
-      >
-        {autoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-      </DockButton>
-      {/* Clear label — avoid icons that look like pause (||) */}
+      {onHideControls ? (
+        <MobileHideControlsButton compact onHide={onHideControls} />
+      ) : null}
       <button
         type="button"
         onClick={(e) => {
@@ -58,11 +49,7 @@ function DockActionButtons({
         }}
         aria-label="Más herramientas"
         aria-expanded={sheetOpen}
-        className={`flex items-center gap-1.5 min-h-[2.75rem] px-3 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-          sheetOpen
-            ? 'border-gold bg-gold text-primary-foreground'
-            : 'border-gold bg-gold text-primary-foreground shadow-md'
-        }`}
+        className="flex items-center gap-1.5 min-h-[2.75rem] px-3 rounded-xl border border-gold bg-gold text-primary-foreground text-xs font-bold shadow-md transition-all active:scale-95"
       >
         <Menu className="w-4 h-4 shrink-0" aria-hidden />
         Más
@@ -131,8 +118,6 @@ export function WorshipFloatingDock({
   const showDockChrome = dockVisible && !sheetOpen;
 
   const actionProps = {
-    autoScrolling,
-    onToggleAutoScroll,
     onOpenSheet: openSheet,
     sheetOpen,
     onHideControls: onHideControls ? handleHide : undefined,

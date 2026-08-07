@@ -78,8 +78,11 @@ export function WorshipControlSheet({
       <SheetContent
         side="bottom"
         data-worship-control-sheet
-        overlayClassName="z-[140] bg-transparent"
-        className="z-[150] max-h-[min(88vh,720px)] flex flex-col gap-2 rounded-t-2xl border-t border-border p-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(0,0,0,0.25)]"
+        overlayClassName="z-[140] bg-transparent pointer-events-none"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="z-[150] max-h-[min(88vh,720px)] flex flex-col gap-2 rounded-t-2xl border-t border-border p-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_rgba(0,0,0,0.25)] pointer-events-auto"
       >
         <SheetHeader className="text-left space-y-1 shrink-0 pr-8">
           <SheetTitle className="text-base">Más herramientas</SheetTitle>
