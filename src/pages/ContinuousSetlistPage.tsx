@@ -3,9 +3,12 @@ import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
 import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { useApp } from '@/context/AppContext';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';
+import { mapContinuousRemoteIndexToLocal } from '@/features/continuous-setlist/utils/mapContinuousRemoteIndexToLocal';
+import { getSongFromSlugOrId } from '@/utils/songSlug';
 import {
   sectionApplyLog,
   sectionSyncLog,
@@ -190,6 +193,7 @@ export default function ContinuousSetlistPage() {
         ? indexFromQuery
         : undefined;
   const joinSessionCode = routeState.joinSessionCode;
+  const { songs: librarySongs, addSong } = useApp();
   const {
     connection: sessionConnection,
     liveIsDirector,
@@ -293,6 +297,32 @@ export default function ContinuousSetlistPage() {
     liveSessionSongIds,
   });
 
+  /** Pull missing setlist songs into the local catalog so followers see the full chain. */
+  useEffect(() => {
+    if (resolvedSongIds.length === 0) return;
+    const missing = resolvedSongIds.filter((id) => !librarySongs.some((s) => s.id === id));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      for (const id of missing) {
+        if (cancelled) return;
+        try {
+          const song = await getSongFromSlugOrId(id, librarySongs);
+          if (cancelled || !song) continue;
+          if (!librarySongs.some((s) => s.id === song.id)) {
+            await addSong(song);
+          }
+        } catch (err) {
+          console.warn('[CONTINUOUS] hydrate song failed', id, err);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedSongIds, librarySongs, addSong]);
 
   useEffect(() => {
     if (routeState.listSongIds?.length && listId) {
@@ -848,8 +878,8 @@ export default function ContinuousSetlistPage() {
     if (!followerInLiveFollow) return;
     const remoteIdx = followerRemoteWindowIndex ?? null;
     const targetSongId =
-      remoteIdx != null && remoteIdx >= 0 && songIds[remoteIdx]
-        ? songIds[remoteIdx]
+      remoteIdx != null && remoteIdx >= 0
+        ? songIds[remoteIdx] ?? resolvedSongIds[remoteIdx] ?? null
         : null;
     followTargetLog({
       remoteIndex: remoteIdx,
@@ -872,6 +902,7 @@ export default function ContinuousSetlistPage() {
     syncTargetIndex,
     landing,
     songIds,
+    resolvedSongIds,
     location.pathname,
     followerWindowFreezeTick,
   ]);
@@ -1298,8 +1329,32 @@ export default function ContinuousSetlistPage() {
         return false;
       }
 
-      const resolvedIndex =
+      const remoteResolvedIndex =
         indexFromRemote >= 0 ? indexFromRemote : remoteListIds.indexOf(songId);
+      const localIndex = mapContinuousRemoteIndexToLocal({
+        remoteIndex: remoteResolvedIndex,
+        remoteSongId: songId,
+        remoteListIds,
+        localSongIds: songIds,
+      });
+      const resolvedIndex = songIds.includes(songId) ? localIndex : -1;
+
+      if (resolvedIndex < 0) {
+        followTrace('FOLLOW_APPLY_REMOTE_SKIP', {
+          actor: 'spectator',
+          page: 'continuous-live',
+          remoteIndex: remoteResolvedIndex,
+          remoteSongId: songId,
+          reason: 'song-not-local-yet',
+          source,
+        });
+        followSkipLog({
+          reason: 'apply song skipped — not in local catalog yet',
+          remoteIndex: remoteResolvedIndex,
+          songId,
+        });
+        return false;
+      }
 
       if (
         isFollowerRole &&
@@ -1415,18 +1470,28 @@ export default function ContinuousSetlistPage() {
       const targetSongId = remoteListIds[remoteIndex] ?? state.currentSongId ?? null;
       if (!targetSongId) return;
 
-      if (remoteIndex === landing.getLastAppliedIndex() && targetSongId === landing.getLastAppliedSongId()) {
+      if (targetSongId === landing.getLastAppliedSongId()) {
         return;
       }
+
+      const localIndex = mapContinuousRemoteIndexToLocal({
+        remoteIndex,
+        remoteSongId: targetSongId,
+        remoteListIds,
+        localSongIds: songIds,
+      });
 
       sessionSyncLog('V3 continuous index sync', {
         source,
         remoteIndex,
+        localIndex,
         targetSongId,
         effectiveListId,
       });
 
-      setSyncTargetIndexAudited(remoteIndex, source);
+      if (songIds.includes(targetSongId)) {
+        setSyncTargetIndexAudited(localIndex, source);
+      }
       void applyRemoteSongOnce(
         remoteIndex,
         targetSongId,
@@ -2699,6 +2764,7 @@ export default function ContinuousSetlistPage() {
     if (!targetId) return;
 
     markManualExitContinuous(listId);
+    showControls();
 
     const sessionCode =
       effectiveJoinCode ?? sessionConnection?.sessionCode ?? undefined;
@@ -2721,6 +2787,7 @@ export default function ContinuousSetlistPage() {
     songIds,
     navigate,
     genderShift,
+    showControls,
   ]);
 
   useEffect(() => {
@@ -2937,12 +3004,12 @@ export default function ContinuousSetlistPage() {
         </div>
       )}
 
-      {missingSongCount > 0 && !mobileTeleprompter && (
+      {missingSongCount > 0 && (
         <div className="continuous-teleprompter-chrome sticky top-10 z-20 mx-auto max-w-4xl px-3 sm:px-4 py-1.5">
           <p className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-200">
             {missingSongCount === 1
-              ? '1 canción de la lista no está en tu biblioteca y no se muestra.'
-              : `${missingSongCount} canciones de la lista no están en tu biblioteca y no se muestran.`}
+              ? '1 canción de la lista no está en tu biblioteca todavía (sincronizando…).'
+              : `${missingSongCount} canciones de la lista no están en tu biblioteca todavía (sincronizando…).`}
           </p>
         </div>
       )}
