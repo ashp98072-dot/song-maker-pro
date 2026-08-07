@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Globe, Loader2, ListMusic, Users } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, Globe, Loader2, ListMusic, Music2, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { matchesSearch } from '@/utils/textNormalize';
 import {
+  CommunitySongsPanel,
   fetchPublicLists,
   fetchPublicListsByOwners,
   type PublicListRow,
@@ -12,19 +13,34 @@ import { fetchFollowingIds, fetchProfilesByIds, type ProfileLite } from '@/featu
 import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { supabase } from '@/integrations/supabase/client';
 
+type HubTab = 'cantos' | 'all' | 'following';
+
+function tabFromParams(raw: string | null): HubTab {
+  if (raw === 'siguiendo' || raw === 'following') return 'following';
+  if (raw === 'cadenas' || raw === 'all') return 'all';
+  return 'cantos';
+}
+
 /**
- * Comunidad = cadenas públicas (listas compartidas).
+ * Comunidad = cantos públicos + cadenas compartidas.
  * Pestaña Siguiendo: cadenas de músicos que sigues.
  */
 export default function CommunityLibraryPage() {
+  const [params, setParams] = useSearchParams();
+  const tab = tabFromParams(params.get('tab'));
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'all' | 'following'>('all');
   const [publicLists, setPublicLists] = useState<PublicListRow[]>([]);
   const [followingLists, setFollowingLists] = useState<PublicListRow[]>([]);
   const [followingCount, setFollowingCount] = useState(0);
   const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({});
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+
+  const setTab = (next: HubTab) => {
+    if (next === 'cantos') setParams({}, { replace: true });
+    else if (next === 'all') setParams({ tab: 'cadenas' }, { replace: true });
+    else setParams({ tab: 'siguiendo' }, { replace: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -98,12 +114,24 @@ export default function CommunityLibraryPage() {
           </h1>
         </div>
         <p className="text-muted-foreground text-xs sm:text-sm">
-          Cadenas compartidas. Sigue a músicos y ve sus listas en «Siguiendo».
+          Explora cantos públicos y cadenas compartidas. Copia a tu biblioteca con un toque.
         </p>
       </motion.div>
 
       <div className="sticky top-[var(--app-chrome-top,3.5rem)] z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 mb-3 sm:mb-5 bg-background/95 backdrop-blur-sm border-b border-border/60 sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:static sm:z-auto">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setTab('cantos')}
+            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold border transition-colors inline-flex items-center gap-2 ${
+              tab === 'cantos'
+                ? 'bg-gold/15 border-gold text-gold'
+                : 'bg-secondary border-border text-muted-foreground'
+            }`}
+          >
+            <Music2 className="w-4 h-4" />
+            Cantos
+          </button>
           <button
             type="button"
             onClick={() => setTab('all')}
@@ -113,7 +141,7 @@ export default function CommunityLibraryPage() {
                 : 'bg-secondary border-border text-muted-foreground'
             }`}
           >
-            Todas
+            Cadenas
             {publicLists.length > 0 && (
               <span className="ml-1 text-[10px] opacity-80">({publicLists.length})</span>
             )}
@@ -141,12 +169,18 @@ export default function CommunityLibraryPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar cadena, autor o canción…"
+          placeholder={
+            tab === 'cantos'
+              ? 'Buscar canto, artista o tono…'
+              : 'Buscar cadena, autor o canción…'
+          }
           className="w-full max-w-2xl pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
         />
       </div>
 
-      {loading ? (
+      {tab === 'cantos' ? (
+        <CommunitySongsPanel search={search} />
+      ) : loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
           <Loader2 className="w-5 h-5 animate-spin" />
           Cargando cadenas…
@@ -172,11 +206,11 @@ export default function CommunityLibraryPage() {
                 : 'Aún no hay cadenas públicas. Publica una desde Mis Listas.'}
           </p>
           <Link
-            to={tab === 'following' ? '/comunidad' : '/listas'}
+            to={tab === 'following' ? '/comunidad?tab=cadenas' : '/listas'}
             className="text-gold text-sm font-semibold hover:underline"
             onClick={() => tab === 'following' && setTab('all')}
           >
-            {tab === 'following' ? 'Explorar todas' : 'Ir a Mis Listas'}
+            {tab === 'following' ? 'Explorar cadenas' : 'Ir a Mis Listas'}
           </Link>
         </div>
       ) : (

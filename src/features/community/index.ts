@@ -16,6 +16,7 @@ export {
   type CommunityFacets,
   type PublishPublicSongInput,
 } from '@/features/community/publicSongsApi';
+export { CommunitySongsPanel } from '@/features/community/CommunitySongsPanel';
 export {
   fetchListComments,
   fetchPublicListBySlug,
