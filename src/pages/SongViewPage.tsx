@@ -85,6 +85,10 @@ import { persistContinuousListSync } from '@/features/continuous-setlist/utils/c
 import { fetchLiveSessionList } from '@/features/continuous-setlist/utils/fetchLiveSessionList';
 import { resolveRemoteListSongIds } from '@/features/continuous-setlist/utils/resolveRemoteListSongIds';
 import {
+  mergeSongListIntoSearch,
+  parseSongListSearch,
+} from '@/features/song-view/utils/songListNav';
+import {
   isContinuousModeAvailable,
   isContinuousTeleprompterView,
   resolveSharedViewMode,
@@ -286,11 +290,15 @@ export default function SongViewPage() {
     currentIndex?: number;
     fromContinuous?: boolean;
   };
+  const queryListNav = useMemo(
+    () => parseSongListSearch(location.search),
+    [location.search]
+  );
   const joinSessionCode = routeNavState.joinSessionCode;
   const autoJoinFollower = spectator.sessionConnected;
   const effectiveJoinCode = spectator.activeJoinCode ?? joinSessionCode;
-  const incomingListId = routeNavState.listId;
-  const stateListSongIds = routeNavState.listSongIds;
+  const incomingListId = routeNavState.listId ?? queryListNav.listId;
+  const stateListSongIds = routeNavState.listSongIds ?? queryListNav.listSongIds;
   const fromContinuous = routeNavState.fromContinuous === true;
   // Local override que refleja en tiempo real las canciones añadidas in-session.
   // Lo derivamos también de `lists` (AppContext) para que cualquier addSongToList
@@ -304,6 +312,28 @@ export default function SongViewPage() {
     () => isContinuousModeAvailable(incomingListId, incomingListSongIds),
     [incomingListId, incomingListSongIds]
   );
+
+  /** Keep lista/ids in the URL so refresh still has culto/chain context. */
+  useEffect(() => {
+    if (!incomingListId) return;
+    const ids = incomingListSongIds ?? [];
+    const nextSearch = mergeSongListIntoSearch(location.search, {
+      listId: incomingListId,
+      listSongIds: ids.length > 0 ? ids : null,
+    });
+    if (nextSearch === (location.search || '')) return;
+    navigate(
+      { pathname: location.pathname, search: nextSearch },
+      { replace: true, state: location.state }
+    );
+  }, [
+    incomingListId,
+    incomingListSongIds,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+  ]);
 
   const isDirectorSession =
     (liveIsDirector &&

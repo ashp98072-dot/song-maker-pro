@@ -2,6 +2,7 @@ import { Song } from '@/types/music';
 import { Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { getSongPath } from '@/utils/songSlug';
+import { buildSongListSearch } from '@/features/song-view/utils/songListNav';
 
 interface SongCardProps {
   song: Song;
@@ -18,9 +19,16 @@ export default function SongCard({ song, linkState }: SongCardProps) {
   // Esto sirve como respaldo visual si scaleMode no se actualizó
   const isMinor = song.scaleMode === 'minor' || currentKey.toLowerCase().includes('m');
 
+  const listId =
+    typeof linkState?.listId === 'string' ? linkState.listId : undefined;
+  const listSongIds = Array.isArray(linkState?.listSongIds)
+    ? (linkState.listSongIds as string[])
+    : undefined;
+  const listSearch = buildSongListSearch({ listId, listSongIds });
+
   return (
     <Link
-      to={getSongPath(song, songs)}
+      to={`${getSongPath(song, songs)}${listSearch}`}
       state={linkState}
       className="glass-card p-4 hover:bg-surface-hover transition-colors group block"
     >

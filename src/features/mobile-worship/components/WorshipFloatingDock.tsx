@@ -165,7 +165,7 @@ export function WorshipFloatingDock({
             data-worship-floating-dock
             data-worship-landscape
           >
-            <div className="pointer-events-auto flex flex-col gap-1.5 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
+            <div className="pointer-events-auto flex flex-col gap-1.5 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl text-white">
               <QuickTransposeControls {...transposeProps} layout="vertical" />
               <DockActionButtons {...actionProps} layout="vertical" />
             </div>
@@ -179,7 +179,7 @@ export function WorshipFloatingDock({
   return (
     <>
       {showDock ? (
-        <div className="lg:hidden" data-worship-floating-dock>
+        <div className="lg:hidden text-white" data-worship-floating-dock>
           <FloatingDockShell visible controlsVisible compact onPointerDown={() => {}}>
             <div className="flex items-center justify-between gap-2 px-2 py-1.5">
               <QuickTransposeControls {...transposeProps} layout="horizontal" />

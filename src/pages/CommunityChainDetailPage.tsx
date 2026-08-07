@@ -33,6 +33,7 @@ import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { bulkSetUserTranspositions } from '@/utils/userTranspositions';
 import { normalizeTitle } from '@/utils/textNormalize';
 import { getSongPath } from '@/utils/songSlug';
+import { buildSongListSearch } from '@/features/song-view/utils/songListNav';
 import { supabase } from '@/integrations/supabase/client';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
 
@@ -173,15 +174,21 @@ export default function CommunityChainDetailPage() {
         songs.find((s) => s.id === songId) ??
         snapshotToSong(snap);
       const catalog = songs.some((s) => s.id === song.id) ? songs : [song, ...songs];
-      navigate(getSongPath(song, catalog), {
-        state: {
-          seedSong: song,
-          fromCadena: list?.slug,
+      navigate(
+        `${getSongPath(song, catalog)}${buildSongListSearch({
           listId: local.listId,
           listSongIds: local.songIds,
-          currentIndex: index,
-        },
-      });
+        })}`,
+        {
+          state: {
+            seedSong: song,
+            fromCadena: list?.slug,
+            listId: local.listId,
+            listSongIds: local.songIds,
+            currentIndex: index,
+          },
+        }
+      );
     } catch (err) {
       console.error(err);
       toast.error('No se pudo abrir la canción');

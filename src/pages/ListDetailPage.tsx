@@ -10,6 +10,7 @@ import { getUserSemitones } from '@/utils/userTranspositions';
 import { getSongPath } from '@/utils/songSlug';
 import { shareNative } from '@/utils/shareNative';
 import { publishListAsCadena } from '@/features/community';
+import { buildSongListSearch } from '@/features/song-view/utils/songListNav';
 
 function noteIndex(note: string): number {
   return NOTES_SHARP.indexOf(note.replace('b', '').replace('#', ''));
@@ -107,12 +108,18 @@ export default function ListDetailPage() {
           <div
             className="flex-1 cursor-pointer transform active:scale-[0.98] transition-transform"
             onClick={() =>
-              navigate(getSongPath(song, songs), {
-                state: {
-                  ...listNavState,
-                  currentIndex: currentIdx,
-                },
-              })
+              navigate(
+                `${getSongPath(song, songs)}${buildSongListSearch({
+                  listId: list.id,
+                  listSongIds: list.songIds,
+                })}`,
+                {
+                  state: {
+                    ...listNavState,
+                    currentIndex: currentIdx,
+                  },
+                }
+              )
             }
           >
             <SongCard
@@ -185,13 +192,19 @@ export default function ListDetailPage() {
 
   const startLiveSession = () => {
     if (!list?.id || listSongs.length === 0) return;
-    navigate(getSongPath(listSongs[0], songs), {
-      state: {
+    navigate(
+      `${getSongPath(listSongs[0], songs)}${buildSongListSearch({
         listId: list.id,
         listSongIds: list.songIds,
-        currentIndex: 0,
-      },
-    });
+      })}`,
+      {
+        state: {
+          listId: list.id,
+          listSongIds: list.songIds,
+          currentIndex: 0,
+        },
+      }
+    );
   };
 
   /** Modo continuo → ContinuousSetlistPage (`/setlist/:id/live`). */
