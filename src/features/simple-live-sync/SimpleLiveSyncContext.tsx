@@ -395,7 +395,8 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
         window.setTimeout(() => {
           if (!settled) {
             log('subscribe timeout');
-            finish(channelRef.current === channel);
+            // Do not pretend success — guest join would hang waiting for state.
+            finish(false);
           }
         }, 12_000);
       });

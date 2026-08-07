@@ -5,15 +5,18 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
   EyeOff,
   Heart,
   Library,
+  LogOut,
   Maximize,
   RotateCcw,
   Share2,
   SlidersHorizontal,
   Youtube,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RehearsalAutoScrollToolbar } from '@/features/rehearsal/components/RehearsalTools';
@@ -23,6 +26,8 @@ import { WorshipServiceModeButton } from '@/features/mobile-worship/components/W
 import { VIEW_MODE_LABELS, type ViewMode } from '@/types/music';
 import { VOCAL_REGISTERS, getRegisterInfo } from '@/utils/vocalRange';
 import { useSingerVocalProfile } from '@/features/vocal-test';
+import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { buildLiveJoinUrl } from '@/features/simple-live-sync/liveJoinUrl';
 
 const ALL_WORSHIP_VIEW_MODES: ViewMode[] = ['musician', 'singer', 'continuous'];
 
@@ -84,6 +89,11 @@ export function WorshipControlSheet({
   const preferredLabel = preferredRegister
     ? getRegisterInfo(preferredRegister)?.label ?? preferredRegister
     : null;
+  const simpleLive = useSimpleLiveSyncOptional();
+  const liveActive =
+    simpleLive &&
+    (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
+    !!simpleLive.code;
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -335,6 +345,54 @@ export function WorshipControlSheet({
             </TabsContent>
 
             <TabsContent value="tools" className="mt-0 space-y-2">
+              {liveActive ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                    {simpleLive!.role === 'director' ? 'Sesión (director)' : 'Sesión (invitado)'}
+                  </p>
+                  <p className="font-mono text-xl font-black tracking-[0.2em] text-gold">
+                    {simpleLive!.code}
+                  </p>
+                  <div className="flex gap-2">
+                    {simpleLive!.role === 'director' ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          worshipHaptic();
+                          try {
+                            await navigator.clipboard.writeText(simpleLive!.code!);
+                            toast.success('Código copiado');
+                          } catch {
+                            toast.message(simpleLive!.code!);
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-border text-xs font-bold"
+                      >
+                        <Copy className="w-3.5 h-3.5" /> Copiar
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        worshipHaptic();
+                        const wasDirector = simpleLive!.role === 'director';
+                        await simpleLive!.leave();
+                        minimize();
+                        toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-destructive/40 text-destructive text-xs font-bold"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      {simpleLive!.role === 'director' ? 'Detener' : 'Salir'}
+                    </button>
+                  </div>
+                  {simpleLive!.role === 'director' ? (
+                    <p className="text-[10px] text-muted-foreground">
+                      Comparte {buildLiveJoinUrl(simpleLive!.code!)} o el código con tu equipo.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {onHideControls && serviceModeInput ? (
                 <WorshipServiceModeButton
                   hideControls={hideAll}

@@ -2,7 +2,7 @@ import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'reac
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
-import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
+import { SimpleLiveSyncPanel, MobileLiveSessionBar, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';
@@ -3085,7 +3085,14 @@ export default function ContinuousSetlistPage() {
       </div>
 
       <TeleprompterLivePill
-        visible={mobileTeleprompter}
+        visible={
+          mobileTeleprompter &&
+          !(
+            FEATURES.SIMPLE_LIVE_SYNC &&
+            simpleLive &&
+            (simpleLive.role === 'director' || simpleLive.role === 'follower')
+          )
+        }
         role={
           (FEATURES.SIMPLE_LIVE_SYNC ? simpleLive?.role : sessionConnection?.role) ?? 'idle'
         }
@@ -3098,6 +3105,25 @@ export default function ContinuousSetlistPage() {
         followDirector={followDirector}
         onTap={showControls}
       />
+
+      {FEATURES.SIMPLE_LIVE_SYNC &&
+        isMobile &&
+        mobileTeleprompter &&
+        simpleLive &&
+        (simpleLive.role === 'director' || simpleLive.role === 'follower') &&
+        simpleLive.code && (
+          <MobileLiveSessionBar
+            visible
+            floating
+            role={simpleLive.role}
+            code={simpleLive.code}
+            onLeave={async () => {
+              const wasDirector = simpleLive.role === 'director';
+              await simpleLive.leave();
+              toast.success(wasDirector ? 'Sesión detenida' : 'Saliste de la sesión');
+            }}
+          />
+        )}
 
       <MobileControlsRestoreFab
         visible={isMobile && showDock && controlsHidden}
