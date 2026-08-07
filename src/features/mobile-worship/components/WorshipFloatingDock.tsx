@@ -1,11 +1,10 @@
-import { Play, Pause, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Play, Pause, Menu } from 'lucide-react';
 import { FloatingDockShell } from '@/components/FloatingDockShell';
 import { useIsLandscape } from '@/features/mobile-stage/hooks/useIsMobileViewport';
 import { useMobileDockState } from '@/features/mobile-worship/hooks/useMobileDockState';
 import { QuickTransposeControls } from '@/features/mobile-worship/components/QuickTransposeControls';
 import { DockButton } from '@/features/mobile-worship/components/DockButton';
 import { WorshipControlSheet } from '@/features/mobile-worship/components/WorshipControlSheet';
-import { MobileHideControlsButton } from '@/features/mobile-worship/components/MobileHideControlsButton';
 import { WorshipServiceModeButton } from '@/features/mobile-worship/components/WorshipServiceModeButton';
 import { worshipHaptic } from '@/features/mobile-worship/utils/haptic';
 import type { WorshipFloatingDockProps } from '@/features/mobile-worship/types';
@@ -13,7 +12,6 @@ import type { WorshipServiceModeInput } from '@/features/mobile-worship/utils/wo
 
 function DockActionButtons({
   autoScrolling,
-  onResetTranspose,
   onToggleAutoScroll,
   onOpenSheet,
   sheetOpen,
@@ -22,7 +20,6 @@ function DockActionButtons({
   serviceModeInput,
 }: {
   autoScrolling: boolean;
-  onResetTranspose: () => void;
   onToggleAutoScroll: () => void;
   onOpenSheet: () => void;
   sheetOpen: boolean;
@@ -32,8 +29,8 @@ function DockActionButtons({
 }) {
   const wrapClass =
     layout === 'vertical'
-      ? 'flex flex-col items-center gap-1'
-      : 'flex items-center gap-1 shrink-0';
+      ? 'flex flex-col items-center gap-1.5'
+      : 'flex items-center gap-1.5 shrink-0';
 
   return (
     <div className={wrapClass}>
@@ -42,21 +39,8 @@ function DockActionButtons({
           compact
           hideControls={onHideControls}
           input={serviceModeInput}
-          onStarted={() => {
-            /* sheet closed by hide */
-          }}
         />
       ) : null}
-      {onHideControls ? <MobileHideControlsButton compact onHide={onHideControls} /> : null}
-      <DockButton
-        onClick={() => {
-          worshipHaptic();
-          onResetTranspose();
-        }}
-        label="Reset tono original"
-      >
-        <RotateCcw className="w-4 h-4" />
-      </DockButton>
       <DockButton
         onClick={onToggleAutoScroll}
         active={autoScrolling}
@@ -64,19 +48,25 @@ function DockActionButtons({
       >
         {autoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
       </DockButton>
-      <DockButton
+      {/* Clear label — avoid icons that look like pause (||) */}
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           worshipHaptic();
           onOpenSheet();
         }}
-        active={sheetOpen}
-        label="Más herramientas: metrónomo, YouTube, acordes…"
-        className="min-w-[2.75rem] border-gold/50 bg-gold/15 text-gold"
+        aria-label="Más herramientas"
+        aria-expanded={sheetOpen}
+        className={`flex items-center gap-1.5 min-h-[2.75rem] px-3 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
+          sheetOpen
+            ? 'border-gold bg-gold text-primary-foreground'
+            : 'border-gold bg-gold text-primary-foreground shadow-md'
+        }`}
       >
-        <SlidersHorizontal className="w-4 h-4" />
-        <span className="text-[9px] font-bold leading-none mt-0.5">Más</span>
-      </DockButton>
+        <Menu className="w-4 h-4 shrink-0" aria-hidden />
+        Más
+      </button>
     </div>
   );
 }
@@ -131,11 +121,6 @@ export function WorshipFloatingDock({
     onGenderSelect,
   };
 
-  const handleReset = () => {
-    worshipHaptic();
-    onResetTranspose();
-  };
-
   const handleHide = () => {
     worshipHaptic();
     setSheetOpen(false);
@@ -143,9 +128,16 @@ export function WorshipFloatingDock({
   };
 
   const openSheet = () => setSheetOpen(true);
-
-  /** Hide dock chrome while sheet is open so it can't sit above / steal taps from the sheet. */
   const showDockChrome = dockVisible && !sheetOpen;
+
+  const actionProps = {
+    autoScrolling,
+    onToggleAutoScroll,
+    onOpenSheet: openSheet,
+    sheetOpen,
+    onHideControls: onHideControls ? handleHide : undefined,
+    serviceModeInput,
+  };
 
   if (landscapeDock) {
     return (
@@ -162,18 +154,9 @@ export function WorshipFloatingDock({
           data-worship-landscape
           aria-hidden={sheetOpen || undefined}
         >
-          <div className="pointer-events-auto flex flex-col gap-1 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
+          <div className="pointer-events-auto flex flex-col gap-1.5 p-1.5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl">
             <QuickTransposeControls {...transposeProps} layout="vertical" />
-            <DockActionButtons
-              autoScrolling={autoScrolling}
-              onResetTranspose={handleReset}
-              onToggleAutoScroll={onToggleAutoScroll}
-              onOpenSheet={openSheet}
-              sheetOpen={sheetOpen}
-              layout="vertical"
-              onHideControls={onHideControls ? handleHide : undefined}
-              serviceModeInput={serviceModeInput}
-            />
+            <DockActionButtons {...actionProps} layout="vertical" />
           </div>
         </div>
         <WorshipControlSheet
@@ -191,18 +174,9 @@ export function WorshipFloatingDock({
     <>
       <div className="lg:hidden" data-worship-floating-dock aria-hidden={sheetOpen || undefined}>
         <FloatingDockShell visible controlsVisible={showDockChrome} compact onPointerDown={() => {}}>
-          <div className="flex items-center justify-between gap-1 px-1.5 py-1">
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
             <QuickTransposeControls {...transposeProps} layout="horizontal" />
-            <DockActionButtons
-              autoScrolling={autoScrolling}
-              onResetTranspose={handleReset}
-              onToggleAutoScroll={onToggleAutoScroll}
-              onOpenSheet={openSheet}
-              sheetOpen={sheetOpen}
-              layout="horizontal"
-              onHideControls={onHideControls ? handleHide : undefined}
-              serviceModeInput={serviceModeInput}
-            />
+            <DockActionButtons {...actionProps} layout="horizontal" />
           </div>
         </FloatingDockShell>
       </div>

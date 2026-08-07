@@ -65,9 +65,9 @@ export function WorshipServiceModeButton({
       type="button"
       onClick={() => void onClick()}
       disabled={busy}
-      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-400/40 bg-amber-500/15 text-sm font-bold text-amber-100 hover:bg-amber-500/25 disabled:opacity-50"
+      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-500/50 bg-amber-500/20 text-sm font-bold text-foreground hover:bg-amber-500/30 disabled:opacity-50"
     >
-      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Church className="w-4 h-4" />}
+      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Church className="w-4 h-4 text-amber-600 dark:text-amber-300" />}
       {busy ? 'Activando…' : 'Modo culto'}
     </button>
   );
