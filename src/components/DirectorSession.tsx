@@ -706,7 +706,7 @@ export default function DirectorSession({
         }
         directorSessionLog('session create blocked — not authenticated', { userName, isGuest }, { always: true });
         onDirectorSessionStartFailed?.();
-        if (!userName) navigate('/login');
+        if (isGuest || !userName) navigate('/login');
         return;
       }
 

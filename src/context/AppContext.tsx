@@ -375,13 +375,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loginAsGuest = () => { setUserName('Invitado'); setIsGuest(true); };
   
   const logout = async () => {
-    await supabase.auth.signOut();
+    // Guests have no Supabase session; signOut can reject with "session missing".
+    // Never let that block the state reset / redirect.
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('signOut falló (continuando con cierre local):', err);
+    }
     setUserName('');
     setIsGuest(false);
     setIsAdmin(false);
     userIdRef.current = null;
     localStorage.removeItem(STORAGE_KEY);
-    window.location.href = '/login'; 
+    window.location.href = '/login';
   };
 
   const addSong = async (song: Song) => {

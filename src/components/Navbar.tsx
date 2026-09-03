@@ -34,7 +34,7 @@ const navItems = [
 
 export default function Navbar() {
   const location = useLocation();
-  const { userName, logout } = useApp();
+  const { userName, logout, isGuest } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -183,7 +183,8 @@ export default function Navbar() {
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
-                  <LogOut className="w-4 h-4" /> Cerrar sesión
+                  <LogOut className="w-4 h-4" />
+                  {isGuest ? 'Salir del modo invitado e iniciar sesión' : 'Cerrar sesión'}
                 </button>
               </div>
             )}

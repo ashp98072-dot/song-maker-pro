@@ -145,10 +145,13 @@ const AuthManager = ({ children }: { children: React.ReactNode }) => {
 
     const currentPath = location.pathname;
     const isAuthenticated = !!(userName || isGuest);
+    // A guest is "authenticated enough" to browse public pages, but must still be
+    // able to open /login to upgrade to a real account.
+    const isRealUser = !!userName && !isGuest;
 
     if (currentPath.startsWith("/auth/")) return;
 
-    if (isAuthenticated && currentPath === "/login") {
+    if (isRealUser && currentPath === "/login") {
       const from = (location.state as { from?: string } | null)?.from;
       const dest =
         typeof from === 'string' && from.startsWith('/') && from !== '/login' ? from : '/';
