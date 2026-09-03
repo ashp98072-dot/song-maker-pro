@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Search, Users, Loader2 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Users, Loader2, Globe } from 'lucide-react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import SongCard from '@/components/SongCard';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ import { CatalogFilterBar } from '@/features/song-discovery/CatalogFilterBar';
 import {
   buildLocalFacets,
   filterCommunitySongs,
+  genreLabel,
 } from '@/features/community';
 
 const JOIN_WAIT_MS = 18_000;
@@ -44,6 +45,9 @@ export default function HomePage() {
   const [artist, setArtist] = useState<string | null>(
     () => searchParams.get('artista') || null
   );
+  const [genre, setGenre] = useState<string | null>(
+    () => searchParams.get('genero') || null
+  );
   const [showJoinSession, setShowJoinSession] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [pendingSimpleNav, setPendingSimpleNav] = useState(false);
@@ -55,31 +59,38 @@ export default function HomePage() {
   const facets = useMemo(() => buildLocalFacets(songs), [songs]);
 
   const filtered = useMemo(() => {
-    const hasFacet = !!(keyFilter || artist);
+    const hasFacet = !!(keyFilter || artist || genre);
     if (search.trim() || hasFacet) {
       return filterCommunitySongs(songs, {
         search,
         key: keyFilter,
         artist,
+        genre,
       }).slice(0, 120);
     }
     return browseCatalogSongs(songs, '');
-  }, [songs, search, keyFilter, artist]);
+  }, [songs, search, keyFilter, artist, genre]);
 
   const sectionLabel = useMemo(() => {
-    if (keyFilter || artist) return 'Resultados filtrados';
+    if (keyFilter || artist || genre) return 'Resultados filtrados';
     return browseSectionLabel(songs, search);
-  }, [songs, search, keyFilter, artist]);
+  }, [songs, search, keyFilter, artist, genre]);
 
   useEffect(() => {
     const q = searchParams.get('q');
     if (q != null && q !== search) setSearch(q);
     setKeyFilter(searchParams.get('tono') || null);
     setArtist(searchParams.get('artista') || null);
+    setGenre(searchParams.get('genero') || null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL only
   }, [searchParams]);
 
-  const syncUrl = (nextSearch: string, nextKey: string | null, nextArtist: string | null) => {
+  const syncUrl = (
+    nextSearch: string,
+    nextKey: string | null,
+    nextArtist: string | null,
+    nextGenre: string | null
+  ) => {
     const next = new URLSearchParams(searchParams);
     if (nextSearch.trim()) next.set('q', nextSearch.trim());
     else next.delete('q');
@@ -87,6 +98,8 @@ export default function HomePage() {
     else next.delete('tono');
     if (nextArtist) next.set('artista', nextArtist);
     else next.delete('artista');
+    if (nextGenre) next.set('genero', nextGenre);
+    else next.delete('genero');
     next.delete('join');
     next.delete('codigo');
     next.delete('code');
@@ -95,23 +108,29 @@ export default function HomePage() {
 
   const onSearchChange = (value: string) => {
     setSearch(value);
-    syncUrl(value, keyFilter, artist);
+    syncUrl(value, keyFilter, artist, genre);
   };
 
   const onKeyChange = (key: string | null) => {
     setKeyFilter(key);
-    syncUrl(search, key, artist);
+    syncUrl(search, key, artist, genre);
   };
 
   const onArtistChange = (value: string | null) => {
     setArtist(value);
-    syncUrl(search, keyFilter, value);
+    syncUrl(search, keyFilter, value, genre);
+  };
+
+  const onGenreChange = (value: string | null) => {
+    setGenre(value);
+    syncUrl(search, keyFilter, artist, value);
   };
 
   const clearFilters = () => {
     setKeyFilter(null);
     setArtist(null);
-    syncUrl(search, null, null);
+    setGenre(null);
+    syncUrl(search, null, null, null);
   };
 
   const handleJoinSession = async (raw?: string) => {
@@ -208,8 +227,19 @@ export default function HomePage() {
   return (
     <div className="container px-4 py-6 max-w-6xl">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <h1 className="text-2xl font-bold font-display text-foreground">Hola, {userName}</h1>
-        <p className="text-muted-foreground text-sm">¿Qué canción vamos a transponer hoy?</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold font-display text-foreground">Hola, {userName}</h1>
+            <p className="text-muted-foreground text-sm">¿Qué canción vamos a transponer hoy?</p>
+          </div>
+          <Link
+            to="/comunidad"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold hover:underline shrink-0"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            Explorar comunidad
+          </Link>
+        </div>
       </motion.div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
