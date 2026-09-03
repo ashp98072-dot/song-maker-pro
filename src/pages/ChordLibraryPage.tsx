@@ -8,9 +8,24 @@ import { VocalRangeTestPanel } from '@/features/vocal-test';
 type HubTab = 'acordes' | 'afinador' | 'registro';
 
 const TABS: { id: HubTab; label: string; hint: string; icon: typeof Library }[] = [
-  { id: 'acordes', label: 'Acordes', hint: 'Biblioteca de diagramas', icon: Library },
-  { id: 'afinador', label: 'Afinador', hint: 'Afinación por micrófono', icon: AudioLines },
-  { id: 'registro', label: 'Mi voz', hint: 'Test de registro vocal', icon: Mic2 },
+  {
+    id: 'acordes',
+    label: 'Acordes',
+    hint: 'Biblioteca de diagramas para guitarra, piano y bajo, con búsqueda por tono y tipo.',
+    icon: Library,
+  },
+  {
+    id: 'afinador',
+    label: 'Afinador',
+    hint: 'Afinador cromático de precisión por micrófono: instrumentos, calibración A4 y tono de referencia.',
+    icon: AudioLines,
+  },
+  {
+    id: 'registro',
+    label: 'Mi voz',
+    hint: 'Mide tu registro vocal y aplícalo al transponer canciones a tu tono cómodo.',
+    icon: Mic2,
+  },
 ];
 
 function tabFromParams(raw: string | null): HubTab {
@@ -56,10 +71,7 @@ export default function ChordLibraryPage() {
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground leading-tight">
             Herramientas
           </h1>
-          <p className="text-muted-foreground text-sm mt-1.5 max-w-2xl">
-            {active.hint}. En una canción también puedes tocar un acorde de la letra o aplicar “Mi
-            voz” al transponer.
-          </p>
+          <p className="text-muted-foreground text-sm mt-1.5 max-w-2xl">{active.hint}</p>
         </motion.header>
 
         <div
@@ -106,7 +118,7 @@ export default function ChordLibraryPage() {
           >
             {tab === 'acordes' ? <ChordLibraryPanel hideHeader /> : null}
             {tab === 'afinador' ? (
-              <div className="max-w-lg mx-auto rounded-2xl border border-border/80 bg-card/50 p-4 sm:p-5">
+              <div className="max-w-xl mx-auto rounded-2xl border border-border/80 bg-card/50 p-4 sm:p-5">
                 <InstrumentTunerPanel />
               </div>
             ) : null}

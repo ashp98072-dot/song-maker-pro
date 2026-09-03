@@ -1,6 +1,6 @@
-/** Multi-instrument chromatic tuner (guitar, bass, violin). */
+/** Multi-instrument chromatic tuner (guitar, bass, ukulele, violin). */
 
-export type TunerInstrumentId = 'guitar' | 'bass' | 'violin';
+export type TunerInstrumentId = 'guitar' | 'bass' | 'ukulele' | 'violin';
 
 export type TunerString = {
   label: string;
@@ -32,13 +32,17 @@ export function noteNameFromMidi(midi: number): string {
   return `${name}${octave}`;
 }
 
-export function hzFromMidi(midi: number): number {
-  return A4_HZ * Math.pow(2, (midi - 69) / 12);
+export function hzFromMidi(midi: number, a4: number = A4_HZ): number {
+  return a4 * Math.pow(2, (midi - 69) / 12);
 }
 
-export function midiFromHz(hz: number): number {
-  return 69 + 12 * Math.log2(hz / A4_HZ);
+export function midiFromHz(hz: number, a4: number = A4_HZ): number {
+  return 69 + 12 * Math.log2(hz / a4);
 }
+
+/** Lowest / highest calibration the pro tuner allows (Hz). */
+export const A4_MIN = 430;
+export const A4_MAX = 450;
 
 export const TUNER_INSTRUMENTS: TunerInstrument[] = [
   {
@@ -68,6 +72,19 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
     ],
   },
   {
+    id: 'ukulele',
+    label: 'Ukelele',
+    hzMin: 220,
+    hzMax: 520,
+    // Reentrant standard tuning (gCEA): 4ª G4 suena más agudo que 3ª C4.
+    strings: [
+      { label: '4ª', note: 'G4', hz: hzFromMidi(67) },
+      { label: '3ª', note: 'C4', hz: hzFromMidi(60) },
+      { label: '2ª', note: 'E4', hz: hzFromMidi(64) },
+      { label: '1ª', note: 'A4', hz: hzFromMidi(69) },
+    ],
+  },
+  {
     id: 'violin',
     label: 'Violín',
     hzMin: 170,
@@ -80,6 +97,26 @@ export const TUNER_INSTRUMENTS: TunerInstrument[] = [
     ],
   },
 ];
+
+/** Rebuild an instrument's strings for a non-standard A4 calibration. */
+export function stringsForCalibration(
+  strings: TunerString[],
+  a4: number
+): TunerString[] {
+  const factor = a4 / A4_HZ;
+  if (factor === 1) return strings;
+  return strings.map((s) => ({ ...s, hz: s.hz * factor }));
+}
+
+/** Nearest chromatic note to a detected pitch (used in "cromático" mode). */
+export function resolveChromaticTarget(
+  hz: number,
+  a4: number = A4_HZ
+): { midi: number; note: string; cents: number; hz: number } {
+  const midi = Math.round(midiFromHz(hz, a4));
+  const targetHz = hzFromMidi(midi, a4);
+  return { midi, note: noteNameFromMidi(midi), cents: centsOff(hz, targetHz), hz: targetHz };
+}
 
 /**
  * Autocorrelation pitch with clarity gate.
