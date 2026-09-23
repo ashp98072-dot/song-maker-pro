@@ -51,7 +51,7 @@ import {
   markSpectatorSessionOptOut,
 } from '@/features/director-session/utils/spectatorSessionOptOut';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
-import { followPrefLog, readFollowDirector } from '@/features/director-session/utils/followDirector';
+import { followPrefLog, readFollowDirector, writeFollowDirector } from '@/features/director-session/utils/followDirector';
 import { persistFollowDirectorPreference } from '@/features/director-session/utils/persistFollowDirectorPreference';
 import { sessionEndedLog } from '@/features/director-session/utils/sessionEndedLog';
 import {
