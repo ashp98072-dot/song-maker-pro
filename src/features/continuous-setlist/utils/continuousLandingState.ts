@@ -10,6 +10,7 @@ export type PendingRemoteScroll = {
 export type FollowerLandingSource =
   | 'shared-session'
   | 'recovery'
+  | 'recovery-remote-priority'
   | 'replay'
   | 'route-initial';
 

@@ -1,6 +1,6 @@
 const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
-export function isValidYouTubeVideoId(id: string | null | undefined): id is string {
+export function isValidYouTubeVideoId(id: string | null | undefined): boolean {
   return typeof id === 'string' && YOUTUBE_VIDEO_ID_RE.test(id);
 }
 

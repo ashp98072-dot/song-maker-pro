@@ -30,7 +30,7 @@ function logAuthCheck(
 
 function sessionHasValidUser(
   session: { user?: { id: string } | null; access_token?: string } | null
-): session is { user: { id: string }; access_token: string } {
+): boolean {
   return Boolean(session?.user?.id && session.access_token);
 }
 

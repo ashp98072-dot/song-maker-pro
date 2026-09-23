@@ -195,7 +195,7 @@ export default function AdminCatalogImportPage() {
               genre: row.genre,
               isCover: false,
             });
-            if (!published.ok) {
+            if (published.ok === false) {
               fail += 1;
               console.error(published.error);
               continue;
@@ -222,7 +222,7 @@ export default function AdminCatalogImportPage() {
             songs: publishedSongs,
             sourceListId: listId,
           });
-          if (cadena.ok) {
+          if (cadena.ok === true) {
             toast.success(
               `${publishedSongs.length} publicadas y cadena “${cadenaName.trim()}” creada`
             );

@@ -8,6 +8,7 @@ export type SessionOrigin = {
 };
 
 export type PageSessionContext = {
+  listName?: string;
   songId?: string;
   listId?: string;
   listSongIds?: string[];

@@ -241,7 +241,7 @@ export default function ListDetailPage() {
         songs: listSongs,
         sourceListId: list.id,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }

@@ -412,7 +412,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       setStatus('connecting');
 
       const auth = await resolveAuthenticatedDirector();
-      if (!auth.ok) {
+      if (auth.ok === false) {
         setStatus('idle');
         setError(auth.message);
         toast.error('Debes iniciar sesión para crear una sesión en vivo');
@@ -442,7 +442,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       const rpc = await createDirectorLiveSessionRpc(persistInput, {
         localMark: 'protect-only',
       });
-      if (!rpc.ok) {
+      if (rpc.ok === false) {
         protectDirectorLiveSessionCode(null);
         setStatus('idle');
         setError(rpc.error ?? 'create failed');
@@ -534,7 +534,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
     setError(null);
     setStatus('connecting');
     const auth = await resolveAuthenticatedDirector();
-    if (!auth.ok) {
+    if (auth.ok === false) {
       setStatus('idle');
       toast.error('Debes iniciar sesión para reingresar');
       return false;
@@ -556,7 +556,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
         },
         { localMark: 'protect-only' }
       );
-      if (!rpc.ok) {
+      if (rpc.ok === false) {
         protectDirectorLiveSessionCode(null);
         setStatus('idle');
         rememberHint(null);

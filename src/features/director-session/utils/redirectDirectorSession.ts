@@ -48,7 +48,7 @@ export async function redirectDirectorSession(
       current_key: input.currentKey ?? null,
       bpm: input.bpm ?? null,
       gender_shift: recoveryGenderShiftForPersist(input.genderShift),
-      session_origin: origin as unknown as Record<string, unknown>,
+      session_origin: origin,
     })
     .eq('code', code);
 

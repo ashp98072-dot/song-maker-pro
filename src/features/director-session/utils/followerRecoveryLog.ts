@@ -1,4 +1,5 @@
 import { followTrace } from '@/features/director-session/utils/followTrace';
+import type { ViewMode } from '@/types/music';
 
 export type FollowerRecoverySource = 'shared-session' | 'db' | 'route' | 'fallback';
 
@@ -29,6 +30,7 @@ export function followRecoveryFailed(detail: {
 }
 
 export function followJoinLog(detail: {
+  viewMode?: ViewMode;
   remoteTargetIndex: number | null;
   songId?: string | null;
   source?: string;
@@ -80,7 +82,7 @@ export function followViewmodeLog(detail: Record<string, unknown>): void {
 }
 
 export function joinFastpathLog(detail: {
-  source: 'shared-session' | 'db' | 'fallback';
+  source: FollowerRecoverySource;
   code: string;
   joinSource?: string;
 }): void {

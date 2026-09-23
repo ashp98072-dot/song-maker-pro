@@ -1,5 +1,5 @@
 import { createElement, memo, useMemo } from 'react';
-import { parseLyricLine, stripMusicianNotesFromLine, type LyricToken } from '@/utils/lyricTokens';
+import { parseLyricLine, stripMusicianNotesFromLine, type LyricLineToken } from '@/utils/lyricTokens';
 import MusicianNote from './MusicianNote';
 
 const MONO_LINE_STYLE = {
@@ -13,7 +13,7 @@ export interface LyricLineProps {
   lineFontSize?: number;
 }
 
-function renderTokens(tokens: LyricToken[], blockNote: boolean) {
+function renderTokens(tokens: LyricLineToken[], blockNote: boolean) {
   return tokens.map((token, i) => {
     if (token.type === 'musician_note') {
       return (

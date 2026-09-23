@@ -852,7 +852,7 @@ export default function DirectorSession({
         return true;
       }
 
-      const persistInput = {
+      const persistInput: PersistDirectorLiveSessionInput = {
         sessionCode: code,
         currentSongId: snapshot.songId,
         listId: snapshot.listId,
@@ -1206,7 +1206,7 @@ export default function DirectorSession({
             </button>
           </div>
 
-          <button onClick={endSession}
+          <button onClick={() => endSession()}
             className="w-full py-2.5 rounded-xl border border-red-500/20 text-red-400/80 hover:bg-red-500 hover:text-white text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2">
             <X className="w-3.5 h-3.5" /> Detener
           </button>

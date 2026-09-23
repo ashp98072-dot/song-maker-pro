@@ -150,7 +150,7 @@ export default function AddSongPage() {
           genre,
           isCover,
         });
-        if (!published.ok) {
+        if (published.ok === false) {
           toast.error(published.error);
         } else {
           toast.success('Publicada en la biblioteca comunitaria');

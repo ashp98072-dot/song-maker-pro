@@ -11,16 +11,16 @@ Fecha: 2026-09-23. Estabilización progresiva conservando el comportamiento del 
 - El build solo ejecuta Vite. El README es una plantilla.
 - No se ha validado Supabase desplegado ni una sesión real entre dispositivos.
 
-## 1. Estabilizar tipos y pruebas — en curso
+## 1. Estabilizar tipos y pruebas — validado localmente
 
 - [x] Incorporar `npm run typecheck` para reproducir el diagnóstico.
 - [x] Importar `writeFollowDirector`, usado por el contexto de espectadores.
 - [x] Corregir el contrato del parser de canciones de listas públicas.
 - [x] Sustituir la prueba de bandera V3 y la prueba de mock por pruebas del hook real.
-- [ ] Corregir contratos de navegación, recuperación, origen de sesión y payloads JSON.
-- [ ] Corregir estrechamiento de tipos, temporizadores del navegador y fixtures de pruebas.
-- [ ] Verificar también configuración Vite y endpoints API con configuraciones TypeScript adecuadas.
-- [ ] Incorporar el chequeo de tipos al build y a CI una vez esté limpio.
+- [x] Corregir contratos de navegación, recuperación, origen de sesión y payloads JSON.
+- [x] Corregir estrechamiento de tipos, temporizadores del navegador y fixtures de pruebas.
+- [x] Verificar también configuración Vite y endpoints API con configuraciones TypeScript adecuadas.
+- [x] Incorporar el chequeo de tipos al build y a CI una vez esté limpio.
 
 Cierre: pruebas, tipos y build pasan sin ocultar errores mediante `any`, exclusiones o supresiones generales.
 
@@ -70,3 +70,10 @@ Cierre: configuración reproducible y evidencias de pruebas locales y conectadas
 Correcciones pequeñas del parser y la importación del contexto, pruebas reales del hook V3 y comando de tipos. El chequeo permanece independiente del build mientras se resuelven los errores restantes. Las banderas de producción se conservan.
 
 Resultados: 61 archivos y 219 pruebas pasan. TypeScript conserva 57 errores; desaparecieron los cuatro diagnósticos del parser y de la importación faltante. `git diff --check` pasa. La etapa 1 sigue abierta; aún no se ha validado el build ni el comportamiento entre dispositivos.
+
+
+## Segundo bloque
+
+Los 57 errores pendientes de la aplicación quedaron resueltos. Se corrigió además el entorno de tipos de los callbacks de navegador en Vite y se agregó un chequeo estricto para los endpoints API. El build normal y el de desarrollo ejecutan los tres chequeos. GitHub Actions ejecuta instalación, pruebas y build en PRs y pushes a main.
+
+Validación local: 219 pruebas pasan; chequeos de aplicación, Vite y API pasan; build de producción y generación de PWA pasan. Vite conserva advertencias por módulos importados tanto estática como dinámicamente. ESLint conserva 39 errores y 70 advertencias; su limpieza corresponde a la etapa 2. La sincronización entre dispositivos todavía requiere validación conectada.

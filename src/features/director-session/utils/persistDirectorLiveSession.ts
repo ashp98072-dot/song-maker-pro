@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import type { SharedSessionState } from '@/features/director-session/types';
 import type { SessionOrigin } from '@/features/director-session/utils/sessionOrigin';
 import { recoveryGenderShiftForPersist } from '@/features/director-session/utils/sessionRecovery';
@@ -91,7 +92,7 @@ export async function deactivatePreviousDirectorLiveSessions(
 function buildRpcUpsertPayload(
   code: string,
   input: PersistDirectorLiveSessionInput
-): Record<string, unknown> {
+): Record<string, Json> {
   const listSongIds = input.listSongIds ?? [];
   const songId = input.currentSongId ?? '';
   // live_sessions.list_id is UUID in production — local Date.now() ids must not be sent.
@@ -154,7 +155,7 @@ export async function upsertDirectorLiveSessionViaRpc(
   let userId = directorId;
   if (!userId) {
     const auth = await resolveAuthenticatedDirector();
-    if (!auth.ok) {
+    if (auth.ok === false) {
       const verify = await verifyLiveSessionActiveState(code);
       return {
         ok: false,
@@ -297,7 +298,7 @@ export async function createDirectorLiveSessionRpc(
   const localMark = options?.localMark ?? 'full';
 
   const auth = await resolveAuthenticatedDirector();
-  if (!auth.ok) {
+  if (auth.ok === false) {
     return { ok: false, code, error: auth.message, reason: 'not_authenticated' };
   }
 
