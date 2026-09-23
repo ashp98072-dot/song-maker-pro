@@ -49,8 +49,8 @@ function extractMetaFromPlain(chunk: string): {
       }
       continue;
     }
-    const titleMatch = line.match(/^(?:t[ií]tulo|title)\s*[:\-]\s*(.+)$/i);
-    const artistMatch = line.match(/^(?:artista|artist|autor|author)\s*[:\-]\s*(.+)$/i);
+    const titleMatch = line.match(/^(?:t[ií]tulo|title)\s*[:-]\s*(.+)$/i);
+    const artistMatch = line.match(/^(?:artista|artist|autor|author)\s*[:-]\s*(.+)$/i);
     if (titleMatch) {
       title = titleMatch[1].trim();
       start = i + 1;
@@ -66,7 +66,7 @@ function extractMetaFromPlain(chunk: string): {
       start = i + 1;
       continue;
     }
-    if (!title && line.length <= 80 && !/[\[\]]/.test(line) && !isMostlyChords(line)) {
+    if (!title && line.length <= 80 && !/[[\]]/.test(line) && !isMostlyChords(line)) {
       title = line;
       start = i + 1;
       // next non-empty short line may be artist

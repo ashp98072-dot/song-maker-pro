@@ -8,6 +8,7 @@ import type { Song } from '@/types/music';
 import { SAMPLE_SONGS } from '@/data/songs';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { errorMessage } from '@/utils/errorMessage';
 
 export default function BackupPage() {
   const { songs, favorites, lists, importLibrary, isAdmin } = useApp();
@@ -28,8 +29,8 @@ export default function BackupPage() {
       const data = await parseBackupFile(file);
       importLibrary(data.songs, data.favorites, data.lists);
       toast.success(`Importadas ${data.songs.length} canciones, ${data.lists.length} listas`);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al importar archivo');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, 'Error al importar archivo'));
     }
     if (fileRef.current) fileRef.current.value = '';
   };

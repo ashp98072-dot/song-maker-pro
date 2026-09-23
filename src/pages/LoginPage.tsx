@@ -1,3 +1,4 @@
+import { errorMessage } from '@/utils/errorMessage';
 import { Music, Mail, Lock, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -58,8 +59,8 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
-      toast.error('Error al conectar con Google: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('Error al conectar con Google: ' + errorMessage(error, 'Error desconocido'));
     }
   };
 
@@ -111,18 +112,19 @@ export default function LoginPage() {
           navigate(returnTo, { replace: true });
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const detail = err && typeof err === 'object' ? err as Record<string, unknown> : {};
       // Log detallado para depuración (incluye code de Postgres/Supabase: 42501 RLS, 23505 unique, etc.)
       console.error('[Auth] Error en', mode, {
-        code: err?.code,
-        status: err?.status,
-        name: err?.name,
-        message: err?.message,
-        details: err?.details,
-        hint: err?.hint,
+        code: detail.code,
+        status: detail.status,
+        name: detail.name,
+        message: detail.message,
+        details: detail.details,
+        hint: detail.hint,
         full: err,
       });
-      const msg = err?.message || 'Error desconocido';
+      const msg = errorMessage(err, 'Error desconocido');
       if (msg.toLowerCase().includes('invalid login')) {
         toast.error('Correo o contraseña incorrectos');
       } else if (msg.toLowerCase().includes('already registered')) {

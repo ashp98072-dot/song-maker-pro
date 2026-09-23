@@ -6,6 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { errorMessage } from '@/utils/errorMessage';
 import { FileText, Upload, Trash2, Eye, Loader2, X } from 'lucide-react';
 
 interface Attachment {
@@ -67,7 +68,7 @@ export default function SongAttachments({ songId }: Props) {
         toast.error('Debes iniciar sesión para subir partituras');
         return;
       }
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const safeName = file.name.replace(/[^\w.-]+/g, '_');
       const path = `${session.user.id}/${songId}/${Date.now()}_${safeName}`;
 
       const { error: upErr } = await supabase.storage
@@ -88,9 +89,9 @@ export default function SongAttachments({ songId }: Props) {
 
       toast.success('Partitura subida');
       loadAttachments();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error('Error al subir: ' + (err?.message || 'desconocido'));
+      toast.error('Error al subir: ' + errorMessage(err, 'desconocido'));
     } finally {
       setUploading(false);
     }

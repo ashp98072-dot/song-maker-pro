@@ -30,21 +30,29 @@ const REG_KEY = 'worship-vocal-registers';
 const GEN_KEY = 'worship-gender-shifts';
 const YT_DELAY_KEY = 'worship-yt-delays';
 
-function readMap(key: string): Record<string, any> {
-  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+function readMap(key: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(key) || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown> : {};
+  } catch { return {}; }
 }
-function writeMap(key: string, map: Record<string, any>) {
+function writeMap(key: string, map: Record<string, unknown>) {
   try { localStorage.setItem(key, JSON.stringify(map)); } catch { /* ignore */ }
 }
 
 function getLocalDefaults(songId: string): SongSettings {
+  const register = readMap(REG_KEY)[songId];
+  const gender = readMap(GEN_KEY)[songId];
+  const font = readMap(FONT_KEY)[songId];
+  const delay = readMap(YT_DELAY_KEY)[songId];
   return {
     customSemitones: getUserSemitones(songId),
-    vocalRegister: readMap(REG_KEY)[songId] || '',
-    genderShift: readMap(GEN_KEY)[songId] || '',
-    fontSize: readMap(FONT_KEY)[songId] || 16,
+    vocalRegister: typeof register === 'string' ? register : '',
+    genderShift: gender === 'male' || gender === 'female' ? gender : '',
+    fontSize: typeof font === 'number' && Number.isFinite(font) && font > 0 ? font : 16,
     isFavorite: false,
-    ytDelayMs: readMap(YT_DELAY_KEY)[songId] ?? 0,
+    ytDelayMs: typeof delay === 'number' && Number.isFinite(delay) ? delay : 0,
   };
 }
 
@@ -210,10 +218,10 @@ export function useSongSettings(songId: string | undefined) {
 
       if (error) {
         console.error('[useSongSettings] Error guardando en Supabase:', {
-          code: (error as any).code,
+          code: error.code,
           message: error.message,
-          details: (error as any).details,
-          hint: (error as any).hint,
+          details: error.details,
+          hint: error.hint,
         });
         if (!opts?.silent) toast.error(`No se pudo sincronizar: ${error.message}`);
       } else {

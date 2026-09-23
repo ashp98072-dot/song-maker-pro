@@ -99,7 +99,7 @@ export function processInlineChords(text: string): string {
     }
 
     // Check for inline chord patterns like [Am] or (Am)
-    const inlinePattern = /[\[\(]([A-G][#b]?(?:m(?:aj)?7?|dim|aug|sus[24]|add9|7|6|9|11|13|maj7|maj9)?(?:\/[A-G][#b]?)?)[\]\)]/g;
+    const inlinePattern = /[[(]([A-G][#b]?(?:m(?:aj)?7?|dim|aug|sus[24]|add9|7|6|9|11|13|maj7|maj9)?(?:\/[A-G][#b]?)?)[\])]/g;
     const matches = [...trimmed.matchAll(inlinePattern)];
     
     if (matches.length > 0) {

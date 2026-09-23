@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { playClick } from '@/utils/metronomeAudio';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Props {
   bpm: number;
@@ -21,7 +22,7 @@ export default function SyncedMetronome({ bpm, onBpmChange, syncCode, isDirector
   const [beat, setBeat] = useState(0);
   const [synced, setSynced] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Director: maneja el intervalo y emite cada tick
   useEffect(() => {

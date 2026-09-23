@@ -65,7 +65,7 @@ export default function AddSongPage() {
 
   const handleSmartPaste = () => {
     if (!smartPasteText.trim()) return;
-    let processed = processInlineChords(smartPasteText);
+    const processed = processInlineChords(smartPasteText);
     const result = processSmartPaste(processed);
     setChords(result.chords);
     if (result.detectedKey) {
