@@ -531,7 +531,14 @@ export default function SongViewPage() {
   const logSongviewBlock = useCallback(
     (
       reason: string,
-      detail: { listId?: string | null; remoteIndex?: number | null; songId?: string | null }
+      detail: {
+        listId?: string | null;
+        remoteIndex?: number | null;
+        songId?: string | null;
+        anchor?: string;
+        viewMode?: ViewMode;
+        following?: boolean;
+      }
     ) => {
       const guard = getSongViewFollowGuard(detail.listId);
       if (!blockSongViewScrollEffects(guard)) return;
@@ -1116,9 +1123,6 @@ export default function SongViewPage() {
           sessionRecoveryLog('skipped continuous restore (manual exit)', {
             listId: state.listId,
           });
-          if (meta.role === 'director') {
-            setViewMode('musician');
-          }
         } else if (wantsContinuous && state.listId && meta.role === 'follower' && state.songId) {
           followViewmodeLog({
             reason: 'follower retained preferred mode',
@@ -1381,9 +1385,6 @@ export default function SongViewPage() {
 
         if (wantsContinuous && hasManualExitContinuous(state.listId)) {
           sessionRecoveryLog('skipped continuous sync (manual exit)', { listId: state.listId });
-          if (sessionConnection?.role === 'director') {
-            setViewMode('musician');
-          }
           return;
         }
 

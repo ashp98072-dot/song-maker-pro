@@ -21,7 +21,7 @@ const listeners = new Set<Listener>();
 let cachedIsMobile =
   typeof window !== 'undefined' ? computeIsMobileViewport() : false;
 
-let burstTimeouts: ReturnType<typeof setTimeout>[] = [];
+let burstTimeouts: number[] = [];
 
 function computeIsMobileViewport(): boolean {
   if (typeof window === 'undefined') return false;

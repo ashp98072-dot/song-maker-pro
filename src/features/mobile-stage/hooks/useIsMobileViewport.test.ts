@@ -16,7 +16,10 @@ describe('mobile viewport sync', () => {
         media: query,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
+        dispatchEvent: vi.fn(() => true),
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
       }))
     );
   });
@@ -38,7 +41,10 @@ describe('mobile viewport sync', () => {
           media: '',
           addEventListener: vi.fn(),
           removeEventListener: vi.fn(),
-          dispatchEvent: vi.fn(),
+          dispatchEvent: vi.fn(() => true),
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
         }) as MediaQueryList
     );
 
@@ -58,7 +64,10 @@ describe('mobile viewport sync', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
+      dispatchEvent: vi.fn(() => true),
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
     }));
 
     Object.defineProperty(window, 'innerWidth', {

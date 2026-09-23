@@ -32,6 +32,8 @@ function recovery(overrides: Partial<SessionRecoveryState>): SessionRecoveryStat
 function remote(overrides: Partial<SharedSessionState>): SharedSessionState {
   return {
     sessionId: 'ABCD',
+    customSemitones: 0,
+    genderShift: 'original',
     currentSongId: 'song-e',
     currentIndex: 4,
     listId: 'list-1',

@@ -3,6 +3,7 @@ export type JoinDebugChannel =
   | 'JOIN_STATE'
   | 'JOIN_ROUTE'
   | 'JOIN_BLOCKED'
+  | 'JOIN_ABORT'
   | 'JOIN_REDIRECT';
 
 export function getJoinPathname(): string {

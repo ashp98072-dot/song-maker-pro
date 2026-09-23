@@ -281,7 +281,7 @@ export default function CommunityChainDetailPage() {
         name: editName,
         description: editDescription,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }
@@ -308,7 +308,7 @@ export default function CommunityChainDetailPage() {
     try {
       const next = list.songs.filter((s) => s.song_id !== songId);
       const result = await updatePublicListSongs(list.id, next);
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }
@@ -331,7 +331,7 @@ export default function CommunityChainDetailPage() {
     setDeleting(true);
     try {
       const result = await deletePublicList(list.id);
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }
@@ -347,7 +347,7 @@ export default function CommunityChainDetailPage() {
     setPosting(true);
     try {
       const result = await postListComment(list.id, commentBody);
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }

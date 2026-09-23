@@ -22,7 +22,7 @@ const baseRow = {
   shared_section_anchor: 'chorus-1',
   follow_director: true,
   session_origin: null,
-} as const;
+} satisfies Parameters<typeof mapLiveSessionRow>[0];
 
 describe('mapLiveSessionRow', () => {
   it('maps postgres row to recovery state', () => {

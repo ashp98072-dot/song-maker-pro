@@ -109,7 +109,7 @@ export default function ProfilePage() {
         displayName,
         avatarUrl: profile?.avatarUrl,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }
@@ -127,7 +127,7 @@ export default function ProfilePage() {
     setUploading(true);
     try {
       const uploaded = await uploadAvatar(file);
-      if (!uploaded.ok) {
+      if (uploaded.ok === false) {
         toast.error(uploaded.error);
         return;
       }
@@ -135,7 +135,7 @@ export default function ProfilePage() {
         displayName: displayName || profile?.displayName || userName,
         avatarUrl: uploaded.url,
       });
-      if (!saved.ok) {
+      if (saved.ok === false) {
         toast.error(saved.error);
         return;
       }
@@ -159,7 +159,7 @@ export default function ProfilePage() {
       const result = wasFollowing
         ? await unfollowUser(targetId)
         : await followUser(targetId);
-      if (!result.ok) {
+      if (result.ok === false) {
         toast.error(result.error);
         return;
       }

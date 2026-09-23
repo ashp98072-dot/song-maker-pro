@@ -13,7 +13,7 @@ function prefersSpanish(title: string, artist?: string): boolean {
  */
 export function buildYouTubeSearchQuery(title: string, artist?: string): string {
   const core = [(title ?? '').trim(), artist?.trim()].filter(Boolean).join(' ');
-  const tags = [...POSITIVE_TAGS];
+  const tags: string[] = [...POSITIVE_TAGS];
   if (prefersSpanish(title, artist)) {
     tags.push('español');
   }

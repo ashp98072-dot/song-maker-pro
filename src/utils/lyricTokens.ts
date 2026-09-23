@@ -8,6 +8,8 @@ export type LyricToken =
   | { type: 'chord'; chord: string }
   | { type: 'musician_note'; text: string };
 
+export type LyricLineToken = Exclude<LyricToken, { type: 'chord' }>;
+
 const CHORD_IN_PARENS =
   /^[A-G][#b♯♭]?(?:(?:maj|min|m|dim|aug|sus|add|ø)\d*)*\d*(?:[#b]\d+)*(?:\/[A-G][#b♯♭]?)?$/i;
 
@@ -61,7 +63,7 @@ function findNextMatch(line: string, from: number): RawMatch | null {
 }
 
 /** Tokenize a single lyric line (not chord / section rows). */
-export function parseLyricLine(line: string): LyricToken[] {
+export function parseLyricLine(line: string): LyricLineToken[] {
   const trimmed = line.trim();
 
   const wholeStar = trimmed.match(/^\*([^*]+)\*$/);
@@ -77,7 +79,7 @@ export function parseLyricLine(line: string): LyricToken[] {
     }
   }
 
-  const tokens: LyricToken[] = [];
+  const tokens: LyricLineToken[] = [];
   let pos = 0;
   while (pos < line.length) {
     const match = findNextMatch(line, pos);

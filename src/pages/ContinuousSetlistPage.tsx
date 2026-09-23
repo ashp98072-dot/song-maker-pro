@@ -1,4 +1,4 @@
-import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate, useSearchParams, type To, type NavigateOptions } from 'react-router-dom';
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
@@ -273,7 +273,7 @@ export default function ContinuousSetlistPage() {
   >(null);
   const STABLE_VISIBILITY_MS = 400;
   const landing = useMemo(() => createLandingState(), []);
-  const windowUnfreezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const windowUnfreezeTimerRef = useRef<number | null>(null);
   const programmaticScrollUntilRef = useRef(0);
   const autoScrollingRef = useRef(false);
   const [directorSectionAnchor, setDirectorSectionAnchor] = useState('');
@@ -729,8 +729,8 @@ export default function ContinuousSetlistPage() {
 
   const auditedNavigate = useCallback(
     (
-      to: Parameters<typeof navigate>[0],
-      options?: Parameters<typeof navigate>[1],
+      to: To,
+      options?: NavigateOptions,
       source = 'navigate'
     ) => {
       const path = typeof to === 'string' ? to : '';
