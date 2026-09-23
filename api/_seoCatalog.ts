@@ -29,16 +29,19 @@ function supabaseConfig() {
   };
 }
 
-function mapRows(data: any[] | null | undefined): SeoSongRow[] {
+function mapRows(data: unknown): SeoSongRow[] {
+  if (!Array.isArray(data)) return [];
   const byId = new Map<string, SeoSongRow>();
-  for (const row of data || []) {
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
     const id = String(row?.song_id ?? '');
     if (!id || byId.has(id)) continue;
     byId.set(id, {
       id,
-      title: row.title || 'Canción',
-      artist: row.artist || '',
-      chords: row.chords || '',
+      title: typeof row.title === 'string' && row.title ? row.title : 'Canción',
+      artist: typeof row.artist === 'string' ? row.artist : '',
+      chords: typeof row.chords === 'string' ? row.chords : '',
     });
   }
   return [...byId.values()];

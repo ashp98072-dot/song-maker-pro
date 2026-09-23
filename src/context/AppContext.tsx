@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { AppState, Song, SongList } from '@/types/music';
 import { SAMPLE_SONGS } from '@/data/songs';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { loadVisitedSongsCache, mergeVisitedSongsIntoSongs } from '@/pwa/visitedSongsCache';
 import { clearAuthenticatedDirectorCache } from '@/features/director-session/utils/liveSessionAuth';
@@ -92,7 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const cloudRowToSong = (us: any): Song => {
+  const cloudRowToSong = (us: Tables<'user_songs'>): Song => {
     const baseKey = us.key || 'C';
     const isMinor = typeof baseKey === 'string' && /m($|[^a])/.test(baseKey);
     return {
@@ -139,11 +140,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('user_songs').select('*'),
         supabase.from('app_songs').select('*'),
       ]);
-      const appMap = new Map<string, any>(
-        Array.isArray(appRows) ? appRows.map((a: any) => [a.song_id, a]) : []
+      const appMap = new Map<string, Tables<'app_songs'>>(
+        Array.isArray(appRows) ? appRows.map((a) => [a.song_id, a]) : []
       );
 
-      let cloudRows = data && !error && Array.isArray(data) ? data : [];
+      const cloudRows = data && !error && Array.isArray(data) ? data : [];
 
       // Guests / anon often hit RLS empty — public SEO RPC still has the catalog.
       if (!cloudRows.length) {
@@ -164,7 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (cloudRows.length) {
         setSongs(prev => {
-          const cloudSongsMap = new Map<string, any>(cloudRows.map((us) => [us.song_id, us]));
+          const cloudSongsMap = new Map<string, Tables<'user_songs'>>(cloudRows.map((us) => [us.song_id, us]));
           const updatedExisting = prev.map(originalSong => {
             const globalVersion = cloudSongsMap.get(originalSong.id);
             const adminOverride = appMap.get(originalSong.id);
@@ -183,9 +184,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (adminOverride) {
               next = {
                 ...next,
-                originalGender: (adminOverride.original_gender as any) || next.originalGender,
+                originalGender: adminOverride.original_gender === 'male' || adminOverride.original_gender === 'female'
+                  ? adminOverride.original_gender : next.originalGender,
                 originalKey: adminOverride.original_key || next.originalKey,
-                scaleMode: (adminOverride.scale_mode as any) || next.scaleMode,
+                scaleMode: adminOverride.scale_mode === 'major' || adminOverride.scale_mode === 'minor'
+                  ? adminOverride.scale_mode : next.scaleMode,
               };
             }
             return next;
@@ -312,12 +315,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const channel = supabase
       .channel('schema-db-changes')
-      .on(
+      .on<Tables<'user_songs'>>(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_songs' },
         (payload) => {
-          const updatedSong = payload.new as Record<string, unknown>;
-          if (updatedSong) {
+          const updatedSong = payload.new;
+          if ('song_id' in updatedSong && updatedSong.song_id) {
             setSongs((prev) => {
               const songId = String(updatedSong.song_id ?? '');
               const exists = prev.some((s) => s.id === songId);

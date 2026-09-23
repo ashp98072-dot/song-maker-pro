@@ -26,7 +26,7 @@ Cierre: pruebas, tipos y build pasan sin ocultar errores mediante `any`, exclusi
 
 ## 2. Limpiar lint y definir controles
 
-- [ ] Resolver los errores empezando por módulos activos y datos externos.
+- [x] Resolver los errores empezando por módulos activos y datos externos.
 - [ ] Revisar dependencias de hooks individualmente, comprobando reconexiones y bucles.
 - [ ] Resolver o justificar individualmente las advertencias restantes.
 - [ ] Elegir un gestor de paquetes y reconciliar lockfiles tras revisar el despliegue.
@@ -77,3 +77,12 @@ Resultados: 61 archivos y 219 pruebas pasan. TypeScript conserva 57 errores; des
 Los 57 errores pendientes de la aplicación quedaron resueltos. Se corrigió además el entorno de tipos de los callbacks de navegador en Vite y se agregó un chequeo estricto para los endpoints API. El build normal y el de desarrollo ejecutan los tres chequeos. GitHub Actions ejecuta instalación, pruebas y build en PRs y pushes a main.
 
 Validación local: 219 pruebas pasan; chequeos de aplicación, Vite y API pasan; build de producción y generación de PWA pasan. Vite conserva advertencias por módulos importados tanto estática como dinámicamente. ESLint conserva 39 errores y 70 advertencias; su limpieza corresponde a la etapa 2. La sincronización entre dispositivos todavía requiere validación conectada.
+
+
+## Tercer bloque: errores de lint
+
+Resueltos los 39 errores sin desactivar reglas. Tipos del esquema para canciones y canales Supabase; validación de mapas locales y respuestas SEO; manejo de errores desconocidos; setters de ajustes estables y tipados; limpieza de interfaces vacías, regex e importación Tailwind. Los eventos Realtime sin song_id ya no producen una canción vacía.
+
+Validación: 230 pruebas de la suite completa y 2 pruebas adicionales del catálogo SEO pasan (232 en total); chequeo de tipos y build de producción/PWA pasan. Lint pasa con 0 errores y 62 advertencias. CI ahora ejecuta lint antes de pruebas/build.
+
+La etapa 2 permanece abierta. Pendientes: 47 advertencias de dependencias de hooks, 14 de Fast Refresh y una directiva de lint innecesaria. Revisar primero los hooks del flujo activo con pruebas de reconexión, después los proveedores heredados y exportaciones compartidas. No se han desactivado advertencias ni validado sesiones reales entre dispositivos.

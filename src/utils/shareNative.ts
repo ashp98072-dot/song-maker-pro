@@ -13,9 +13,9 @@ export async function shareNative(data: ShareData): Promise<void> {
     try {
       await navigator.share(data);
       return;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // El usuario canceló — no es un error real
-      if (err?.name === 'AbortError') return;
+      if (err && typeof err === 'object' && 'name' in err && err.name === 'AbortError') return;
       // Cualquier otro error: caemos al fallback
       console.warn('Web Share falló, usando portapapeles:', err);
     }

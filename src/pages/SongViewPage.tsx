@@ -417,23 +417,28 @@ export default function SongViewPage() {
   const { settings, setSettings, saveNow, isSaving, lastSavedAt, isLoaded: settingsLoaded } = useSongSettings(effectiveSongId ?? undefined);
   const safeSettings = settings ?? EMPTY_SONG_SETTINGS;
   const vocalRegister = safeSettings.vocalRegister as VocalRegister | '';
-  const setVocalRegister = (v: VocalRegister | '') => setSettings(s => ({ ...s, vocalRegister: v }));
+  const setVocalRegister = useCallback((v: VocalRegister | '') => {
+    setSettings(s => ({ ...s, vocalRegister: v }));
+  }, [setSettings]);
   const genderShift = safeSettings.genderShift as '' | 'male' | 'female';
-  const setGenderShift = (g: '' | 'male' | 'female' | ((p: any) => any)) => {
-    if (typeof g === 'function') setSettings(s => ({ ...s, genderShift: (g as any)(s.genderShift) }));
-    else setSettings(s => ({ ...s, genderShift: g }));
-  };
+  const setGenderShift = useCallback((g: '' | 'male' | 'female' | ((p: '' | 'male' | 'female') => '' | 'male' | 'female')) => {
+    setSettings(s => ({
+      ...s,
+      genderShift: typeof g === 'function'
+        ? g(s.genderShift === 'male' || s.genderShift === 'female' ? s.genderShift : '') : g,
+    }));
+  }, [setSettings]);
   const customSemitones = safeSettings.customSemitones;
-  const setCustomSemitones = (v: number | ((prev: number) => number)) => {
-    setSettings(s => ({ ...s, customSemitones: typeof v === 'function' ? (v as any)(s.customSemitones) : v }));
-  };
+  const setCustomSemitones = useCallback((v: number | ((prev: number) => number)) => {
+    setSettings(s => ({ ...s, customSemitones: typeof v === 'function' ? v(s.customSemitones) : v }));
+  }, [setSettings]);
   const fontSize = safeSettings.fontSize;
   const setFontSize = (v: number | ((prev: number) => number)) => {
-    setSettings(s => ({ ...s, fontSize: typeof v === 'function' ? (v as any)(s.fontSize) : v }));
+    setSettings(s => ({ ...s, fontSize: typeof v === 'function' ? v(s.fontSize) : v }));
   };
   const ytDelayMs = safeSettings.ytDelayMs;
   const setYtDelayMs = (v: number | ((prev: number) => number)) => {
-    setSettings(s => ({ ...s, ytDelayMs: typeof v === 'function' ? (v as any)(s.ytDelayMs) : v }));
+    setSettings(s => ({ ...s, ytDelayMs: typeof v === 'function' ? v(s.ytDelayMs) : v }));
   };
 
   // Si llega ?sc=... (compartido), aplicamos esa transposición una sola vez al cargar
@@ -2183,7 +2188,7 @@ export default function SongViewPage() {
             fontSize: computeFitted(fullscreenFontSize),
             fontFamily: "'Courier New', Courier, monospace",
             whiteSpace: 'pre',
-            WebkitOverflowScrolling: 'touch' as any,
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           <ChordSheet
@@ -2443,7 +2448,7 @@ export default function SongViewPage() {
                   fontSize: computeFitted(fontSize + lyricFontBoost),
                   fontFamily: "'Courier New', Courier, monospace",
                   whiteSpace: 'pre',
-                  WebkitOverflowScrolling: 'touch' as any,
+                  WebkitOverflowScrolling: 'touch',
                 }}
               >
                 <ChordSheet

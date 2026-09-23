@@ -1699,7 +1699,7 @@ export default function ContinuousSetlistPage() {
         typeof patch?.currentIndex === 'number' && patch.currentIndex >= 0
           ? patch.currentIndex
           : prev.currentIndex;
-      let songId =
+      const songId =
         patch?.currentSongId ??
         (index >= 0 && ids[index] ? ids[index] : prev.currentSongId);
 
