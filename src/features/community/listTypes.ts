@@ -82,7 +82,7 @@ export function snapshotToSong(snap: PublicListSongSnapshot): Song {
 export function parseListSongsJson(raw: unknown): PublicListSongSnapshot[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((item) => {
+    .map((item): PublicListSongSnapshot | null => {
       if (!item || typeof item !== 'object') return null;
       const o = item as Record<string, unknown>;
       const title = String(o.title || '').trim();
