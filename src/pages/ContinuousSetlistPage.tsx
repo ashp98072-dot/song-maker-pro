@@ -184,7 +184,10 @@ export default function ContinuousSetlistPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const routeState = (location.state as ContinuousRouteState | null) ?? {};
+  const routeState = useMemo(
+    () => (location.state as ContinuousRouteState | null) ?? {},
+    [location.state]
+  );
   const indexFromQuery = Number.parseInt(searchParams.get('index') ?? '', 10);
   const routeInitialIndex =
     typeof routeState.initialIndex === 'number' && routeState.initialIndex >= 0

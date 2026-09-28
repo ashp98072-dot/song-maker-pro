@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import ChordSheet from '@/features/song-view/components/ChordSheet';
 import { useTransposeEngine } from '@/features/transpose/hooks/useTransposeEngine';
 import { getUserSemitones } from '@/utils/userTranspositions';
@@ -23,7 +23,6 @@ export function ContinuousSongBlock({
   index,
   total,
   settings,
-  transposeRevision,
   isActive,
   activeSectionAnchor = '',
   onSectionAnchorClick,
@@ -33,10 +32,8 @@ export function ContinuousSongBlock({
   const showChords = !lyricsOnly;
   const showMusicianNotes = !lyricsOnly;
 
-  const customSemitones = useMemo(
-    () => getUserSemitones(song.id),
-    [song.id, transposeRevision]
-  );
+  // The parent rerenders when transposeRevision changes; read the current preference.
+  const customSemitones = getUserSemitones(song.id);
   const [localSectionAnchor, setLocalSectionAnchor] = useState('');
   const [useAmerican] = useState(true);
 

@@ -636,7 +636,7 @@ export default function SongViewPage() {
       lastSongOnlySyncKeyRef.current = key;
       navigate(songPath(songId), { state: navState });
     },
-    [getSongViewFollowGuard, id, navigate, logSongviewBlock]
+    [getSongViewFollowGuard, id, navigate, logSongviewBlock, location.pathname, songPath]
   );
   const lastSeqRef = useRef(0);
   const applyingRemoteRef = useRef(false);
@@ -814,13 +814,15 @@ export default function SongViewPage() {
 
   const lastSongIdForYoutubeRef = useRef<string | undefined>();
   const youtubePersistTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const displayedSongId = song?.id;
+  const persistedYoutubeUrl = song?.youtubeUrl;
 
   // Hidratar YouTube persistido al abrir/cambiar de canción (canciones antiguas: sin URL)
   useEffect(() => {
-    if (!song) return;
-    const persisted = song.youtubeUrl?.trim() ?? '';
-    const songChanged = lastSongIdForYoutubeRef.current !== song.id;
-    lastSongIdForYoutubeRef.current = song.id;
+    if (!displayedSongId) return;
+    const persisted = persistedYoutubeUrl?.trim() ?? '';
+    const songChanged = lastSongIdForYoutubeRef.current !== displayedSongId;
+    lastSongIdForYoutubeRef.current = displayedSongId;
 
     if (songChanged) {
       setYoutubeUrl(persisted);
@@ -836,7 +838,7 @@ export default function SongViewPage() {
         return prev;
       });
     }
-  }, [song?.id, song?.youtubeUrl, setYoutubeUrl, setShowYoutube]);
+  }, [displayedSongId, persistedYoutubeUrl, setYoutubeUrl, setShowYoutube]);
 
   useEffect(() => {
     return () => {
@@ -1253,9 +1255,10 @@ export default function SongViewPage() {
       }
     },
     [
+      songPath,
+      setGenderShift,
       settingsLoaded,
       genderShift,
-      followDirector,
       viewMode,
       id,
       navigate,
@@ -1264,7 +1267,6 @@ export default function SongViewPage() {
       location.pathname,
       navigateFollowerSongOnly,
       getSongViewFollowGuard,
-      logSongviewBlock,
     ]
   );
 
@@ -1583,6 +1585,7 @@ export default function SongViewPage() {
       }
     },
     [
+      songPath,
       settingsLoaded,
       customSemitones,
       genderShift,
@@ -1731,9 +1734,9 @@ export default function SongViewPage() {
       ytPostMessage('seekTo', [state.youtubeSeek, true]);
     }
   }, [
+    songPath,
     id,
     navigate,
-    followDirector,
     metronomeBpm,
     activeSectionAnchor,
     song?.chords,
@@ -1781,10 +1784,10 @@ export default function SongViewPage() {
   }, []);
 
   useEffect(() => {
-    if (import.meta.env.DEV && song) {
-      console.log('[SongViewPage] montado', song.id);
+    if (import.meta.env.DEV && displayedSongId) {
+      console.log('[SongViewPage] montado', displayedSongId);
     }
-  }, [song?.id]);
+  }, [displayedSongId]);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -1805,6 +1808,7 @@ export default function SongViewPage() {
       },
     });
   }, [
+    songPath,
     navigate,
     incomingListId,
     incomingListSongIds,
@@ -1841,12 +1845,8 @@ export default function SongViewPage() {
       directorListSongIds,
       joinSessionCode,
       navigate,
-      liveIsDirector,
-      publishSharedSessionIfDirector,
       sessionConnection,
       song?.id,
-      customSemitones,
-      genderShift,
     ]
   );
 
@@ -1881,15 +1881,12 @@ export default function SongViewPage() {
     }
   }, [
     navigate,
-    liveIsDirector,
-    publishSharedSessionIfDirector,
     sessionConnection,
-    song?.id,
+    song,
+    songs,
     incomingListId,
     incomingListSongIds,
     routeNavState.currentIndex,
-    customSemitones,
-    genderShift,
     effectiveJoinCode,
     joinSessionCode,
   ]);
@@ -1968,7 +1965,7 @@ export default function SongViewPage() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const blockers: string[] = [];
-    if (!song) blockers.push('no-song');
+    if (!displayedSongId) blockers.push('no-song');
     if (!isMobileViewport) blockers.push('isMobileViewport=false');
     if (isMobileStageActive) blockers.push('mobileStageActive');
     if (isEditing) blockers.push('isEditing');
@@ -1980,11 +1977,11 @@ export default function SongViewPage() {
       mobileStageMode,
       isEditing,
       isFullscreen,
-      songId: song?.id,
+      songId: displayedSongId,
       snapshot: readViewportSnapshot(),
     });
   }, [
-    song?.id,
+    displayedSongId,
     worshipDockVisible,
     isMobileViewport,
     isMobileStageActive,

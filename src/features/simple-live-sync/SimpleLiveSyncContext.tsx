@@ -1,7 +1,6 @@
+import { SimpleLiveSyncContext } from './useSimpleLiveSync';
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -88,7 +87,7 @@ export type SimpleLiveSyncContextValue = {
   setFollowDirector: (on: boolean) => void;
 };
 
-const SimpleLiveSyncContext = createContext<SimpleLiveSyncContextValue | null>(null);
+
 
 function log(msg: string, detail?: Record<string, unknown>) {
   console.log(`[SIMPLE_LIVE] ${msg}`, detail ?? {});
@@ -132,6 +131,10 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const presenceKeyRef = useRef('director');
   const resumeInFlightRef = useRef(false);
+  const channelEpochRef = useRef(0);
+  const mountedRef = useRef(true);
+  const channelTimersRef = useRef(new Set<number>());
+  const cancelSubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     roleRef.current = role;
@@ -161,9 +164,14 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const teardownChannel = useCallback(async () => {
+    channelEpochRef.current += 1;
     stopHeartbeat();
     const ch = channelRef.current;
     channelRef.current = null;
+    channelTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    channelTimersRef.current.clear();
+    cancelSubscribeRef.current?.();
+    cancelSubscribeRef.current = null;
     if (!ch) return;
     try {
       await supabase.removeChannel(ch);
@@ -171,6 +179,14 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [stopHeartbeat]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      void teardownChannel();
+    };
+  }, [teardownChannel]);
 
   const resetLocal = useCallback(() => {
     setRole('idle');
@@ -199,8 +215,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       semitones: state.semitones,
       genderShift: state.genderShift,
       sectionAnchor: state.sectionAnchor,
-      listLen: state.listSongIds?.length ?? 0,
-      listHead: state.listSongIds?.[0] ?? null,
+      listSongIds: state.listSongIds ?? [],
     });
     if (!force && key === lastPublishKeyRef.current) return;
     lastPublishKeyRef.current = key;
@@ -258,13 +273,18 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
 
   const subscribeChannel = useCallback(
     async (sessionCode: string, asRole: 'director' | 'follower') => {
-      await teardownChannel();
+      if (!mountedRef.current) return 'cancelled' as const;
+      const teardown = teardownChannel();
+      const epoch = channelEpochRef.current;
+      await teardown;
+      if (!mountedRef.current || epoch !== channelEpochRef.current) return 'cancelled' as const;
       const normalized = normalizeSessionCode(sessionCode);
       const channelName = simpleLiveChannelName(normalized);
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      if (!mountedRef.current || epoch !== channelEpochRef.current) return 'cancelled' as const;
       if (session?.access_token) {
         try {
           await supabase.realtime.setAuth(session.access_token);
@@ -273,6 +293,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (!mountedRef.current || epoch !== channelEpochRef.current) return 'cancelled' as const;
       const userId = session?.user?.id?.slice(0, 8) ?? 'anon';
       const presenceKey =
         asRole === 'director'
@@ -287,11 +308,12 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
         },
       });
       channelRef.current = channel;
+      const isCurrentChannel = () => channelRef.current === channel;
 
       channel.on('broadcast', { event: SIMPLE_LIVE_STATE_EVENT }, ({ payload }) => {
-        if (roleRef.current !== 'follower') return;
+        if (!isCurrentChannel() || roleRef.current !== 'follower') return;
         const state = payload as SimpleLiveState;
-        if (!state?.sessionCode) return;
+        if (!state?.sessionCode || normalizeSessionCode(state.sessionCode) !== normalized) return;
         log('state received', {
           songId: state.songId,
           viewMode: state.viewMode,
@@ -303,7 +325,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       });
 
       channel.on('broadcast', { event: SIMPLE_LIVE_REQUEST_EVENT }, () => {
-        if (roleRef.current !== 'director' || !lastStateRef.current) return;
+        if (!isCurrentChannel() || roleRef.current !== 'director' || !lastStateRef.current) return;
         log('request received — republish');
         publishSnapshot(
           {
@@ -315,14 +337,16 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       });
 
       channel.on('broadcast', { event: SIMPLE_LIVE_END_EVENT }, () => {
-        if (roleRef.current !== 'follower') return;
+        if (!isCurrentChannel() || roleRef.current !== 'follower') return;
         log('director ended session');
         toast.info('El director cerró la sesión');
         rememberHint(null);
-        void teardownChannel().then(resetLocal);
+        void teardownChannel();
+        resetLocal();
       });
 
       const syncPresence = () => {
+        if (!isCurrentChannel()) return;
         const state = channel.presenceState();
         const followers = countFollowers(state);
         setConnectedCount((prev) => {
@@ -335,31 +359,53 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
 
       channel.on('presence', { event: 'sync' }, syncPresence);
       channel.on('presence', { event: 'join' }, ({ key }) => {
+        if (!isCurrentChannel()) return;
         syncPresence();
         if (roleRef.current !== 'director' || key === 'director') return;
         if (!lastStateRef.current) return;
-        window.setTimeout(() => {
+        const timer = window.setTimeout(() => {
+          channelTimersRef.current.delete(timer);
+          if (!isCurrentChannel() || roleRef.current !== 'director' || !lastStateRef.current) return;
           publishSnapshot(
             {
-              ...lastStateRef.current!,
+              ...lastStateRef.current,
               updatedAt: new Date().toISOString(),
             },
             true
           );
           log('republish for presence join', { key });
         }, 400);
+        channelTimersRef.current.add(timer);
       });
       channel.on('presence', { event: 'leave' }, syncPresence);
 
-      return new Promise<boolean>((resolve) => {
+      return new Promise<boolean | 'cancelled'>((resolve) => {
         let settled = false;
-        const finish = (ok: boolean) => {
+
+        const finish = (ok: boolean | 'cancelled') => {
           if (settled) return;
           settled = true;
+          if (timeout !== undefined) {
+            window.clearTimeout(timeout);
+            channelTimersRef.current.delete(timeout);
+          }
+          cancelSubscribeRef.current = null;
           resolve(ok);
         };
+        cancelSubscribeRef.current = () => finish('cancelled');
+
+        const timeout = window.setTimeout(() => {
+          if (!settled) {
+            log('subscribe timeout');
+            // Do not pretend success — guest join would hang waiting for state.
+            finish(false);
+            void teardownChannel();
+          }
+        }, 12_000);
+        channelTimersRef.current.add(timeout);
 
         channel.subscribe(async (statusMsg, err) => {
+          if (!isCurrentChannel()) return;
           log('subscribe', { status: statusMsg, error: err?.message, presenceKey });
           if (statusMsg === 'SUBSCRIBED') {
             try {
@@ -370,8 +416,10 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
             } catch (e) {
               log('presence track failed', { error: String(e) });
             }
+            if (!isCurrentChannel()) return;
             startHeartbeat(channel, asRole);
             setStatus('connected');
+            setError(null);
 
             if (asRole === 'follower') {
               void channel.send({
@@ -388,22 +436,20 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
             statusMsg === 'TIMED_OUT' ||
             statusMsg === 'CLOSED'
           ) {
+            stopHeartbeat();
             setStatus('error');
             setError(err?.message ?? statusMsg);
-            finish(false);
+            if (!settled) {
+              finish(false);
+              void teardownChannel();
+            }
           }
         });
 
-        window.setTimeout(() => {
-          if (!settled) {
-            log('subscribe timeout');
-            // Do not pretend success — guest join would hang waiting for state.
-            finish(false);
-          }
-        }, 12_000);
+
       });
     },
-    [publishSnapshot, rememberHint, resetLocal, startHeartbeat, teardownChannel]
+    [publishSnapshot, rememberHint, resetLocal, startHeartbeat, stopHeartbeat, teardownChannel]
   );
 
   const createAsDirector = useCallback(
@@ -461,6 +507,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       lastStateRef.current = state;
 
       const ok = await subscribeChannel(newCode, 'director');
+      if (ok === 'cancelled') return false;
       if (!ok) {
         toast.error('No se pudo conectar el canal en vivo');
         setStatus('error');
@@ -476,7 +523,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       log('director created', { code: newCode });
       return true;
     },
-    [buildState, publishSnapshot, rememberHint, subscribeChannel]
+    [publishSnapshot, rememberHint, subscribeChannel]
   );
 
   const joinAsFollower = useCallback(
@@ -506,6 +553,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
       rememberHint({ code: normalized, role: 'follower' });
 
       const ok = await subscribeChannel(normalized, 'follower');
+      if (ok === 'cancelled') return false;
       if (!ok) {
         resetLocal();
         toast.error('No se pudo unir al canal');
@@ -572,6 +620,7 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
     rememberHint(hint);
 
     const ok = await subscribeChannel(hint.code, 'director');
+    if (ok === 'cancelled') return false;
     if (!ok) {
       setStatus('error');
       toast.error('No se pudo reconectar');
@@ -690,16 +739,4 @@ export function SimpleLiveSyncProvider({ children }: { children: ReactNode }) {
   return (
     <SimpleLiveSyncContext.Provider value={value}>{children}</SimpleLiveSyncContext.Provider>
   );
-}
-
-export function useSimpleLiveSync(): SimpleLiveSyncContextValue {
-  const ctx = useContext(SimpleLiveSyncContext);
-  if (!ctx) {
-    throw new Error('useSimpleLiveSync must be used within SimpleLiveSyncProvider');
-  }
-  return ctx;
-}
-
-export function useSimpleLiveSyncOptional(): SimpleLiveSyncContextValue | null {
-  return useContext(SimpleLiveSyncContext);
 }

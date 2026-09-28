@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Radio } from 'lucide-react';
-import { useSimpleLiveSyncOptional } from './SimpleLiveSyncContext';
+import { useSimpleLiveSyncOptional } from './useSimpleLiveSync';
 
 /** Manual rejoin only — never auto-connects. */
 export function SimpleLiveResumeBanner() {

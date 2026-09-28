@@ -86,3 +86,19 @@ Resueltos los 39 errores sin desactivar reglas. Tipos del esquema para canciones
 Validación: 230 pruebas de la suite completa y 2 pruebas adicionales del catálogo SEO pasan (232 en total); chequeo de tipos y build de producción/PWA pasan. Lint pasa con 0 errores y 62 advertencias. CI ahora ejecuta lint antes de pruebas/build.
 
 La etapa 2 permanece abierta. Pendientes: 47 advertencias de dependencias de hooks, 14 de Fast Refresh y una directiva de lint innecesaria. Revisar primero los hooks del flujo activo con pruebas de reconexión, después los proveedores heredados y exportaciones compartidas. No se han desactivado advertencias ni validado sesiones reales entre dispositivos.
+
+## Cuarto bloque: ciclo de vida del canal activo
+
+El proveedor Simple Live Sync limpia el canal, heartbeat y temporizadores al desmontarse. Los callbacks de canales reemplazados no pueden modificar la sesión vigente; la suscripción comprueba su vigencia también después de operaciones asíncronas. Una conexión pendiente cancelada se distingue de un fallo para no borrar la sesión que la reemplaza. Los timeouts liberan el canal y la reconexión limpia el error anterior.
+
+La deduplicación de publicaciones compara toda la lista de canciones, de modo que los cambios de orden no se pierden cuando coinciden la longitud y la primera canción. Los hooks públicos se separaron del proveedor para Fast Refresh. Se estabilizó el estado de ruta vacío y se retiró una dependencia redundante del observador de scroll.
+
+Diez pruebas nuevas cubren estos comportamientos con canales simulados; las primeras seis reprodujeron fallos antes de la corrección. Validación del 2026-09-28: 242 pruebas pasan en 65 archivos; lint reporta 0 errores y 56 advertencias (seis menos). La validación entre dispositivos y las demás advertencias siguen pendientes; estas pruebas no sustituyen una prueba conectada a Supabase.
+
+TypeScript, build de producción y generación PWA también pasan. Se conservan las advertencias de Vite por importaciones estáticas y dinámicas de los mismos módulos.
+
+### Ampliación: callbacks de páginas y transposición
+
+Se corrigieron las dependencias de navegación, recuperación y preferencias en SongViewPage. El registro de callbacks de DirectorSession conserva una suscripción y utiliza las funciones más recientes; cambiar un callback ya no vuelve a disparar el registro y la recuperación. El cierre por evento utiliza la función actual. ContinuousSongBlock vuelve a leer la transposición persistida al renderizar, incluido el reinicio a cero.
+
+Cuatro pruebas adicionales cubren renovación de callbacks, activación/limpieza, preferencias de notificación y transposición persistida. Validación local del 2026-09-28: 246 pruebas en 67 archivos; lint con 0 errores y 43 advertencias. SongViewPage y ContinuousSongBlock quedan sin advertencias de hooks. Se mantiene pendiente la validación conectada y la limpieza de los proveedores heredados.
