@@ -92,7 +92,7 @@ export function useScrollVisibility(
       io.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [enabled, measure, scrollRootRef, songIds.join(',')]);
+  }, [enabled, measure, scrollRootRef]);
 
   const scrollToSongId = useCallback(
     (songId: string, behavior: ScrollBehavior = 'smooth') => {

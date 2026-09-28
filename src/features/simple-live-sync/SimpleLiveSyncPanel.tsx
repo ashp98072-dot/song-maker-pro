@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { normalizeSessionCode } from '@/features/director-session/types';
 import type { ViewMode } from '@/types/music';
 import { shareNative } from '@/utils/shareNative';
-import { useSimpleLiveSync } from './SimpleLiveSyncContext';
+import { useSimpleLiveSync } from './useSimpleLiveSync';
 import type { SimpleLiveState } from './types';
 import { buildLiveJoinUrl, liveJoinQrImageUrl } from './liveJoinUrl';
 
