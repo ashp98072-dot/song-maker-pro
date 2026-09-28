@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSessionPageHandlers } from '@/features/director-session/hooks/useSessionPageHandlers';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Radio, Users, Copy, X, Wifi, ChevronLeft, ChevronRight, MessageSquare, Search, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -253,13 +254,16 @@ export default function DirectorSession({
   const sessionOriginRef = useRef<SessionOrigin | null>(null);
   const useGlobalChannel = !!liveSessionCtx;
 
-  const effectivePageContext = pageContext ?? { songId, listId, listSongIds };
+  const effectivePageContext = useMemo(
+    () => pageContext ?? { songId, listId, listSongIds },
+    [pageContext, songId, listId, listSongIds]
+  );
 
   const isOutOfSessionScope = useCallback(() => {
     const origin = sessionOriginRef.current;
     if (!origin || !isDirector) return false;
     return !isPageInSessionScope(origin, effectivePageContext);
-  }, [isDirector, effectivePageContext, songId, listId, listSongIds]);
+  }, [isDirector, effectivePageContext]);
 
   // Mantenemos siempre el estado más reciente en un ref, para que el broadcast
   // pueda enviar datos actualizados SIN necesidad de recrear el canal.
@@ -320,35 +324,11 @@ export default function DirectorSession({
     followDirector,
   ]);
 
-  const onSessionUpdateRef = useRef(onSessionUpdate);
-  useEffect(() => { onSessionUpdateRef.current = onSessionUpdate; }, [onSessionUpdate]);
-
   const onConnectionChangeRef = useRef(onConnectionChange);
   useEffect(() => { onConnectionChangeRef.current = onConnectionChange; }, [onConnectionChange]);
 
-  const onSharedSessionUpdateRef = useRef(onSharedSessionUpdate);
-  useEffect(() => { onSharedSessionUpdateRef.current = onSharedSessionUpdate; }, [onSharedSessionUpdate]);
-
-  const onSharedSessionEndedRef = useRef(onSharedSessionEnded);
-  useEffect(() => { onSharedSessionEndedRef.current = onSharedSessionEnded; }, [onSharedSessionEnded]);
-
   const onSessionRecoveredRef = useRef(onSessionRecovered);
   useEffect(() => { onSessionRecoveredRef.current = onSessionRecovered; }, [onSessionRecovered]);
-
-  const onDirectorSessionEstablishedRef = useRef(onDirectorSessionEstablished);
-  useEffect(() => {
-    onDirectorSessionEstablishedRef.current = onDirectorSessionEstablished;
-  }, [onDirectorSessionEstablished]);
-
-  const onDirectorSessionStartFailedRef = useRef(onDirectorSessionStartFailed);
-  useEffect(() => {
-    onDirectorSessionStartFailedRef.current = onDirectorSessionStartFailed;
-  }, [onDirectorSessionStartFailed]);
-
-  const onRequestSharedSessionPublishRef = useRef(onRequestSharedSessionPublish);
-  useEffect(() => {
-    onRequestSharedSessionPublishRef.current = onRequestSharedSessionPublish;
-  }, [onRequestSharedSessionPublish]);
 
   const sessionPanelVisibleRef = useRef(sessionPanelVisible);
   useEffect(() => {
@@ -449,23 +429,7 @@ export default function DirectorSession({
   const isOutOfSessionScopeRef = useRef(isOutOfSessionScope);
   isOutOfSessionScopeRef.current = isOutOfSessionScope;
 
-  useEffect(() => {
-    if (!useGlobalChannel) return;
-    return registerPageHandlers({
-      onSessionUpdate: (state) => onSessionUpdateRef.current?.(state),
-      onSharedSessionUpdate: (state) => onSharedSessionUpdateRef.current?.(state),
-      onSharedSessionEnded: () => onSharedSessionEndedRef.current?.(),
-      onSessionRecovered: (state, meta) => onSessionRecoveredRef.current?.(state, meta),
-      onDirectorSessionEstablished: (code) =>
-        onDirectorSessionEstablishedRef.current?.(code),
-      onDirectorSessionStartFailed: () => onDirectorSessionStartFailedRef.current?.(),
-      onRequestSharedSessionPublish: () =>
-        onRequestSharedSessionPublishRef.current?.(),
-      notifyOnSessionEnd,
-    });
-  }, [
-    useGlobalChannel,
-    registerPageHandlers,
+  useSessionPageHandlers(useGlobalChannel, registerPageHandlers, {
     onSessionUpdate,
     onSharedSessionUpdate,
     onSharedSessionEnded,
@@ -474,7 +438,7 @@ export default function DirectorSession({
     onDirectorSessionStartFailed,
     onRequestSharedSessionPublish,
     notifyOnSessionEnd,
-  ]);
+  });
 
   useEffect(() => {
     updateBroadcastState(stateRef.current);
@@ -756,10 +720,10 @@ export default function DirectorSession({
     }
   };
 
-  const endSession = (opts?: { silent?: boolean }) => {
+  const endSession = useCallback((opts?: { silent?: boolean }) => {
     lastPersistedRef.current = null;
     void endDirectorSession(opts);
-  };
+  }, [endDirectorSession]);
 
   const joinSession = () => {
     const code = normalizeSessionCode(joinCode);
@@ -794,7 +758,7 @@ export default function DirectorSession({
     };
     window.addEventListener(DIRECTOR_SESSION_TERMINATE_EVENT, onTerminate);
     return () => window.removeEventListener(DIRECTOR_SESSION_TERMINATE_EVENT, onTerminate);
-  }, [isDirector, sessionCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDirector, sessionCode, endSession]);
 
   useEffect(() => {
     const onHardClear = () => {
@@ -1029,7 +993,7 @@ export default function DirectorSession({
     isFollower,
     joinCode,
     sessionCode,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   /** Asegura canal de seguidor cuando hay join explícito (código en ruta / Reunirme). */
   useEffect(() => {

@@ -96,3 +96,9 @@ La deduplicación de publicaciones compara toda la lista de canciones, de modo q
 Diez pruebas nuevas cubren estos comportamientos con canales simulados; las primeras seis reprodujeron fallos antes de la corrección. Validación del 2026-09-28: 242 pruebas pasan en 65 archivos; lint reporta 0 errores y 56 advertencias (seis menos). La validación entre dispositivos y las demás advertencias siguen pendientes; estas pruebas no sustituyen una prueba conectada a Supabase.
 
 TypeScript, build de producción y generación PWA también pasan. Se conservan las advertencias de Vite por importaciones estáticas y dinámicas de los mismos módulos.
+
+### Ampliación: callbacks de páginas y transposición
+
+Se corrigieron las dependencias de navegación, recuperación y preferencias en SongViewPage. El registro de callbacks de DirectorSession conserva una suscripción y utiliza las funciones más recientes; cambiar un callback ya no vuelve a disparar el registro y la recuperación. El cierre por evento utiliza la función actual. ContinuousSongBlock vuelve a leer la transposición persistida al renderizar, incluido el reinicio a cero.
+
+Cuatro pruebas adicionales cubren renovación de callbacks, activación/limpieza, preferencias de notificación y transposición persistida. Validación local del 2026-09-28: 246 pruebas en 67 archivos; lint con 0 errores y 43 advertencias. SongViewPage y ContinuousSongBlock quedan sin advertencias de hooks. Se mantiene pendiente la validación conectada y la limpieza de los proveedores heredados.
