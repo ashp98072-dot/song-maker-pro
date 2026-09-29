@@ -108,3 +108,11 @@ Cuatro pruebas adicionales cubren renovación de callbacks, activación/limpieza
 Las variantes compartidas de Button y Toggle y la regla de visibilidad de la barra móvil se trasladaron a módulos independientes; sus consumidores importan desde esos módulos. Se retiraron exportaciones sin consumidores de Badge, NavigationMenu y Sonner. Los estilos y la regla de visibilidad se conservan.
 
 ESLint pasa con 0 errores y 37 advertencias (seis menos). Este bloque no cambia los proveedores de sincronización; quedan pendientes sus advertencias de hooks, los demás límites de Fast Refresh y la validación entre dispositivos.
+
+## Sexto bloque: importación administrativa Holyrics
+
+Implementado lector de datos Java para .muf/.mufl, integrado con revisión y selección previa. Se preservan título, artista y letra; no se inventan acordes. La muestra de 666 registros contiene 663 canciones válidas, 3 incompletas y 2 posibles duplicados por título/artista.
+
+Guardado en lotes de diez mediante RPC exclusiva de administrador, con deduplicación, progreso, errores por canción y reintentos de pendientes. Pruebas locales: 259 pruebas pasan; lint sin errores y con las mismas 37 advertencias. La función SQL pasó pruebas aisladas de autorización, duplicados y rollback.
+
+La migración admin_import_songs debe aplicarse antes de desplegar. No se ha aplicado a Supabase remoto ni publicado el catálogo de ejemplo. Detalles y límites en HOLYRICS_IMPORT.md.

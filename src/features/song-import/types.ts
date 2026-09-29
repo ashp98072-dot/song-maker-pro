@@ -2,6 +2,7 @@ import type { Song } from '@/types/music';
 
 /** Legal import source — no scraping; each provider declares its license. */
 export type SongImportSourceId =
+  | 'holyrics'
   | 'chordpro'
   | 'opensong'
   | 'community'
