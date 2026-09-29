@@ -2,8 +2,9 @@ import type { SongImportProvider, SongImportSourceId } from '@/features/song-imp
 import { chordProProvider } from '@/features/song-import/providers/chordProProvider';
 import { communityProvider } from '@/features/song-import/providers/communityProvider';
 import { aiIngestProvider } from '@/features/song-import/providers/aiIngestProvider';
+import { holyricsProvider } from './providers/holyricsProvider';
 
-const providers: SongImportProvider[] = [chordProProvider, communityProvider, aiIngestProvider];
+const providers: SongImportProvider[] = [chordProProvider, holyricsProvider, communityProvider, aiIngestProvider];
 
 export function listSongImportProviders(): SongImportProvider[] {
   return providers;

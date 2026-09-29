@@ -15,17 +15,17 @@ import {
 import { toast } from 'sonner';
 import { useApp } from '@/context/AppContext';
 import {
-  findLibraryDuplicate,
   getSongImportProvider,
   normalizeImportedSong,
 } from '@/features/song-import';
 import {
   COMMUNITY_GENRES,
   publishListAsCadena,
-  publishSongToPublicLibrary,
   type CommunityGenreId,
 } from '@/features/community';
 import type { Song } from '@/types/music';
+import { saveAdminImportBatch } from '@/features/song-import/adminImport';
+import { songDedupeKey } from '@/features/song-import/utils/normalizeImportedSong';
 
 type ReviewRow = {
   localId: string;
@@ -39,12 +39,16 @@ type ReviewRow = {
 type ImportMode = 'library' | 'publish' | 'cadena';
 
 /**
- * Admin: ChordPro / paste batch → review → library, public_songs, and optional cadena.
+ * Admin: Holyrics / ChordPro / paste → review → server-checked bulk save.
  * Rights: files/paste must be yours or licensed; no scraping.
  */
 export default function AdminCatalogImportPage() {
-  const { isAdmin, isGuest, songs, addSong, createList, setListSongs } = useApp();
+  const { isAdmin, isGuest, songs, importLibrary, createList, setListSongs } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
+  const importInFlight = useRef(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [hasHolyrics, setHasHolyrics] = useState(false);
   const [rows, setRows] = useState<ReviewRow[]>([]);
   const [parseErrors, setParseErrors] = useState<{ file?: string; message: string }[]>([]);
   const [defaultGenre, setDefaultGenre] = useState<CommunityGenreId>('adoracion');
@@ -55,11 +59,17 @@ export default function AdminCatalogImportPage() {
   const [parsing, setParsing] = useState(false);
 
   const selected = useMemo(() => rows.filter((r) => r.selected), [rows]);
-  const dupCount = useMemo(
-    () =>
-      rows.filter((r) => findLibraryDuplicate(songs, r.song.title, r.song.artist)).length,
-    [rows, songs]
-  );
+  const duplicateRows = useMemo(() => {
+    const seen = new Set(songs.map(song => songDedupeKey(song.title, song.artist)));
+    const duplicates = new Set<string>();
+    for (const row of rows) {
+      const key = songDedupeKey(row.song.title, row.song.artist);
+      if (seen.has(key)) duplicates.add(row.localId);
+      seen.add(key);
+    }
+    return duplicates;
+  }, [rows, songs]);
+  const dupCount = duplicateRows.size;
 
   if (isGuest || !isAdmin) {
     return <Navigate to="/perfil" replace />;
@@ -70,20 +80,24 @@ export default function AdminCatalogImportPage() {
     fileNames?: string[]
   ) => {
     const next: ReviewRow[] = [];
+    const seen = new Set([...songs, ...rows.map(row => row.song)].map(song => songDedupeKey(song.title, song.artist)));
     partials.forEach((partial, i) => {
       const song = normalizeImportedSong(partial, i);
       if (!song) return;
+      const key = songDedupeKey(song.title, song.artist);
+      const duplicate = seen.has(key);
+      seen.add(key);
       next.push({
         localId: `${song.id}-${i}-${Date.now()}`,
         song,
-        selected: true,
+        selected: !duplicate,
         genre: defaultGenre,
         fileName: fileNames?.[i],
         expanded: false,
       });
     });
     if (!next.length) return 0;
-    setRows((prev) => [...next, ...prev]);
+    setRows((prev) => [...prev, ...next]);
     return next.length;
   };
 
@@ -92,17 +106,28 @@ export default function AdminCatalogImportPage() {
     if (!files?.length) return;
     setParsing(true);
     try {
-      const provider = getSongImportProvider('chordpro');
-      if (!provider?.parseFiles) {
-        toast.error('Proveedor ChordPro no disponible');
-        return;
+      const partials: Partial<Song>[] = [];
+      const names: string[] = [];
+      const errors: { file?: string; message: string }[] = [];
+      if (files.length > 20) throw new Error('Selecciona como máximo 20 archivos por carga');
+      for (const file of Array.from(files)) {
+        const holyrics = /\.mufl?$/i.test(file.name);
+        const provider = getSongImportProvider(holyrics ? 'holyrics' : 'chordpro');
+        if (!provider?.parseFiles) throw new Error('Formato no disponible');
+        if (file.size > 10 * 1024 * 1024) throw new Error('Máximo 10 MB por archivo');
+        const result = await provider.parseFiles([file]);
+        partials.push(...result.songs);
+        names.push(...result.songs.map(() => file.name));
+        errors.push(...result.errors);
+        if (holyrics && result.songs.length) setHasHolyrics(true);
+        if (partials.length + rows.length > 5000) throw new Error('Máximo 5000 canciones en la cola');
       }
-      const result = await provider.parseFiles(Array.from(files));
-      const names = Array.from(files).map((f) => f.name);
-      const n = enqueuePartials(result.songs, names);
-      setParseErrors(result.errors);
+      const n = enqueuePartials(partials, names);
+      setParseErrors(errors);
       if (n) toast.success(`${n} canción(es) listas para revisar`);
-      if (result.errors.length) toast.error(`${result.errors.length} archivo(s) con error`);
+      if (errors.length) toast.error(`${errors.length} error(es) de lectura`);
+    } catch (error) {
+      setParseErrors([{ message: error instanceof Error ? error.message : 'Error de lectura' }]);
     } finally {
       setParsing(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -169,9 +194,13 @@ export default function AdminCatalogImportPage() {
   const clearQueue = () => {
     setRows([]);
     setParseErrors([]);
+    setImportErrors([]);
+    setHasHolyrics(false);
+    setProgress(null);
   };
 
   const runImport = async (mode: ImportMode) => {
+    if (importInFlight.current || parsing || !isAdmin || isGuest) return;
     if (!selected.length) {
       toast.error('Selecciona al menos una canción');
       return;
@@ -180,33 +209,35 @@ export default function AdminCatalogImportPage() {
       toast.error('Pon un nombre para la cadena');
       return;
     }
+    importInFlight.current = true;
     setBusy(mode);
+    setProgress({ done: 0, total: selected.length });
+    setImportErrors([]);
     const succeeded = new Set<string>();
     const publishedSongs: Song[] = [];
     let fail = 0;
     try {
-      for (const row of selected) {
-        const song: Song = { ...row.song, genre: row.genre, isNew: true };
-        try {
-          await addSong(song);
-          if (mode === 'publish' || mode === 'cadena') {
-            const published = await publishSongToPublicLibrary({
-              song,
-              genre: row.genre,
-              isCover: false,
-            });
-            if (published.ok === false) {
-              fail += 1;
-              console.error(published.error);
-              continue;
-            }
+      for (let offset = 0; offset < selected.length; offset += 10) {
+        const batch = selected.slice(offset, offset + 10);
+        const batchSongs = batch.map(row => ({ ...row.song, genre: row.genre, isNew: true }));
+        const results = await saveAdminImportBatch(batchSongs, mode !== 'library');
+        const imported: Song[] = [];
+        results.forEach((result, index) => {
+          const row = batch[index];
+          if (result.status === 'imported') {
+            succeeded.add(row.localId);
+            publishedSongs.push(batchSongs[index]);
+            imported.push(batchSongs[index]);
+          } else {
+            if (result.status === 'skipped') {
+              setRows(prev => prev.map(item => item.localId === row.localId ? { ...item, selected: false } : item));
+            } else fail += 1;
+            setImportErrors(prev => [...prev, `${row.song.title}: ${result.message}`]);
           }
-          succeeded.add(row.localId);
-          publishedSongs.push(song);
-        } catch (err) {
-          fail += 1;
-          console.error(err);
-        }
+        });
+        importLibrary(imported, [], []);
+        setRows(prev => prev.filter(row => !succeeded.has(row.localId)));
+        setProgress({ done: Math.min(offset + batch.length, selected.length), total: selected.length });
       }
 
       if (mode === 'cadena' && publishedSongs.length) {
@@ -246,7 +277,12 @@ export default function AdminCatalogImportPage() {
         if (mode === 'cadena') setCadenaName('');
       }
       if (fail) toast.error(`${fail} no se pudieron procesar`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo completar la carga';
+      setImportErrors(prev => [...prev, message]);
+      toast.error(message);
     } finally {
+      importInFlight.current = false;
       setBusy(null);
     }
   };
@@ -269,11 +305,12 @@ export default function AdminCatalogImportPage() {
           Importar catálogo
         </h1>
         <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
-          Importa ChordPro o pega varios cantos (sepáralos con ---), revisa y publica. Solo material
+          Importa Holyrics (.muf / .mufl), ChordPro o pega varios cantos (sepáralos con ---), revisa y publica. Solo material
           propio o con licencia — sin scrapear la web.
         </p>
       </header>
 
+      <fieldset disabled={!!busy || parsing} className="min-w-0">
       <div className="rounded-2xl border border-border/80 bg-card/50 p-4 sm:p-5 mb-4 space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <label className="flex-1 text-sm">
@@ -295,7 +332,7 @@ export default function AdminCatalogImportPage() {
           <input
             ref={fileRef}
             type="file"
-            accept=".pro,.chopro,.txt,text/plain"
+            accept=".muf,.mufl,.pro,.chopro,.txt"
             multiple
             className="hidden"
             onChange={handleFiles}
@@ -307,7 +344,7 @@ export default function AdminCatalogImportPage() {
             className="h-10 px-4 rounded-xl gold-gradient text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Subir ChordPro
+            Subir canciones
           </button>
           <button
             type="button"
@@ -358,7 +395,7 @@ export default function AdminCatalogImportPage() {
               <>
                 <span>·</span>
                 <span className="text-amber-500">
-                  {dupCount} posible(s) duplicado(s) en biblioteca
+                  {dupCount} posible(s) duplicado(s) en biblioteca o cola
                 </span>
               </>
             ) : null}
@@ -366,6 +403,19 @@ export default function AdminCatalogImportPage() {
         ) : null}
       </div>
 
+      {hasHolyrics && <p className="mb-4 text-sm text-muted-foreground">
+        Holyrics: se conserva la letra y sus saltos de línea. Esta versión del archivo no incluye tonalidad;
+        se asigna C como valor inicial editable. No se generan acordes ni se importan fondos o formatos de proyección.
+        Los posibles duplicados se dejan sin seleccionar.
+      </p>}
+      {progress && <div role="status" className="mb-4 text-sm">
+        Procesadas {progress.done} de {progress.total}
+        <progress className="block w-full" value={progress.done} max={progress.total} />
+      </div>}
+      {importErrors.length > 0 && <div className="mb-4 rounded-xl border border-border p-3 text-sm">
+        <p>Resultado de la carga (omitidas o con error):</p>
+        <ul>{importErrors.map((message, index) => <li key={index}>{message}</li>)}</ul>
+      </div>}
       {parseErrors.length > 0 ? (
         <div className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <p className="font-semibold text-destructive mb-1">Errores de lectura</p>
@@ -382,7 +432,7 @@ export default function AdminCatalogImportPage() {
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-          Aún no hay canciones en la cola. Sube uno o varios archivos ChordPro.
+          Aún no hay canciones en la cola. Sube archivos Holyrics o ChordPro.
         </div>
       ) : (
         <>
@@ -419,7 +469,7 @@ export default function AdminCatalogImportPage() {
 
           <ul className="space-y-2.5 mb-6">
             {rows.map((row) => {
-              const dup = findLibraryDuplicate(songs, row.song.title, row.song.artist);
+              const dup = duplicateRows.has(row.localId);
               return (
                 <li
                   key={row.localId}
@@ -515,7 +565,7 @@ export default function AdminCatalogImportPage() {
                             </>
                           ) : (
                             <>
-                              Acordes <ChevronDown className="w-3.5 h-3.5" />
+                              Letra / acordes <ChevronDown className="w-3.5 h-3.5" />
                             </>
                           )}
                         </button>
@@ -593,6 +643,7 @@ export default function AdminCatalogImportPage() {
           </div>
         </>
       )}
+      </fieldset>
     </div>
   );
 }
