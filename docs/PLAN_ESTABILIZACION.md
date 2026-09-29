@@ -102,3 +102,9 @@ TypeScript, build de producción y generación PWA también pasan. Se conservan 
 Se corrigieron las dependencias de navegación, recuperación y preferencias en SongViewPage. El registro de callbacks de DirectorSession conserva una suscripción y utiliza las funciones más recientes; cambiar un callback ya no vuelve a disparar el registro y la recuperación. El cierre por evento utiliza la función actual. ContinuousSongBlock vuelve a leer la transposición persistida al renderizar, incluido el reinicio a cero.
 
 Cuatro pruebas adicionales cubren renovación de callbacks, activación/limpieza, preferencias de notificación y transposición persistida. Validación local del 2026-09-28: 246 pruebas en 67 archivos; lint con 0 errores y 43 advertencias. SongViewPage y ContinuousSongBlock quedan sin advertencias de hooks. Se mantiene pendiente la validación conectada y la limpieza de los proveedores heredados.
+
+## Quinto bloque: límites de Fast Refresh en UI
+
+Las variantes compartidas de Button y Toggle y la regla de visibilidad de la barra móvil se trasladaron a módulos independientes; sus consumidores importan desde esos módulos. Se retiraron exportaciones sin consumidores de Badge, NavigationMenu y Sonner. Los estilos y la regla de visibilidad se conservan.
+
+ESLint pasa con 0 errores y 37 advertencias (seis menos). Este bloque no cambia los proveedores de sincronización; quedan pendientes sus advertencias de hooks, los demás límites de Fast Refresh y la validación entre dispositivos.

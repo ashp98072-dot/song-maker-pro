@@ -1,9 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
-import MobileBottomTabBar, {
-  shouldShowMobileTabBar,
-} from '@/components/MobileBottomTabBar';
+import MobileBottomTabBar from '@/components/MobileBottomTabBar';
+import { shouldShowMobileTabBar } from '@/components/mobileTabBarVisibility';
 import VisitedSongsRegistrar from '@/pwa/VisitedSongsRegistrar';
 import SetlistOfflinePrefetcher from '@/pwa/SetlistOfflinePrefetcher';
 import { PwaInstallBanner } from '@/pwa/PwaInstallBanner';
