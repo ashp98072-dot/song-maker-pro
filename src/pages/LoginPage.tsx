@@ -95,7 +95,7 @@ export default function LoginPage() {
           password: parsed.data.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: parsed.data.displayName },
+            data: { full_name: parsed.data.displayName, usage_tutorial_v1: { step: 0, status: 'active' } },
           },
         });
 

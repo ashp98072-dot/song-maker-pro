@@ -31,6 +31,7 @@ import {
 } from '@/features/profile/profileApi';
 import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { fetchPublicLists, type PublicListRow } from '@/features/community';
+import { TUTORIAL_EVENT } from '@/features/onboarding/onboardingState';
 
 export default function ProfilePage() {
   const { userId: routeUserId } = useParams();
@@ -453,6 +454,12 @@ export default function ProfilePage() {
           Herramientas
         </p>
         <div className="space-y-2">
+          {isOwn && !isGuest && <button type="button"
+            onClick={() => window.dispatchEvent(new Event(TUTORIAL_EVENT))}
+            className="glass-card p-3 sm:p-4 w-full text-left hover:bg-surface-hover">
+            <p className="text-sm font-semibold">Tutorial de uso</p>
+            <p className="text-xs text-muted-foreground">Repasa biblioteca, tonalidad, listas y sesiones en vivo.</p>
+          </button>}
           <Link
             to="/acordes"
             className="glass-card p-3 sm:p-4 flex items-center gap-3 hover:bg-surface-hover transition-colors"
