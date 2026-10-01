@@ -16,9 +16,10 @@ import { JoinSessionConflictDialog } from '@/features/director-session/component
 import { FollowerJoinAwaitingOverlay } from '@/features/director-session/components/FollowerJoinAwaitingOverlay';
 import { SimpleLiveSyncProvider, SimpleLiveResumeBanner } from '@/features/simple-live-sync';
 import { isPublicAppPath } from '@/utils/publicAppPaths';
+import { UsageTutorial } from '@/features/onboarding/UsageTutorial';
 
 export default function AppLayout() {
-  const { userName } = useApp();
+  const { userName, isGuest } = useApp();
   const location = useLocation();
   const layoutAuthBypass = (() => {
     const s = getRenderDiagStage();
@@ -50,6 +51,7 @@ export default function AppLayout() {
         </>
       )}
       <Outlet />
+      {!isGuest && <UsageTutorial />}
       <MobileBottomTabBar />
     </main>
   );
