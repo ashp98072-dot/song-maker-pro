@@ -525,6 +525,7 @@ export default function ContinuousSetlistPage() {
       visibility.currentSongId,
       isRemoteLandingInProgress,
       isProgrammaticScrollActive,
+      landing,
     ]
   );
 
@@ -571,7 +572,7 @@ export default function ContinuousSetlistPage() {
         ...getFollowAuditSnapshot('virtual-window-unfreeze'),
       });
     }, SETTLE_VERIFY_MS + WINDOW_FREEZE_EXTRA_MS);
-  }, [getFollowAuditSnapshot, isRemoteLandingInProgress]);
+  }, [getFollowAuditSnapshot, isRemoteLandingInProgress, landing]);
 
   const setSyncTargetIndexAudited = useCallback(
     (next: number | null, source: string) => {
@@ -803,7 +804,7 @@ export default function ContinuousSetlistPage() {
       }
       navigate(to, options);
     },
-    [navigate, isFollowerRole, getFollowAuditSnapshot, location.pathname, listId, resolvedSongIds, songIds]
+    [navigate, isFollowerRole, getFollowAuditSnapshot, location.pathname, listId, resolvedSongIds, songIds, sessionConnection?.sessionCode]
   );
 
   /** Scroll local de canción — solo director / follower sin followDirector. */
@@ -1092,6 +1093,7 @@ export default function ContinuousSetlistPage() {
     getFollowAuditSnapshot,
     isRemoteLandingInProgress,
     isProgrammaticScrollActive,
+    reportRuntimeEvent,
   ]);
 
   const { dockVisible: scrollDockVisible } = useMobileDockState({
@@ -1155,6 +1157,7 @@ export default function ContinuousSetlistPage() {
       sessionConnection?.sessionCode,
       auditedNavigate,
       setFollowDirectorPreference,
+      songs,
     ]
   );
 
@@ -2789,7 +2792,6 @@ export default function ContinuousSetlistPage() {
     resolvedSongIds,
     songIds,
     navigate,
-    genderShift,
     showControls,
   ]);
 
@@ -2802,7 +2804,7 @@ export default function ContinuousSetlistPage() {
       windowUnfreezeTimerRef.current = null;
     }
     lastPublishedSongRef.current = null;
-  }, [listId]);
+  }, [listId, landing]);
 
   useEffect(() => {
     const songId = visibility.currentSongId;

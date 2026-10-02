@@ -80,4 +80,4 @@ Después del despliegue, comprueba navegación directa a canciones, login, `/sit
 - [Tutorial de usuarios](docs/USER_TUTORIAL.md)
 - [Auditoría histórica](docs/runtime-audit/README.md)
 
-Última suite verificada antes de esta actualización documental: 266 pruebas; TypeScript y build/PWA pasan; lint tiene 0 errores y 37 advertencias. Quedan pendientes la limpieza de hooks, la unificación de proveedores, la reconstrucción de una base nueva y las comprobaciones conectadas/móviles del plan.
+Última suite verificada (2 de octubre de 2026): 266 pruebas; TypeScript y build/PWA pasan; lint tiene 0 errores y 30 advertencias. Quedan pendientes la limpieza de hooks, la unificación de proveedores, la reconstrucción de una base nueva y las comprobaciones conectadas/móviles del plan.
