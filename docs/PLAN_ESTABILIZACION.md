@@ -124,3 +124,9 @@ Se corrigieron siete advertencias en ContinuousSetlistPage: referencias al estad
 Lint pasa con 0 errores y 30 advertencias. Quedan cinco advertencias en esta página, relacionadas con aplicación/recuperación del estado remoto y efectos de seguimiento; requieren una revisión separada de su ciclo de vida. La validación entre dispositivos continúa pendiente.
 
 Validación local: 266 pruebas en 71 archivos, TypeScript y build de producción/PWA pasan. Se conservan las advertencias de Vite por importaciones estáticas y dinámicas.
+
+## Noveno bloque: opciones de hooks Follow V3 (2026-10-02)
+
+Los hooks de montaje de ruta y recepción del seguidor desestructuran las opciones que usan, de modo que sus dependencias describen esos valores sin depender del objeto completo. Se corrigen tres advertencias. Follow V3 sigue desactivado en producción.
+
+Tres pruebas adicionales cubren la ausencia de reintentos con V3 desactivado, la conservación del plazo al recrear opciones equivalentes y la cancelación al desmontar o salir del modo seguidor. La suite pasa con 269 pruebas en 72 archivos. Lint: 0 errores y 27 advertencias. La validación conectada sigue pendiente.

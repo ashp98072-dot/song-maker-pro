@@ -21,6 +21,7 @@ type UseFollowV3RouteMountOpts = {
  * URL mount only — render owner remains followV3Store; not used for sync re-navigation.
  */
 export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
+  const { liveIsFollower, isDirectorContinuousView, retryRemoteNavigation } = opts;
   const followSongId = useFollowV3Song();
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
   const remoteRetryCountRef = useRef(0);
   const remoteRetryTimersRef = useRef<number[]>([]);
 
-  const isFollowOwner = isFollowV3SpectatorActive(opts.liveIsFollower);
+  const isFollowOwner = isFollowV3SpectatorActive(liveIsFollower);
 
   const clearRetryTimers = () => {
     remoteRetryTimersRef.current.forEach((id) => window.clearTimeout(id));
@@ -36,12 +37,12 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
   };
 
   useEffect(() => {
-    if (!opts.liveIsFollower) {
+    if (!liveIsFollower) {
       hasMountedRef.current = false;
       remoteRetryCountRef.current = 0;
       clearRetryTimers();
     }
-  }, [opts.liveIsFollower]);
+  }, [liveIsFollower]);
 
   useEffect(() => {
     if (!FEATURES.USE_FOLLOW_V3 || !isFollowOwner) return;
@@ -64,9 +65,9 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
           delayMs,
           pathname: location.pathname,
           followSongId,
-          directorContinuous: opts.isDirectorContinuousView?.() ?? false,
+          directorContinuous: isDirectorContinuousView?.() ?? false,
         });
-        opts.retryRemoteNavigation?.();
+        retryRemoteNavigation?.();
       }, delayMs);
       remoteRetryTimersRef.current.push(timer);
     }
@@ -76,8 +77,8 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
     isFollowOwner,
     followSongId,
     location.pathname,
-    opts.retryRemoteNavigation,
-    opts.isDirectorContinuousView,
+    retryRemoteNavigation,
+    isDirectorContinuousView,
   ]);
 
   useEffect(() => {
@@ -85,7 +86,7 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
     const currentRoute = pathname;
     const onSongRoute = pathname.startsWith('/cancion/');
     const onLiveRoute = pathname.includes('/live');
-    const directorContinuous = opts.isDirectorContinuousView?.() ?? false;
+    const directorContinuous = isDirectorContinuousView?.() ?? false;
     const shouldMount =
       FEATURES.USE_FOLLOW_V3 &&
       isFollowOwner &&
@@ -98,7 +99,7 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
     console.log('[FOLLOW_V3_ROUTE_MOUNT_CHECK]', {
       pathname,
       followSongId,
-      liveIsFollower: opts.liveIsFollower,
+      liveIsFollower: liveIsFollower,
       shouldMount,
       currentRoute,
       isFollowOwner,
@@ -107,7 +108,7 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
     });
 
     if (!FEATURES.USE_FOLLOW_V3 || !isFollowOwner) {
-      if (opts.liveIsFollower && followSongId && !onSongRoute) {
+      if (liveIsFollower && followSongId && !onSongRoute) {
         console.log('[POTENTIAL_MOUNT_SKIP]', { reason: 'follow-v3-spectator-not-active' });
       }
       return;
@@ -115,7 +116,7 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
 
     if (directorContinuous) {
       console.log('[POTENTIAL_MOUNT_SKIP]', { reason: 'director-continuous-view' });
-      opts.retryRemoteNavigation?.();
+      retryRemoteNavigation?.();
       return;
     }
 
@@ -147,8 +148,8 @@ export function useFollowV3RouteMount(opts: UseFollowV3RouteMountOpts): void {
     followSongId,
     location.pathname,
     navigate,
-    opts.liveIsFollower,
-    opts.isDirectorContinuousView,
-    opts.retryRemoteNavigation,
+    liveIsFollower,
+    isDirectorContinuousView,
+    retryRemoteNavigation,
   ]);
 }
