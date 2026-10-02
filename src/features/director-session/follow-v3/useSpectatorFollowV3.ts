@@ -40,13 +40,14 @@ function logReceiveCompare(
  * Spectator Follow V3 — store-driven song identity; no router navigation for sync.
  */
 export function useSpectatorFollowV3(opts: UseSpectatorFollowV3Opts): void {
+  const { enabled, sessionCode, handlerRef, onSongApplied } = opts;
   const lastRemoteV3Ref = useRef<FollowV3RemoteState | null>(null);
   const lastAppliedSeqRef = useRef(0);
   const lateJoinAppliedRef = useRef<string | null>(null);
 
   const applyRemote = useCallback(
     (remote: FollowV3RemoteState, source: string) => {
-      if (!FEATURES.USE_FOLLOW_V3 || !opts.enabled || !readFollowDirector()) return;
+      if (!FEATURES.USE_FOLLOW_V3 || !enabled || !readFollowDirector()) return;
 
       const songId = remote.songId;
       if (!songId) return;
@@ -88,21 +89,21 @@ export function useSpectatorFollowV3(opts: UseSpectatorFollowV3Opts): void {
       lastRemoteV3Ref.current = remote;
       lastAppliedSeqRef.current = remote.seq;
       logReceiveCompare(remote, { applied: true });
-      opts.onSongApplied?.(songId);
+      onSongApplied?.(songId);
     },
-    [opts.enabled, opts.onSongApplied]
+    [enabled, onSongApplied]
   );
 
   useEffect(() => {
-    opts.handlerRef.current = (state) => applyRemote(state, 'realtime');
+    handlerRef.current = (state) => applyRemote(state, 'realtime');
     return () => {
-      opts.handlerRef.current = null;
+      handlerRef.current = null;
     };
-  }, [applyRemote, opts.handlerRef]);
+  }, [applyRemote, handlerRef]);
 
   useEffect(() => {
-    if (!FEATURES.USE_FOLLOW_V3 || !opts.enabled || !readFollowDirector()) return;
-    const code = opts.sessionCode?.trim();
+    if (!FEATURES.USE_FOLLOW_V3 || !enabled || !readFollowDirector()) return;
+    const code = sessionCode?.trim();
     if (!code || code.length < 4) return;
 
     const songId = lastRemoteV3Ref.current?.songId;
@@ -123,5 +124,5 @@ export function useSpectatorFollowV3(opts: UseSpectatorFollowV3Opts): void {
       },
       'late-join'
     );
-  }, [opts.enabled, opts.sessionCode, applyRemote]);
+  }, [enabled, sessionCode, applyRemote]);
 }
