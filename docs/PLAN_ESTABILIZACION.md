@@ -116,3 +116,11 @@ Implementado lector de datos Java para .muf/.mufl, integrado con revisión y sel
 Guardado en lotes de diez mediante RPC exclusiva de administrador, con deduplicación, progreso, errores por canción y reintentos de pendientes. Pruebas locales: 259 pruebas pasan; lint sin errores y con las mismas 37 advertencias. La función SQL pasó pruebas aisladas de autorización, duplicados y rollback.
 
 La migración admin_import_songs debe aplicarse antes de desplegar. No se ha aplicado a Supabase remoto ni publicado el catálogo de ejemplo. Detalles y límites en HOLYRICS_IMPORT.md.
+
+## Octavo bloque: dependencias de la vista continua (2026-10-02)
+
+Se corrigieron siete advertencias en ContinuousSetlistPage: referencias al estado estable de desplazamiento, código de sesión en navegación, diagnóstico del listener de scroll y catálogo al desactivar seguimiento. Se retiró la dependencia de genderShift del botón de salida, que no la utiliza. El estado landing ya está memoizado, por lo que incluirlo en el reinicio no agrega reinicios por render.
+
+Lint pasa con 0 errores y 30 advertencias. Quedan cinco advertencias en esta página, relacionadas con aplicación/recuperación del estado remoto y efectos de seguimiento; requieren una revisión separada de su ciclo de vida. La validación entre dispositivos continúa pendiente.
+
+Validación local: 266 pruebas en 71 archivos, TypeScript y build de producción/PWA pasan. Se conservan las advertencias de Vite por importaciones estáticas y dinámicas.
