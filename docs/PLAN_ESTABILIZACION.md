@@ -36,7 +36,7 @@ Cierre: lint sin errores, advertencias resueltas o justificadas e instalación r
 
 ## 3. Unificar sincronización en vivo
 
-- [ ] Documentar el flujo Simple Live Sync y consumidores restantes del contexto antiguo.
+- [x] Documentar el flujo Simple Live Sync y la dependencia restante del contexto antiguo; detalle en LIVE_SYNC_CURRENT.md.
 - [ ] Cubrir crear, unirse, publicar, abandonar, reconectar y cambiar canción/lista.
 - [ ] Definir una autoridad para estado remoto, navegación y persistencia.
 - [ ] Migrar consumidores antiguos mediante adaptadores pequeños y verificables.
@@ -56,7 +56,7 @@ Cierre: responsabilidades separadas y pruebas de comportamiento intactas. Evitar
 
 ## 5. Documentación y validación de entrega
 
-- [ ] Reemplazar README con instalación, variables, comandos, arquitectura y despliegue.
+- [x] Reemplazar README con instalación, variables, comandos, arquitectura y despliegue.
 - [ ] Actualizar auditorías distinguiendo flujo actual de antecedentes históricos.
 - [ ] Documentar migraciones y comprobar preparación de una base nueva.
 - [ ] Validar login, biblioteca, listas, comunidad, transposición y sincronización.

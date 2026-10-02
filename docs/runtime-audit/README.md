@@ -1,5 +1,7 @@
 # FASE A — Runtime Forensic Audit
 
+Documento histórico de una etapa de investigación. No representa por sí solo el flujo activo actual: Simple Live Sync está habilitado y Follow V3 deshabilitado. Consulta [Sincronización actual](../LIVE_SYNC_CURRENT.md) antes de aplicar estas conclusiones.
+
 Auditoría **solo observabilidad** (sin fixes de comportamiento en esta fase).
 
 ## Documentos

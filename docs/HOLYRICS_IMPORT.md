@@ -24,7 +24,7 @@ Prueba local con `2020-08-21_16-57-18.mufl` (840430 bytes): 666 registros, 663 c
 
 La función es SECURITY DEFINER, fija search_path, comprueba `user_roles` en servidor y solo concede ejecución a `authenticated`. No concede escritura directa ni cambia las políticas de publicación normal de la comunidad. Nunca recibe del cliente el usuario o rol con el que guarda.
 
-La migración está probada con un esquema mínimo aislado en PGlite; **aún no aplicada ni verificada en el proyecto Supabase remoto**. La prueba aislada no sustituye verificar las políticas, restricciones y triggers del despliegue real.
+La migración está probada con un esquema mínimo aislado en PGlite. El administrador confirmó su aplicación al proyecto Supabase remoto el 29 de septiembre de 2026 y compartió el resultado exitoso del editor SQL. Sigue pendiente una importación completa contra ese proyecto: la prueba aislada no sustituye verificar sus políticas, restricciones y triggers.
 
 ## Verificación
 
