@@ -17,7 +17,7 @@ import { useApp } from '@/context/AppContext';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import logoUrl from '@/assets/worship-transpose-logo.png';
 import { getRenderDiagStage } from '@/renderDiag';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/useTheme';
 import {
   fetchOwnAvatarUrl,
   PROFILE_UPDATED_EVENT,

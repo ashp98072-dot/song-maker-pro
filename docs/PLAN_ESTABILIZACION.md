@@ -130,3 +130,9 @@ Validación local: 266 pruebas en 71 archivos, TypeScript y build de producción
 Los hooks de montaje de ruta y recepción del seguidor desestructuran las opciones que usan, de modo que sus dependencias describen esos valores sin depender del objeto completo. Se corrigen tres advertencias. Follow V3 sigue desactivado en producción.
 
 Tres pruebas adicionales cubren la ausencia de reintentos con V3 desactivado, la conservación del plazo al recrear opciones equivalentes y la cancelación al desmontar o salir del modo seguidor. La suite pasa con 269 pruebas en 72 archivos. Lint: 0 errores y 27 advertencias. La validación conectada sigue pendiente.
+
+## Décimo bloque: tema compartido de notificaciones (2026-10-02)
+
+Sonner leía el tema desde next-themes aunque la aplicación usa un proveedor propio. Ahora comparte el mismo contexto que Navbar, de modo que las notificaciones reciben la elección claro/oscuro. El hook/contexto se separa del componente proveedor para Fast Refresh; las rutas de diagnóstico también reciben el proveedor.
+
+Tres pruebas cubren tema persistido, alternancia y cambios procedentes de otra pestaña. Pasan 272 pruebas en 73 archivos. Lint: 0 errores y 26 advertencias. La comprobación visual en dispositivos reales queda pendiente.
