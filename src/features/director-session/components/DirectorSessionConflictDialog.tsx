@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 
 export function DirectorSessionConflictDialog() {
   const {

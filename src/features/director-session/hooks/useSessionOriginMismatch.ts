@@ -12,7 +12,7 @@ import {
   type PageSessionContext,
   type SessionOrigin,
 } from '@/features/director-session/utils/sessionOrigin';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 
 const DISMISS_KEY = 'worship-session-origin-mismatch-dismiss';
 

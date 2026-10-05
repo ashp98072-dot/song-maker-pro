@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { FollowerAwaitingSessionPanel } from '@/features/director-session/components/FollowerAwaitingSessionPanel';
 import { useFollowV3Song } from '@/features/director-session/follow-v3/followV3Store';
 

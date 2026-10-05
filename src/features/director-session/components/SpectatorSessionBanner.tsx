@@ -1,5 +1,5 @@
 import { Music2, X } from 'lucide-react';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 
 export function SpectatorSessionBanner() {
   const {

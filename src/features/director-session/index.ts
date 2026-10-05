@@ -81,9 +81,11 @@ export { sessionGuardLog, sessionUiLog } from '@/features/director-session/utils
 export {
   SpectatorSessionProvider,
   SpectatorSessionProvider as SessionProvider,
+} from '@/features/director-session/context/SpectatorSessionContext';
+export {
   useSpectatorSession,
   useSpectatorSessionOptional,
-} from '@/features/director-session/context/SpectatorSessionContext';
+} from '@/features/director-session/context/useSpectatorSession';
 export { sessionProviderLog } from '@/features/director-session/utils/sessionProviderLog';
 export { SpectatorSessionBanner } from '@/features/director-session/components/SpectatorSessionBanner';
 export { ActiveSessionBanner } from '@/features/director-session/components/ActiveSessionBanner';

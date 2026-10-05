@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { getRenderDiagStage } from '@/renderDiag';
 import { FEATURES } from '@/config/features';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { sessionJoinBlockedMessage } from '@/features/director-session/utils/checkSessionActive';
 import {
   parseJoinCodeFromSearch,

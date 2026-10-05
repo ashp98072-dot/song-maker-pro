@@ -133,7 +133,7 @@ import {
   type SessionRecoveryState,
 } from '@/features/director-session';
 import { readStoredLiveSession } from '@/features/director-session/utils/sessionRecovery';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { FollowerDirectorSyncLoader } from '@/features/director-session/components/FollowerDirectorSyncLoader';
 import { FollowerContinuousShell } from '@/features/director-session/components/FollowerContinuousShell';
 import { useSessionOriginMismatch } from '@/features/director-session/hooks/useSessionOriginMismatch';

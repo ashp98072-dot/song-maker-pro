@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, Radio, WifiOff } from 'lucide-react';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { sessionStatusBarLog } from '@/features/director-session/utils/followerRecoveryLog';
 import { FEATURES } from '@/config/features';
 import { readFollowDirector } from '@/features/director-session/utils/followDirector';
