@@ -1,4 +1,4 @@
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import SongCard from '@/components/SongCard';
 import { Heart } from 'lucide-react';
 

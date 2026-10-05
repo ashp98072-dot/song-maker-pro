@@ -15,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import {
   deletePublicList,
   fetchListComments,

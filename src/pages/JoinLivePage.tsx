@@ -5,7 +5,7 @@ import { FEATURES } from '@/config/features';
 import { normalizeSessionCode } from '@/features/director-session/types';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { navigateAfterSimpleLiveJoin } from '@/features/simple-live-sync/navigateAfterSimpleLiveJoin';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 
 const WAIT_MS = 18_000;
 

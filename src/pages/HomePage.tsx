@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { Search, Users, Loader2, Globe } from 'lucide-react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import SongCard from '@/components/SongCard';

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import SongCard from '@/components/SongCard';
 import { ArrowLeft, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Share2, PlayCircle, ScrollText, Church, Globe, Loader2 } from 'lucide-react';
 import { useState, useMemo } from 'react';

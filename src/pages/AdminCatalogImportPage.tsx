@@ -13,7 +13,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import {
   getSongImportProvider,
   normalizeImportedSong,
