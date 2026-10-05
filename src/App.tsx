@@ -368,6 +368,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -379,6 +380,7 @@ export default function App() {
           </AppProvider>
         )}
       </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
