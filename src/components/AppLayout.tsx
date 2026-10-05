@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import Navbar from '@/components/Navbar';
 import MobileBottomTabBar from '@/components/MobileBottomTabBar';
 import { shouldShowMobileTabBar } from '@/components/mobileTabBarVisibility';

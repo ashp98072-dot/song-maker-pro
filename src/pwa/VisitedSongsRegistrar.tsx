@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { cacheVisitedSong } from '@/pwa/visitedSongsCache';
 import { resolveSongIdFromRouteParam } from '@/utils/songSlug';
 

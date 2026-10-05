@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { cacheSongsForOffline } from '@/pwa/visitedSongsCache';
 

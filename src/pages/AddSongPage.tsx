@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useNavigate } from 'react-router-dom';
 import { Gender, ScaleMode } from '@/types/music';
 import { processSmartPaste, processInlineChords } from '@/utils/smartPaste';

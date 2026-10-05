@@ -13,7 +13,7 @@ import {
   User,
   Library,
 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import logoUrl from '@/assets/worship-transpose-logo.png';
 import { getRenderDiagStage } from '@/renderDiag';

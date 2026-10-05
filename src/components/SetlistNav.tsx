@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, ListMusic } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 
 interface SetlistNavProps {
   currentSongId: string;

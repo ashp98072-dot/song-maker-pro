@@ -136,3 +136,9 @@ Tres pruebas adicionales cubren la ausencia de reintentos con V3 desactivado, la
 Sonner leía el tema desde next-themes aunque la aplicación usa un proveedor propio. Ahora comparte el mismo contexto que Navbar, de modo que las notificaciones reciben la elección claro/oscuro. El hook/contexto se separa del componente proveedor para Fast Refresh; las rutas de diagnóstico también reciben el proveedor.
 
 Tres pruebas cubren tema persistido, alternancia y cambios procedentes de otra pestaña. Pasan 272 pruebas en 73 archivos. Lint: 0 errores y 26 advertencias. La comprobación visual en dispositivos reales queda pendiente.
+
+## Undécimo bloque: límites de Fast Refresh (2026-10-05)
+
+El contexto y useApp se trasladaron a un módulo propio; AppProvider mantiene su implementación y todos los consumidores y mocks usan la nueva ruta del hook. Form y Sidebar dejan de exportar hooks sin consumidores externos, conservándolos internamente.
+
+Se resuelven tres advertencias: lint con 0 errores y 23 advertencias. Pasan 272 pruebas en 73 archivos. No se modifican los flujos de autenticación, persistencia o sincronización.

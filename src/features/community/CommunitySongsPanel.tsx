@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Loader2, Music2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import {
   COMMUNITY_GENRES,
   fetchPublicSongs,

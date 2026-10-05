@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Radio, Users, Copy, X, Wifi, ChevronLeft, ChevronRight, MessageSquare, Search, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { matchesSearch } from '@/utils/textNormalize';
 import type { SessionState } from '@/types/music';
 import type { ViewMode } from '@/types/music';

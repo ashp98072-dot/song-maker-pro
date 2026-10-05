@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ admin: true, parse: vi.fn(), save: vi.fn(), merge: vi.fn() }));
-vi.mock('@/context/AppContext', () => ({ useApp: () => ({isAdmin:mocks.admin,isGuest:false,songs:[],importLibrary:mocks.merge}) }));
+vi.mock('@/context/useApp', () => ({ useApp: () => ({isAdmin:mocks.admin,isGuest:false,songs:[],importLibrary:mocks.merge}) }));
 vi.mock('@/features/song-import', async importOriginal => ({
   ...await importOriginal<typeof import('@/features/song-import')>(),
   getSongImportProvider: () => ({parseFiles:mocks.parse}),

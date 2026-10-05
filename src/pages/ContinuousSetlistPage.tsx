@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import DirectorSession from '@/components/DirectorSession';
 import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useSetlistSongs } from '@/features/continuous-setlist/hooks/useSetlistSongs';
 import { useContinuousSetlistSettings } from '@/features/continuous-setlist/hooks/useContinuousSetlistSettings';
 import { useScrollVisibility } from '@/features/continuous-setlist/hooks/useScrollVisibility';

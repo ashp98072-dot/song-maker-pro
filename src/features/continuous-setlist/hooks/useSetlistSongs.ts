@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import type { SetlistSongEntry } from '@/features/continuous-setlist/types';
 import type { SongList } from '@/types/music';
 import { resolveSetlistSongIds } from '@/features/continuous-setlist/utils/resolveSetlistSongIds';

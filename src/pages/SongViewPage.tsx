@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { useState, useMemo, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Heart, Plus, ChevronUp, Play, Pause, Share2, X, Maximize, Minimize, Printer, Edit2, Save, Mic, User, Users as UsersIcon, ListMusic, Type } from 'lucide-react';
 import { encodeShareConfig, decodeShareConfig } from '@/utils/transpose';

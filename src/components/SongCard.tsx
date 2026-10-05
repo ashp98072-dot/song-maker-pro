@@ -1,6 +1,6 @@
 import { Song } from '@/types/music';
 import { Link } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/context/useApp';
 import { getSongPath } from '@/utils/songSlug';
 import { buildSongListSearch } from '@/features/song-view/utils/songListNav';
 
