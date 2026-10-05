@@ -25,7 +25,7 @@ import { sessionRecoveryLog } from '@/features/director-session/utils/sessionRec
 import { SPECTATOR_SESSION_LEAVE_EVENT } from '@/features/director-session/utils/spectatorSessionEvents';
 import { DIRECTOR_SESSION_TERMINATE_EVENT } from '@/features/director-session/utils/directorSessionEvents';
 import { SESSION_REDIRECT_EVENT } from '@/features/director-session/utils/sessionRedirectEvents';
-import { useSpectatorSessionOptional } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSessionOptional } from '@/features/director-session/context/useSpectatorSession';
 import {
   buildSessionOrigin,
   inferSessionOriginFromRecovery,

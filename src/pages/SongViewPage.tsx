@@ -29,7 +29,7 @@ import { useAutoScroll } from '@/features/rehearsal/hooks/useAutoScroll';
 import DirectorSession from '@/components/DirectorSession';
 import SetlistNav from '@/components/SetlistNav';
 import type { DirectorSessionConnection, SharedSessionState } from '@/features/director-session/types';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { FollowerDirectorSyncLoader } from '@/features/director-session/components/FollowerDirectorSyncLoader';
 import { SimpleLiveSyncPanel, type SimpleLiveState, useSimpleLiveSyncOptional } from '@/features/simple-live-sync';
 import { shouldApplyRemoteSectionAnchor } from '@/features/director-session/utils/shouldApplyRemoteSectionAnchor';

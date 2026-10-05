@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import { readFollowDirector } from '@/features/director-session/utils/followDirector';
 import { FOLLOWER_AWAITING_SAFETY_TIMEOUT_MS } from '@/features/director-session/utils/followerAwaitingConstants';
 

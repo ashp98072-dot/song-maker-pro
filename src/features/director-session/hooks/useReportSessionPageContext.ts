@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useSpectatorSession } from '@/features/director-session/context/SpectatorSessionContext';
+import { useSpectatorSession } from '@/features/director-session/context/useSpectatorSession';
 import type { PageSessionContext } from '@/features/director-session/utils/sessionOrigin';
 
 function pageContextKey(page: PageSessionContext): string {

@@ -142,3 +142,9 @@ Tres pruebas cubren tema persistido, alternancia y cambios procedentes de otra p
 El contexto y useApp se trasladaron a un módulo propio; AppProvider mantiene su implementación y todos los consumidores y mocks usan la nueva ruta del hook. Form y Sidebar dejan de exportar hooks sin consumidores externos, conservándolos internamente.
 
 Se resuelven tres advertencias: lint con 0 errores y 23 advertencias. Pasan 272 pruebas en 73 archivos. No se modifican los flujos de autenticación, persistencia o sincronización.
+
+## Duodécimo bloque: contexto de espectadores (2026-10-05)
+
+El contrato, el contexto y los hooks useSpectatorSession/useSpectatorSessionOptional pasan a un módulo independiente. El proveedor conserva su lógica y los consumidores y el índice público usan las nuevas exportaciones. Se resuelven las dos advertencias restantes de Fast Refresh.
+
+Validación: 272 pruebas en 73 archivos; lint con 0 errores y 21 advertencias, todas de dependencias de hooks. TypeScript y build/PWA pasan. Siguen pendientes la revisión del ciclo de vida heredado y las pruebas conectadas entre dispositivos.
