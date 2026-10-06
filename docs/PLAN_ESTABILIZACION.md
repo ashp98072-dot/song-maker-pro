@@ -148,3 +148,9 @@ Se resuelven tres advertencias: lint con 0 errores y 23 advertencias. Pasan 272 
 El contrato, el contexto y los hooks useSpectatorSession/useSpectatorSessionOptional pasan a un módulo independiente. El proveedor conserva su lógica y los consumidores y el índice público usan las nuevas exportaciones. Se resuelven las dos advertencias restantes de Fast Refresh.
 
 Validación: 272 pruebas en 73 archivos; lint con 0 errores y 21 advertencias, todas de dependencias de hooks. TypeScript y build/PWA pasan. Siguen pendientes la revisión del ciclo de vida heredado y las pruebas conectadas entre dispositivos.
+
+## Decimotercer bloque: ciclo de vida de publicación (2026-10-06)
+
+useLiveSessionBroadcast cancela el temporizador pendiente y descarta overrides al desmontarse. Una prueba reprodujo el temporizador sin limpiar antes del cambio; otra verifica que un render conserve el plazo y publique el estado más reciente. Se declaran tres dependencias de broadcastStateRef, cuya identidad permanece estable entre renders.
+
+Validación: 274 pruebas en 74 archivos; lint con 0 errores y 18 advertencias. TypeScript y build/PWA pasan. Este bloque cubre el hook del proveedor heredado; no activa Follow V3 ni sustituye las pruebas conectadas entre dispositivos.

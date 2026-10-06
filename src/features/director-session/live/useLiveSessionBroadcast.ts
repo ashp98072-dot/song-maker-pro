@@ -1,4 +1,4 @@
-import { useCallback, useRef, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { SessionState } from '@/types/music';
 import { assertDirectorPublisher } from '@/features/director-session/live/liveSessionAuthority';
@@ -15,6 +15,14 @@ export function useLiveSessionBroadcast(channelRef: MutableRefObject<RealtimeCha
   const broadcastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPayloadRef = useRef('');
   const seqRef = useRef(0);
+
+  useEffect(() => () => {
+    if (broadcastTimeoutRef.current !== null) {
+      clearTimeout(broadcastTimeoutRef.current);
+      broadcastTimeoutRef.current = null;
+    }
+    broadcastOverridesRef.current = undefined;
+  }, []);
 
   const flushBroadcast = useCallback(() => {
     if (!assertDirectorPublisher('scheduleBroadcast')) return;
