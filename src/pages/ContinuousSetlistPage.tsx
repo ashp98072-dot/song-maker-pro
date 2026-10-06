@@ -1433,7 +1433,6 @@ export default function ContinuousSetlistPage() {
       return true;
     },
     [
-      applyRemoteSectionOnce,
       getFollowAuditSnapshot,
       setSyncTargetIndexAudited,
       shouldIgnoreFollowerSongApply,
@@ -1441,6 +1440,8 @@ export default function ContinuousSetlistPage() {
       isFollowerRole,
       listId,
       location.pathname,
+      sessionConnection?.sessionCode,
+      songIds,
     ]
   );
 
@@ -1683,6 +1684,8 @@ export default function ContinuousSetlistPage() {
     scheduleWindowUnfreeze,
     reportRuntimeEvent,
     landing,
+    location.pathname,
+    sessionConnection?.sessionCode,
   ]);
 
   const handleDirectorSessionEstablished = useCallback((code: string) => {
@@ -2292,18 +2295,18 @@ export default function ContinuousSetlistPage() {
       listId,
       songIds,
       genderShift,
-      navigate,
       joinSessionCode,
       sessionConnection?.sessionCode,
       applySongSemitones,
       applyRemoteSongOnce,
-      applyRemoteSectionOnce,
       resolvedSongIds,
       getFollowAuditSnapshot,
-      shouldIgnoreFollowerSongApply,
       auditedNavigate,
-      reportRuntimeEvent,
-      isStaleRemoteReplay,
+      effectiveWindowIndex,
+      landing,
+      sessionConnection?.role,
+      setSyncTargetIndexAudited,
+      songs,
       location.pathname,
       isFollowerRole,
       applyV3ContinuousIndexFromRemote,
@@ -2635,14 +2638,15 @@ export default function ContinuousSetlistPage() {
       listId,
       songIds,
       genderShift,
-      followDirector,
       auditedNavigate,
       applySongSemitones,
-      applyRemoteSectionOnce,
       applyRemoteSongOnce,
       getFollowAuditSnapshot,
-      shouldIgnoreFollowerSongApply,
       publishDirectorIntent,
+      landing,
+      location.pathname,
+      navigate,
+      songs,
     ]
   );
 
