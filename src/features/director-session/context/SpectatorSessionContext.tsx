@@ -1256,7 +1256,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       // Throttle DB upsert — never on every realtime publish (was locking the UI).
       scheduleThrottledDirectorDbPersist(normalized, sessionOriginRef.current);
     },
-    [liveIsDirector, directorAwayFromScope]
+    [liveIsDirector, directorAwayFromScope, broadcastStateRef]
   );
 
   const reportPageContext = useCallback(
@@ -3085,7 +3085,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         sessionLog('publishFullSessionState skipped — no broadcast snapshot', { code: key });
       }
     },
-    [liveIsDirector, scheduleBroadcast]
+    [liveIsDirector, scheduleBroadcast, broadcastStateRef]
   );
 
   const rememberDbRow = useCallback(
@@ -3915,6 +3915,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       connectedCount,
       scheduleBroadcast,
       failDirectorStart,
+      broadcastStateRef,
       setReconnectingWithStatus,
       onDirectorHeartbeat,
       dispatchSharedSessionUpdate,
