@@ -2743,6 +2743,7 @@ export default function ContinuousSetlistPage() {
     routeState.initialSongId,
     routeInitialIndex,
     routeState.recoverySource,
+    location.pathname,
     songIds,
     scrollSongLocal,
     isFollowerRole,
