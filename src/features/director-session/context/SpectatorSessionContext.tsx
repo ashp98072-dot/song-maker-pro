@@ -2916,7 +2916,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
         force: true,
       });
     },
-    [liveIsFollower, connection, liveFollowerCode, navigate, navigateFollowerToDirectorState]
+    [liveIsFollower, connection, liveFollowerCode, navigate, navigateFollowerToDirectorState, dispatchFollowerToPageHandler]
   );
 
   const dispatchSharedSessionUpdate = useCallback(
@@ -3048,7 +3048,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       applyFollowerBroadcastFallback,
       liveIsFollower,
       liveFollowerCode,
-      dispatchFollowerToPageHandler,
+      isReconnecting,
       navigateFollowerToMatchDirectorView,
       syncForceContinuousIndexFromRemote,
       clearFollowerAwaitingFromBroadcast,

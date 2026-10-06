@@ -22,6 +22,7 @@ import { channelLog } from '@/features/director-session/utils/channelLog';
 import { sessionProviderLog } from '@/features/director-session/utils/sessionProviderLog';
 import { realtimeError, realtimeLog } from '@/features/director-session/utils/realtimeLog';
 import { useLiveSessionChannel } from '@/features/director-session/live/liveSessionChannelContext';
+import { useLiveSessionUpdateHandler } from './useLiveSessionUpdateHandler';
 import { SESSION_HARD_CLEAR_EVENT } from '@/features/director-session/utils/sessionHardClearEvents';
 import { DIRECTOR_SESSION_TERMINATE_EVENT } from '@/features/director-session/utils/directorSessionEvents';
 import { auditEventLog } from '@/features/director-session/utils/auditEventLog';
@@ -67,6 +68,7 @@ function logSharedSessionBroadcastReceived(
  */
 export function LiveSessionChannelHost() {
   const channelApi = useLiveSessionChannel();
+  const dispatchSharedSessionUpdate = useLiveSessionUpdateHandler(channelApi.dispatchSharedSessionUpdate);
   const {
     liveIsDirector,
     liveSessionCode,
@@ -90,7 +92,6 @@ export function LiveSessionChannelHost() {
     setDirectorDisconnected,
     setIsReconnecting,
     onDirectorHeartbeat,
-    dispatchSharedSessionUpdate,
     followV3HandlerRef,
     onFollowerRealtimeJoined,
     onRealtimeSubscribed,
