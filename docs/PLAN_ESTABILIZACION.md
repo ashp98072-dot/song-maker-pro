@@ -178,3 +178,9 @@ Validación: 277 pruebas en 75 archivos, TypeScript y build/PWA pasan. Lint con 
 El diagnóstico del canal depende de los valores de rol y código que registra, conservando su frecuencia ante objetos equivalentes. La aplicación inicial de posición en la vista continua declara location.pathname, usado para priorizar el estado remoto en rutas live. Conserva el guard de aplicación única y la cancelación del temporizador.
 
 Lint con 0 errores y 10 advertencias. Pasan 277 pruebas en 75 archivos; TypeScript y build/PWA pasan. Las verificaciones conectadas y móviles siguen pendientes.
+
+## Decimoctavo bloque: callback vigente del canal (2026-10-06)
+
+La suscripción del canal heredado conserva una función estable que consulta el callback de actualización del último render confirmado. Así recibe los cambios del proveedor sin volver a suscribirse. Se corrigen las dependencias del fallback de publicación y del estado de reconexión registrado en el diagnóstico.
+
+Una prueba verifica entrega al callback actualizado, identidad estable y ausencia de resuscripciones. Pasan 278 pruebas en 76 archivos; lint con 0 errores y 8 advertencias; TypeScript y build/PWA pasan. No se activan los proveedores heredados ni Follow V3. La validación conectada sigue pendiente.
