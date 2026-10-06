@@ -4491,15 +4491,10 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     }
   }, [sessionCodeDisplay, hasActiveSession]);
 
-  const directorSharedViewMode = useMemo((): ViewMode | null => {
-    return (
-      lastRemoteStateRef.current?.viewMode ?? detected?.recovery?.viewMode ?? null
-    );
-  }, [detected, followerRemoteNavTick]);
-
-  const directorSharedListId = useMemo((): string | null => {
-    return lastRemoteStateRef.current?.listId ?? detected?.recovery?.listId ?? null;
-  }, [detected, followerRemoteNavTick]);
+  const directorSharedViewMode =
+    lastRemoteStateRef.current?.viewMode ?? detected?.recovery?.viewMode ?? null;
+  const directorSharedListId =
+    lastRemoteStateRef.current?.listId ?? detected?.recovery?.listId ?? null;
 
   const showAvailableBanner =
     liveSessionStatus === LIVE_SESSION_RECOVERY_BANNER_STATUS &&
@@ -4662,7 +4657,6 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       requestDirectorSessionStart,
       directorConflictOpen,
       directorConflict,
-      followerRemoteNavTick,
       closeDirectorConflict,
       continuarSesionFromConflict,
       cerrarSesionFromConflict,
@@ -4679,7 +4673,6 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       liveIsFollower,
       liveFollowerCode,
       followerAwaitingDirector,
-      checkSessionExists,
       cancelFollowerConnection,
       directorChannelJoin,
       connectedCount,
@@ -4698,7 +4691,6 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       publishSharedSessionIfDirector,
       publishFullSessionStateIfDirector,
       reportPageContext,
-      directorAwayFromScope,
     ]
   );
 

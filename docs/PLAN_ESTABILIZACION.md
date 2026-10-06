@@ -160,3 +160,9 @@ Validación: 274 pruebas en 74 archivos; lint con 0 errores y 18 advertencias. T
 El lector de desarrollo window.debugLiveSession consultaba valores del primer render. Ahora un hook conserva el lector y actualiza su callback después de cada render confirmado. Al desmontar se elimina únicamente su propia instalación, sin borrar una posterior. Sigue sin exponerse en producción.
 
 Tres pruebas cubren lectura actualizada, limpieza con instalaciones sucesivas y ausencia en producción. Validación: 277 pruebas en 75 archivos; lint con 0 errores y 17 advertencias; TypeScript y build/PWA pasan. La prueba conectada de sincronización sigue pendiente.
+
+## Decimoquinto bloque: valores derivados de sesión (2026-10-06)
+
+La vista y la lista compartidas del director se leen directamente en cada render, conservando la prioridad del estado remoto sobre la recuperación detectada. Se elimina su memoización innecesaria y las dependencias redundantes del valor del contexto (incluida una repetida). followerRemoteNavTick sigue activando los efectos de navegación y sincronización; checkSessionExists sigue disponible en el contexto.
+
+Lint con 0 errores y 14 advertencias, tres menos. Pasan 277 pruebas en 75 archivos, TypeScript y build/PWA. La validación conectada continúa pendiente.
