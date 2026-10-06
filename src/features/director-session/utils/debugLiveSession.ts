@@ -1,5 +1,4 @@
 import type { ViewMode } from '@/types/music';
-import { resolveSharedViewMode } from '@/types/music';
 
 export type DebugLiveSessionSnapshot = {
   pathname: string;
@@ -25,15 +24,19 @@ export type DebugLiveSessionSnapshot = {
   followDirector: boolean;
 };
 
-export function installDebugLiveSession(getSnapshot: () => DebugLiveSessionSnapshot): void {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return;
+export function installDebugLiveSession(getSnapshot: () => DebugLiveSessionSnapshot): () => void {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return () => {};
 
-  (window as Window & { debugLiveSession?: () => DebugLiveSessionSnapshot }).debugLiveSession =
-    () => {
-      const snap = getSnapshot();
-      console.log('[debugLiveSession]', snap);
-      return snap;
-    };
+  const debugWindow = window as Window & { debugLiveSession?: () => DebugLiveSessionSnapshot };
+  const debug = () => {
+    const snap = getSnapshot();
+    console.log('[debugLiveSession]', snap);
+    return snap;
+  };
+  debugWindow.debugLiveSession = debug;
 
   console.log('[debugLiveSession] window.debugLiveSession() — dev only');
+  return () => {
+    if (debugWindow.debugLiveSession === debug) delete debugWindow.debugLiveSession;
+  };
 }

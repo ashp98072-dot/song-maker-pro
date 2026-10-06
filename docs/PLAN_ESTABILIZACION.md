@@ -154,3 +154,9 @@ Validación: 272 pruebas en 73 archivos; lint con 0 errores y 21 advertencias, t
 useLiveSessionBroadcast cancela el temporizador pendiente y descarta overrides al desmontarse. Una prueba reprodujo el temporizador sin limpiar antes del cambio; otra verifica que un render conserve el plazo y publique el estado más reciente. Se declaran tres dependencias de broadcastStateRef, cuya identidad permanece estable entre renders.
 
 Validación: 274 pruebas en 74 archivos; lint con 0 errores y 18 advertencias. TypeScript y build/PWA pasan. Este bloque cubre el hook del proveedor heredado; no activa Follow V3 ni sustituye las pruebas conectadas entre dispositivos.
+
+## Decimocuarto bloque: diagnóstico de sesiones actualizado (2026-10-06)
+
+El lector de desarrollo window.debugLiveSession consultaba valores del primer render. Ahora un hook conserva el lector y actualiza su callback después de cada render confirmado. Al desmontar se elimina únicamente su propia instalación, sin borrar una posterior. Sigue sin exponerse en producción.
+
+Tres pruebas cubren lectura actualizada, limpieza con instalaciones sucesivas y ausencia en producción. Validación: 277 pruebas en 75 archivos; lint con 0 errores y 17 advertencias; TypeScript y build/PWA pasan. La prueba conectada de sincronización sigue pendiente.

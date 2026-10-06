@@ -95,10 +95,7 @@ import {
   normalizeOutgoingSharedSession,
 } from '@/features/director-session/realtime/buildFullSessionState';
 import { dispatchForceContinuousIndex } from '@/features/director-session/utils/liveSessionContinuousSyncEvents';
-import {
-  installDebugLiveSession,
-  type DebugLiveSessionSnapshot,
-} from '@/features/director-session/utils/debugLiveSession';
+import { useDebugLiveSession } from '@/features/director-session/hooks/useDebugLiveSession';
 import { resolveSharedViewMode, type ViewMode } from '@/types/music';
 import type { SharedSessionState } from '@/features/director-session/types';
 import {
@@ -3803,44 +3800,41 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     cancelFollowerConnection,
   ]);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    installDebugLiveSession((): DebugLiveSessionSnapshot => {
-      const remote = lastRemoteStateRef.current;
-      return {
-        pathname: getJoinPathname(),
-        connection: connection
-          ? { sessionCode: connection.sessionCode, role: connection.role }
-          : null,
-        liveIsDirector,
-        liveSessionCode,
-        liveIsFollower,
-        liveFollowerCode,
-        directorChannelJoin,
-        directorChannelState: directorChannelRef.current?.state ?? null,
-        followerChannelState: followerChannelRef.current?.state ?? null,
-        remote: remote
-          ? {
-              viewMode: remote.viewMode,
-              resolvedViewMode: resolveSharedViewMode(
-                remote.viewMode,
-                remote.listId ?? null,
-                remote.listSongIds ?? null
-              ),
-              currentIndex:
-                typeof remote.currentIndex === 'number' ? remote.currentIndex : null,
-              listId: remote.listId ?? null,
-              currentSongId: remote.currentSongId ?? null,
-              genderShift: remote.genderShift ?? null,
-              sharedSectionAnchor: remote.sharedSectionAnchor ?? null,
-              updatedAt: remote.updatedAt ?? null,
-            }
-          : null,
-        liveSessionStatus,
-        followDirector: readFollowDirector(),
-      };
-    });
-  }, []);
+  useDebugLiveSession(() => {
+    const remote = lastRemoteStateRef.current;
+    return {
+      pathname: getJoinPathname(),
+      connection: connection
+        ? { sessionCode: connection.sessionCode, role: connection.role }
+        : null,
+      liveIsDirector,
+      liveSessionCode,
+      liveIsFollower,
+      liveFollowerCode,
+      directorChannelJoin,
+      directorChannelState: directorChannelRef.current?.state ?? null,
+      followerChannelState: followerChannelRef.current?.state ?? null,
+      remote: remote
+        ? {
+            viewMode: remote.viewMode,
+            resolvedViewMode: resolveSharedViewMode(
+              remote.viewMode,
+              remote.listId ?? null,
+              remote.listSongIds ?? null
+            ),
+            currentIndex:
+              typeof remote.currentIndex === 'number' ? remote.currentIndex : null,
+            listId: remote.listId ?? null,
+            currentSongId: remote.currentSongId ?? null,
+            genderShift: remote.genderShift ?? null,
+            sharedSectionAnchor: remote.sharedSectionAnchor ?? null,
+            updatedAt: remote.updatedAt ?? null,
+          }
+        : null,
+      liveSessionStatus,
+      followDirector: readFollowDirector(),
+    };
+  });
 
   useEffect(() => {
     if (!liveIsFollower || !liveFollowerCode) return;
