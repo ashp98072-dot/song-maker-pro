@@ -184,3 +184,9 @@ Lint con 0 errores y 10 advertencias. Pasan 277 pruebas en 75 archivos; TypeScri
 La suscripción del canal heredado conserva una función estable que consulta el callback de actualización del último render confirmado. Así recibe los cambios del proveedor sin volver a suscribirse. Se corrigen las dependencias del fallback de publicación y del estado de reconexión registrado en el diagnóstico.
 
 Una prueba verifica entrega al callback actualizado, identidad estable y ausencia de resuscripciones. Pasan 278 pruebas en 76 archivos; lint con 0 errores y 8 advertencias; TypeScript y build/PWA pasan. No se activan los proveedores heredados ni Follow V3. La validación conectada sigue pendiente.
+
+## Decimonoveno bloque: reconexión y detección (2026-10-06)
+
+Se declaran los códigos actuales de director/seguidor en requestRealtimeReconnect y el código de seguidor y modo pasivo en refreshDetection. Los listeners consumidores limpian el registro anterior; la restauración inicial conserva su guard de ejecución única. El contexto de espectadores queda sin advertencias de lint, sin retirar supresiones históricas de otros módulos ni cambiar banderas de sincronización.
+
+Validación: 278 pruebas en 76 archivos; lint con 0 errores y 6 advertencias; TypeScript y build/PWA pasan. Restan una advertencia en DirectorSession, una en AppContext y cuatro en ContinuousSetlistPage. La validación conectada sigue pendiente.

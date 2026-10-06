@@ -467,7 +467,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
       scheduleReconnectFeedback();
       return true;
     },
-    [liveIsFollower, transitionSessionStatus, scheduleReconnectFeedback]
+    [liveIsFollower, liveFollowerCode, liveSessionCode, transitionSessionStatus, scheduleReconnectFeedback]
   );
 
   const bumpReconnectSequence = useCallback(
@@ -1439,6 +1439,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     sessionConnected,
     liveIsFollower,
     liveIsDirector,
+    liveFollowerCode,
+    passiveListenMode,
     transitionSessionStatus,
   ]);
 
