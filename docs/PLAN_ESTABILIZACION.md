@@ -196,3 +196,9 @@ Validación: 278 pruebas en 76 archivos; lint con 0 errores y 6 advertencias; Ty
 Se completan las dependencias de aplicación de canciones remotas, scroll pendiente, recepción de estado compartido y recuperación de sesión: ruta, código/rol de sesión, catálogo, ventana efectiva y estado de landing. Se retiran dependencias que los callbacks no usan. La vista continua queda sin advertencias; el efecto de scroll mantiene su cancelación al cambiar dependencias.
 
 Validación: 278 pruebas en 76 archivos; TypeScript y build/PWA pasan; lint con 0 errores y 2 advertencias, en DirectorSession y AppContext. Sigue pendiente comprobar cambios rápidos, scroll y recuperación con dos sesiones reales.
+
+## Vigésimo primer bloque: carga inicial de AppContext (2026-10-06)
+
+El estado local inicial se carga mediante el inicializador de useState. Las funciones de lectura de listas/canciones y mezcla de catálogo se declaran dentro del efecto de autenticación que las utiliza. Se declara saved.isGuest, estable durante la vida del proveedor, sin recrear suscripciones en cada render. La implementación de consultas y mezcla se conserva.
+
+Validación: 278 pruebas en 76 archivos, TypeScript y build/PWA pasan; lint con 0 errores y 1 advertencia en DirectorSession. La comprobación conectada de cambio de usuario y reconexión sigue pendiente.
