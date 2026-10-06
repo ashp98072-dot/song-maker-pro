@@ -22,16 +22,16 @@ function saveState(state: AppState) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const saved = loadState();
-  
+  const [saved] = useState(loadState);
+
   const [isGuest, setIsGuest] = useState(saved.isGuest ?? false);
   const [userName, setUserName] = useState(saved.userName ?? ''); 
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [songs, setSongs] = useState<Song[]>(() => {
     const custom = saved.songs ?? [];
     const customMap = new Map(custom.map(s => [s.id, s]));
-    
+
     return [...SAMPLE_SONGS, ...custom].filter((song, index, self) => 
       index === self.findIndex((t) => t.id === song.id)
     ).map(s => {
@@ -42,155 +42,155 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     });
   });
-  
+
   const [favorites, setFavorites] = useState<string[]>(saved.favorites ?? []);
   const [lists, setLists] = useState<SongList[]>(saved.lists ?? []);
   const userIdRef = useRef<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // --- Sincronización de Listas (Corregido para usar user_lists y JSON) ---
-  const fetchCloudLists = async (userId: string) => {
-    try {
-      const { data: pls, error } = await supabase
-        .from('user_lists')
-        .select('id, name, created_at, song_ids')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true });
-
-      if (error || !pls) return;
-
-      const cloudLists: SongList[] = pls.map((p) => ({
-        id: p.id,
-        name: p.name,
-        songIds: Array.isArray(p.song_ids)
-          ? (p.song_ids as unknown[]).filter((x): x is string => typeof x === 'string')
-          : [],
-        createdAt: new Date(p.created_at).toLocaleDateString(),
-      }));
-
-      setLists(cloudLists);
-    } catch (err) {
-      console.error('fetchCloudLists falló:', err);
-    }
-  };
-
-  const cloudRowToSong = (us: Tables<'user_songs'>): Song => {
-    const baseKey = us.key || 'C';
-    const isMinor = typeof baseKey === 'string' && /m($|[^a])/.test(baseKey);
-    return {
-      id: us.song_id,
-      title: us.title || 'Nueva Canción',
-      artist: us.artist || 'Artista Desconocido',
-      originalKey: baseKey,
-      originalGender: 'male',
-      scaleMode: isMinor ? 'minor' : 'major',
-      lyrics: '',
-      chords: us.chords || '',
-      key: baseKey,
-      bpm: us.bpm || undefined,
-      youtubeUrl: us.youtube_url?.trim() || undefined,
-      isNew: true,
-    };
-  };
-
-  /** Community public_songs → shared Home catalog (does not overwrite local/cloud rows). */
-  const mergePublicSongsCatalog = async () => {
-    try {
-      const { fetchPublicSongs } = await import('@/features/community/publicSongsApi');
-      const { songDedupeKey } = await import(
-        '@/features/song-import/utils/normalizeImportedSong'
-      );
-      const publicSongs = await fetchPublicSongs(500);
-      if (!publicSongs.length) return;
-      setSongs((prev) => {
-        const ids = new Set(prev.map((s) => s.id));
-        const keys = new Set(prev.map((s) => songDedupeKey(s.title, s.artist)));
-        const incoming = publicSongs.filter(
-          (s) => !ids.has(s.id) && !keys.has(songDedupeKey(s.title, s.artist))
-        );
-        return incoming.length ? [...prev, ...incoming] : prev;
-      });
-    } catch (err) {
-      console.warn('public_songs hydrate failed:', err);
-    }
-  };
-
-  const fetchGlobalCloudData = async () => {
-    try {
-      const [{ data, error }, { data: appRows }] = await Promise.all([
-        supabase.from('user_songs').select('*'),
-        supabase.from('app_songs').select('*'),
-      ]);
-      const appMap = new Map<string, Tables<'app_songs'>>(
-        Array.isArray(appRows) ? appRows.map((a) => [a.song_id, a]) : []
-      );
-
-      const cloudRows = data && !error && Array.isArray(data) ? data : [];
-
-      // Guests / anon often hit RLS empty — public SEO RPC still has the catalog.
-      if (!cloudRows.length) {
-        try {
-          const { fetchSongsViaSeoCatalog } = await import('@/utils/songSlug');
-          const seoSongs = await fetchSongsViaSeoCatalog();
-          if (seoSongs.length) {
-            setSongs((prev) => {
-              const existingIds = new Set(prev.map((s) => s.id));
-              const incoming = seoSongs.filter((s) => !existingIds.has(s.id));
-              return incoming.length ? [...incoming, ...prev] : prev;
-            });
-          }
-        } catch (seoErr) {
-          console.warn('SEO catalog hydrate failed:', seoErr);
-        }
-      }
-
-      if (cloudRows.length) {
-        setSongs(prev => {
-          const cloudSongsMap = new Map<string, Tables<'user_songs'>>(cloudRows.map((us) => [us.song_id, us]));
-          const updatedExisting = prev.map(originalSong => {
-            const globalVersion = cloudSongsMap.get(originalSong.id);
-            const adminOverride = appMap.get(originalSong.id);
-            let next = originalSong;
-            if (globalVersion) {
-              next = {
-                ...next,
-                chords: globalVersion.chords || originalSong.chords,
-                title: globalVersion.title || originalSong.title,
-                artist: globalVersion.artist || originalSong.artist,
-                key: globalVersion.key || originalSong.key,
-                bpm: globalVersion.bpm || originalSong.bpm,
-                youtubeUrl: globalVersion.youtube_url?.trim() || originalSong.youtubeUrl,
-              };
-            }
-            if (adminOverride) {
-              next = {
-                ...next,
-                originalGender: adminOverride.original_gender === 'male' || adminOverride.original_gender === 'female'
-                  ? adminOverride.original_gender : next.originalGender,
-                originalKey: adminOverride.original_key || next.originalKey,
-                scaleMode: adminOverride.scale_mode === 'major' || adminOverride.scale_mode === 'minor'
-                  ? adminOverride.scale_mode : next.scaleMode,
-              };
-            }
-            return next;
-          });
-
-          const existingIds = new Set(updatedExisting.map(s => s.id));
-          const newSongsFromCloud: Song[] = cloudRows
-            .filter((us) => !existingIds.has(us.song_id))
-            .map(cloudRowToSong);
-
-          return [...newSongsFromCloud, ...updatedExisting];
-        });
-      }
-    } catch (err) {
-      console.error("Error al sincronizar datos globales:", err);
-    }
-    await mergePublicSongsCatalog();
-  };
-
   useEffect(() => {
     let cancelled = false;
+
+    // --- Sincronización de Listas (Corregido para usar user_lists y JSON) ---
+    const fetchCloudLists = async (userId: string) => {
+      try {
+        const { data: pls, error } = await supabase
+          .from('user_lists')
+          .select('id, name, created_at, song_ids')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: true });
+
+        if (error || !pls) return;
+
+        const cloudLists: SongList[] = pls.map((p) => ({
+          id: p.id,
+          name: p.name,
+          songIds: Array.isArray(p.song_ids)
+            ? (p.song_ids as unknown[]).filter((x): x is string => typeof x === 'string')
+            : [],
+          createdAt: new Date(p.created_at).toLocaleDateString(),
+        }));
+
+        setLists(cloudLists);
+      } catch (err) {
+        console.error('fetchCloudLists falló:', err);
+      }
+    };
+
+    const cloudRowToSong = (us: Tables<'user_songs'>): Song => {
+      const baseKey = us.key || 'C';
+      const isMinor = typeof baseKey === 'string' && /m($|[^a])/.test(baseKey);
+      return {
+        id: us.song_id,
+        title: us.title || 'Nueva Canción',
+        artist: us.artist || 'Artista Desconocido',
+        originalKey: baseKey,
+        originalGender: 'male',
+        scaleMode: isMinor ? 'minor' : 'major',
+        lyrics: '',
+        chords: us.chords || '',
+        key: baseKey,
+        bpm: us.bpm || undefined,
+        youtubeUrl: us.youtube_url?.trim() || undefined,
+        isNew: true,
+      };
+    };
+
+    /** Community public_songs → shared Home catalog (does not overwrite local/cloud rows). */
+    const mergePublicSongsCatalog = async () => {
+      try {
+        const { fetchPublicSongs } = await import('@/features/community/publicSongsApi');
+        const { songDedupeKey } = await import(
+          '@/features/song-import/utils/normalizeImportedSong'
+        );
+        const publicSongs = await fetchPublicSongs(500);
+        if (!publicSongs.length) return;
+        setSongs((prev) => {
+          const ids = new Set(prev.map((s) => s.id));
+          const keys = new Set(prev.map((s) => songDedupeKey(s.title, s.artist)));
+          const incoming = publicSongs.filter(
+            (s) => !ids.has(s.id) && !keys.has(songDedupeKey(s.title, s.artist))
+          );
+          return incoming.length ? [...prev, ...incoming] : prev;
+        });
+      } catch (err) {
+        console.warn('public_songs hydrate failed:', err);
+      }
+    };
+
+    const fetchGlobalCloudData = async () => {
+      try {
+        const [{ data, error }, { data: appRows }] = await Promise.all([
+          supabase.from('user_songs').select('*'),
+          supabase.from('app_songs').select('*'),
+        ]);
+        const appMap = new Map<string, Tables<'app_songs'>>(
+          Array.isArray(appRows) ? appRows.map((a) => [a.song_id, a]) : []
+        );
+
+        const cloudRows = data && !error && Array.isArray(data) ? data : [];
+
+        // Guests / anon often hit RLS empty — public SEO RPC still has the catalog.
+        if (!cloudRows.length) {
+          try {
+            const { fetchSongsViaSeoCatalog } = await import('@/utils/songSlug');
+            const seoSongs = await fetchSongsViaSeoCatalog();
+            if (seoSongs.length) {
+              setSongs((prev) => {
+                const existingIds = new Set(prev.map((s) => s.id));
+                const incoming = seoSongs.filter((s) => !existingIds.has(s.id));
+                return incoming.length ? [...incoming, ...prev] : prev;
+              });
+            }
+          } catch (seoErr) {
+            console.warn('SEO catalog hydrate failed:', seoErr);
+          }
+        }
+
+        if (cloudRows.length) {
+          setSongs(prev => {
+            const cloudSongsMap = new Map<string, Tables<'user_songs'>>(cloudRows.map((us) => [us.song_id, us]));
+            const updatedExisting = prev.map(originalSong => {
+              const globalVersion = cloudSongsMap.get(originalSong.id);
+              const adminOverride = appMap.get(originalSong.id);
+              let next = originalSong;
+              if (globalVersion) {
+                next = {
+                  ...next,
+                  chords: globalVersion.chords || originalSong.chords,
+                  title: globalVersion.title || originalSong.title,
+                  artist: globalVersion.artist || originalSong.artist,
+                  key: globalVersion.key || originalSong.key,
+                  bpm: globalVersion.bpm || originalSong.bpm,
+                  youtubeUrl: globalVersion.youtube_url?.trim() || originalSong.youtubeUrl,
+                };
+              }
+              if (adminOverride) {
+                next = {
+                  ...next,
+                  originalGender: adminOverride.original_gender === 'male' || adminOverride.original_gender === 'female'
+                    ? adminOverride.original_gender : next.originalGender,
+                  originalKey: adminOverride.original_key || next.originalKey,
+                  scaleMode: adminOverride.scale_mode === 'major' || adminOverride.scale_mode === 'minor'
+                    ? adminOverride.scale_mode : next.scaleMode,
+                };
+              }
+              return next;
+            });
+
+            const existingIds = new Set(updatedExisting.map(s => s.id));
+            const newSongsFromCloud: Song[] = cloudRows
+              .filter((us) => !existingIds.has(us.song_id))
+              .map(cloudRowToSong);
+
+            return [...newSongsFromCloud, ...updatedExisting];
+          });
+        }
+      } catch (err) {
+        console.error("Error al sincronizar datos globales:", err);
+      }
+      await mergePublicSongsCatalog();
+    };
 
     const applyIdentity = (session: { user?: { id: string; email?: string; user_metadata?: Record<string, unknown> } } | null) => {
       if (session?.user) {
@@ -338,7 +338,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       authSubscription.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [saved.isGuest]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -357,7 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = (name: string) => { setUserName(name); setIsGuest(false); };
   const loginAsGuest = () => { setUserName('Invitado'); setIsGuest(true); };
-  
+
   const logout = async () => {
     // Guests have no Supabase session; signOut can reject with "session missing".
     // Never let that block the state reset / redirect.
@@ -469,7 +469,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .insert({ user_id: uid, name, song_ids: [] })
         .select('id, created_at')
         .single();
-      
+
       if (error || !data) {
         toast.error('Error al crear lista en la nube');
         return null;
@@ -515,7 +515,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .from('user_lists')
         .update({ song_ids: updatedSongIds })
         .eq('id', listId);
-      
+
       if (error) {
         console.error('Error addSongToList:', error);
         toast.error('Error al sincronizar la lista');
