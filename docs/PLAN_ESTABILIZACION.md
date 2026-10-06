@@ -190,3 +190,9 @@ Una prueba verifica entrega al callback actualizado, identidad estable y ausenci
 Se declaran los códigos actuales de director/seguidor en requestRealtimeReconnect y el código de seguidor y modo pasivo en refreshDetection. Los listeners consumidores limpian el registro anterior; la restauración inicial conserva su guard de ejecución única. El contexto de espectadores queda sin advertencias de lint, sin retirar supresiones históricas de otros módulos ni cambiar banderas de sincronización.
 
 Validación: 278 pruebas en 76 archivos; lint con 0 errores y 6 advertencias; TypeScript y build/PWA pasan. Restan una advertencia en DirectorSession, una en AppContext y cuatro en ContinuousSetlistPage. La validación conectada sigue pendiente.
+
+## Vigésimo bloque: dependencias de la vista continua (2026-10-06)
+
+Se completan las dependencias de aplicación de canciones remotas, scroll pendiente, recepción de estado compartido y recuperación de sesión: ruta, código/rol de sesión, catálogo, ventana efectiva y estado de landing. Se retiran dependencias que los callbacks no usan. La vista continua queda sin advertencias; el efecto de scroll mantiene su cancelación al cambiar dependencias.
+
+Validación: 278 pruebas en 76 archivos; TypeScript y build/PWA pasan; lint con 0 errores y 2 advertencias, en DirectorSession y AppContext. Sigue pendiente comprobar cambios rápidos, scroll y recuperación con dos sesiones reales.
