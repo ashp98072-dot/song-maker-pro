@@ -166,3 +166,9 @@ Tres pruebas cubren lectura actualizada, limpieza con instalaciones sucesivas y 
 La vista y la lista compartidas del director se leen directamente en cada render, conservando la prioridad del estado remoto sobre la recuperación detectada. Se elimina su memoización innecesaria y las dependencias redundantes del valor del contexto (incluida una repetida). followerRemoteNavTick sigue activando los efectos de navegación y sincronización; checkSessionExists sigue disponible en el contexto.
 
 Lint con 0 errores y 14 advertencias, tres menos. Pasan 277 pruebas en 75 archivos, TypeScript y build/PWA. La validación conectada continúa pendiente.
+
+## Decimosexto bloque: callbacks de recuperación manual (2026-10-06)
+
+Volver a sesión declara las funciones actuales de comprobación de actividad y navegación de recuperación; se elimina una dependencia de rol no utilizada. El botón de diagnóstico de base de datos declara el rol de seguidor que registra. Ambos callbacks se invocan por acciones del usuario, no por efectos de reconexión.
+
+Validación: 277 pruebas en 75 archivos, TypeScript y build/PWA pasan. Lint con 0 errores y 12 advertencias. La comprobación manual conectada de recuperación sigue pendiente.
