@@ -3248,7 +3248,7 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     }
     const escaped = await rpcOverlayPollTick('debug-db-button');
     console.log('[DEBUG_DB]', { phase: 'done', escaped });
-  }, [liveFollowerCode, rpcOverlayPollTick]);
+  }, [liveFollowerCode, liveIsFollower, rpcOverlayPollTick]);
 
   const requestFollowerCurrentState = useCallback(() => {
     const code = normalizeSessionCode(liveFollowerCode);
@@ -3998,7 +3998,6 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
   }, [
     detected,
     liveIsDirector,
-    liveIsFollower,
     liveFollowerCode,
     liveSessionCode,
     activeJoinCode,
@@ -4006,6 +4005,8 @@ export function SpectatorSessionProvider({ children }: { children: ReactNode }) 
     beginFollowerSession,
     beginDirectorSession,
     transitionSessionStatus,
+    abortFollowerJoinIfSessionInactive,
+    navigateToRecoveryTarget,
   ]);
 
   const reunirseASesion = volverASesion;
