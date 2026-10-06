@@ -172,3 +172,9 @@ Lint con 0 errores y 14 advertencias, tres menos. Pasan 277 pruebas en 75 archiv
 Volver a sesión declara las funciones actuales de comprobación de actividad y navegación de recuperación; se elimina una dependencia de rol no utilizada. El botón de diagnóstico de base de datos declara el rol de seguidor que registra. Ambos callbacks se invocan por acciones del usuario, no por efectos de reconexión.
 
 Validación: 277 pruebas en 75 archivos, TypeScript y build/PWA pasan. Lint con 0 errores y 12 advertencias. La comprobación manual conectada de recuperación sigue pendiente.
+
+## Decimoséptimo bloque: dependencias de ruta y diagnóstico (2026-10-06)
+
+El diagnóstico del canal depende de los valores de rol y código que registra, conservando su frecuencia ante objetos equivalentes. La aplicación inicial de posición en la vista continua declara location.pathname, usado para priorizar el estado remoto en rutas live. Conserva el guard de aplicación única y la cancelación del temporizador.
+
+Lint con 0 errores y 10 advertencias. Pasan 277 pruebas en 75 archivos; TypeScript y build/PWA pasan. Las verificaciones conectadas y móviles siguen pendientes.

@@ -694,14 +694,16 @@ export function LiveSessionChannelHost() {
     followerChannelRef,
   ]);
 
+  const connectionRole = connection?.role;
+  const connectionCode = connection?.sessionCode;
   useEffect(() => {
-    if (connection) {
+    if (connectionRole !== undefined && connectionCode !== undefined) {
       sessionProviderLog('navigation preserved', {
-        role: connection.role,
-        code: connection.sessionCode,
+        role: connectionRole,
+        code: connectionCode,
       });
     }
-  }, [connection?.role, connection?.sessionCode]);
+  }, [connectionRole, connectionCode]);
 
   return null;
 }
