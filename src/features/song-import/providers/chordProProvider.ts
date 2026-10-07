@@ -3,7 +3,7 @@ import { parseChordProDocument } from '@/features/song-import/parsers/chordProPa
 
 export const chordProProvider: SongImportProvider = {
   id: 'chordpro',
-  label: 'ChordPro / texto (.pro, .chopro, .txt)',
+  label: 'ChordPro / texto (.pro, .chopro, .chordpro, .cho, .crd, .txt)',
   licenseNote: 'Archivos locales del usuario; sin redistribución automática.',
   canBulkImport: true,
   async parseFiles(files) {

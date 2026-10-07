@@ -208,3 +208,9 @@ Validación: 278 pruebas en 76 archivos, TypeScript y build/PWA pasan; lint con 
 La recuperación automática comprueba su vigencia después de cada consulta asíncrona, incluida autenticación. Una operación cancelada no hidrata ni inicia una sesión. Se declaran las dependencias actuales del efecto y se estabiliza el contexto de respaldo sin proveedor. La clave de recuperación conserva la deduplicación de operaciones completadas.
 
 Tres pruebas cubren cancelación durante búsqueda y autenticación, y recuperación alternativa vigente. Validación: 281 pruebas en 77 archivos; TypeScript y build/PWA pasan; lint con 0 errores y 0 advertencias. Esto no sustituye revisar las supresiones históricas de lint ni validar reconexión entre dispositivos reales.
+
+## Corrección de importación ChordPro (2026-10-07)
+
+Las capturas de cuatro canciones importadas revelaron acordes inline visibles como texto y líneas instrumentales tratadas como secciones. El parser convierte acordes entre corchetes a líneas de acordes sobre la letra y separa acordes instrumentales adyacentes. Conserva comentarios/secciones, descarta directivas de cierre y admite extensiones cho/chordpro/crd en el selector.
+
+Cuatro pruebas sintéticas cubren posición, instrumentales, secciones y texto ya convertido; se actualiza la expectativa del pegado ChordPro. Se comprobaron los cuatro archivos locales sin incluir letras en Git. La corrección afecta nuevas importaciones: las canciones ya guardadas necesitan edición, porque el importador omite duplicados. Validación: 285 pruebas, TypeScript y build/PWA; lint sin errores ni advertencias. Pendiente comprobación visual en la aplicación desplegada.
