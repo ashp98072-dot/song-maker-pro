@@ -58,3 +58,16 @@ describe('administrative review and bulk save', () => {
     expect(mocks.merge).toHaveBeenCalledTimes(2);
   });
 });
+
+it('keeps the existing ID when an administrator opts into updates', async () => {
+  mocks.admin=true;
+  mocks.parse.mockResolvedValue({songs:songs(1),errors:[]});
+  mocks.save.mockResolvedValue([{song_id:'imp-test-0',target_id:'original-id',status:'updated',message:''}]);
+  const {container}=mount();
+  fireEvent.click(screen.getByRole('checkbox', {name:/Actualizar canciones existentes/}));
+  await upload(container);
+  fireEvent.click(screen.getByRole('button',{name:'Solo biblioteca (1)'}));
+  await waitFor(()=>expect(mocks.merge).toHaveBeenCalledWith([expect.objectContaining({id:'original-id'})],[],[],true));
+  expect(mocks.save).toHaveBeenCalledWith(expect.any(Array),false,true);
+  cleanup();
+});

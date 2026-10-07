@@ -17,7 +17,7 @@ interface AppContextType extends AppState {
   addSongToList: (listId: string, songId: string) => void;
   removeSongFromList: (listId: string, songId: string) => void;
   setListSongs: (listId: string, songIds: string[]) => Promise<void>;
-  importLibrary: (songs: Song[], favorites: string[], lists: SongList[]) => void;
+  importLibrary: (songs: Song[], favorites: string[], lists: SongList[], replaceExisting?: boolean) => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);

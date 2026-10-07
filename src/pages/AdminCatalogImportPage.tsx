@@ -55,6 +55,7 @@ export default function AdminCatalogImportPage() {
   const [pasteText, setPasteText] = useState('');
   const [showPaste, setShowPaste] = useState(false);
   const [cadenaName, setCadenaName] = useState('');
+  const [updateExisting, setUpdateExisting] = useState(false);
   const [busy, setBusy] = useState<ImportMode | null>(null);
   const [parsing, setParsing] = useState(false);
 
@@ -90,7 +91,7 @@ export default function AdminCatalogImportPage() {
       next.push({
         localId: `${song.id}-${i}-${Date.now()}`,
         song,
-        selected: !duplicate,
+        selected: updateExisting || !duplicate,
         genre: defaultGenre,
         fileName: fileNames?.[i],
         expanded: false,
@@ -220,14 +221,15 @@ export default function AdminCatalogImportPage() {
       for (let offset = 0; offset < selected.length; offset += 10) {
         const batch = selected.slice(offset, offset + 10);
         const batchSongs = batch.map(row => ({ ...row.song, genre: row.genre, isNew: true }));
-        const results = await saveAdminImportBatch(batchSongs, mode !== 'library');
+        const results = await saveAdminImportBatch(batchSongs, mode !== 'library', updateExisting);
         const imported: Song[] = [];
         results.forEach((result, index) => {
           const row = batch[index];
-          if (result.status === 'imported') {
+          if (result.status === 'imported' || result.status === 'updated') {
+            const savedSong = { ...batchSongs[index], id: result.target_id || batchSongs[index].id };
             succeeded.add(row.localId);
-            publishedSongs.push(batchSongs[index]);
-            imported.push(batchSongs[index]);
+            publishedSongs.push(savedSong);
+            imported.push(savedSong);
           } else {
             if (result.status === 'skipped') {
               setRows(prev => prev.map(item => item.localId === row.localId ? { ...item, selected: false } : item));
@@ -235,7 +237,7 @@ export default function AdminCatalogImportPage() {
             setImportErrors(prev => [...prev, `${row.song.title}: ${result.message}`]);
           }
         });
-        importLibrary(imported, [], []);
+        importLibrary(imported, [], [], updateExisting);
         setRows(prev => prev.filter(row => !succeeded.has(row.localId)));
         setProgress({ done: Math.min(offset + batch.length, selected.length), total: selected.length });
       }
@@ -267,8 +269,8 @@ export default function AdminCatalogImportPage() {
       } else if (succeeded.size) {
         toast.success(
           mode === 'publish'
-            ? `${succeeded.size} publicada(s) en comunidad`
-            : `${succeeded.size} guardada(s) en tu biblioteca`
+            ? `${succeeded.size} guardada(s) o actualizada(s) en comunidad`
+            : `${succeeded.size} guardada(s) o actualizada(s) en tu biblioteca`
         );
       }
 
@@ -382,6 +384,12 @@ export default function AdminCatalogImportPage() {
           </div>
         ) : null}
 
+        <label className="flex items-center gap-2 text-sm my-4">
+          <input type="checkbox" checked={updateExisting} disabled={!!busy || parsing}
+            onChange={e => setUpdateExisting(e.target.checked)} />
+          Actualizar canciones existentes por título y artista (reemplaza letra, acordes y tono).
+          Selecciona las canciones que quieras actualizar.
+        </label>
         {rows.length > 0 ? (
           <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
             <span>
@@ -551,7 +559,7 @@ export default function AdminCatalogImportPage() {
                         ) : null}
                         {dup ? (
                           <span className="text-[10px] font-semibold text-amber-500">
-                            Ya en biblioteca
+                            Coincidencia existente
                           </span>
                         ) : null}
                         <button

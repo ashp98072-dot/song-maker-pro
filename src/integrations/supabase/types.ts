@@ -530,7 +530,7 @@ export type Database = {
     Functions: {
       admin_import_songs: {
         Args: { p_songs: Json; p_publish?: boolean }
-        Returns: { song_id: string; status: string; message: string }[]
+        Returns: { song_id: string; status: string; message: string; target_id: string }[]
       }
       activate_live_session: {
         Args: { p_code: string }

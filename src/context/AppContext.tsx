@@ -555,11 +555,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const importLibrary = (importedSongs: Song[], importedFavorites: string[], importedLists: SongList[]) => {
+  const importLibrary = (importedSongs: Song[], importedFavorites: string[], importedLists: SongList[], replaceExisting = false) => {
     setSongs(prev => {
       const existing = new Set(prev.map(s => s.id));
       const newSongs = importedSongs.filter(s => !existing.has(s.id));
-      return [...prev, ...newSongs];
+      return [...prev.map(song => replaceExisting ? importedSongs.find(item => item.id === song.id) ?? song : song), ...newSongs];
     });
     setFavorites(prev => [...new Set([...prev, ...importedFavorites])]);
     setLists(prev => {
