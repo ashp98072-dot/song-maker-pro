@@ -10,6 +10,32 @@ export function slugifySongTitle(title: string | null | undefined): string {
   return normalized.slice(0, 80) || 'cancion';
 }
 
+type RouteSong = Pick<Song, 'id' | 'title'>;
+type CatalogIndex = {
+  counts: Map<string, number>;
+  byId: Map<string, RouteSong>;
+  bySlug: Map<string, string>;
+};
+// Catalog state is immutable: a replacement array gets a fresh index; old arrays can be collected.
+const catalogIndexes = new WeakMap<RouteSong[], CatalogIndex>();
+function getCatalogIndex(songs: RouteSong[]): CatalogIndex {
+  const cached = catalogIndexes.get(songs);
+  if (cached) return cached;
+  const counts = new Map<string, number>();
+  const entries = songs.map(song => ({ song, base: slugifySongTitle(song.title) }));
+  for (const { base } of entries) counts.set(base, (counts.get(base) ?? 0) + 1);
+  const byId = new Map<string, RouteSong>();
+  const bySlug = new Map<string, string>();
+  for (const { song, base } of entries) {
+    const slug = counts.get(base)! > 1 ? base + '-' + song.id : base;
+    if (!byId.has(song.id)) byId.set(song.id, song);
+    if (!bySlug.has(slug)) bySlug.set(slug, song.id);
+  }
+  const index = { counts, byId, bySlug };
+  catalogIndexes.set(songs, index);
+  return index;
+}
+
 /** Unique slug; appends song id when titles collide in the library. */
 export function buildSongSlug(
   song: Pick<Song, 'id' | 'title'>,
@@ -17,8 +43,7 @@ export function buildSongSlug(
 ): string {
   const base = slugifySongTitle(song.title);
   if (!allSongs?.length) return base;
-  const sameBase = allSongs.filter((s) => slugifySongTitle(s.title) === base);
-  if (sameBase.length > 1) return `${base}-${song.id}`;
+  if ((getCatalogIndex(allSongs).counts.get(base) ?? 0) > 1) return `${base}-${song.id}`;
   return base;
 }
 
@@ -34,10 +59,9 @@ export function resolveSongIdFromRouteParam(
   const trimmed = param.trim();
   if (isNumericSongId(trimmed)) {
     // Only resolve when the id exists in catalog — avoid treating list Date.now() ids as songs.
-    return songs.find((s) => s.id === trimmed)?.id ?? null;
+    return getCatalogIndex(songs).byId.get(trimmed)?.id ?? null;
   }
-  const match = songs.find((s) => buildSongSlug(s, songs) === trimmed);
-  return match?.id ?? null;
+  return getCatalogIndex(songs).bySlug.get(trimmed) ?? null;
 }
 
 export function getSongPath(
@@ -52,7 +76,7 @@ export function getSongPathById(
   songId: string,
   allSongs?: Pick<Song, 'id' | 'title'>[]
 ): string {
-  const song = allSongs?.find((s) => s.id === songId);
+  const song = allSongs ? getCatalogIndex(allSongs).byId.get(songId) : undefined;
   return song ? getSongPath(song, allSongs) : `/cancion/${songId}`;
 }
 
