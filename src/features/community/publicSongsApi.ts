@@ -68,6 +68,20 @@ export function mapPublicSongRow(row: PublicSongRow): Song {
   };
 }
 
+/** Complete catalog for local/offline browsing; publish pages atomically after success. */
+export async function fetchAllPublicSongs(): Promise<Song[]> {
+  const songs = new Map<string, Song>();
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.from('public_songs').select('*')
+      .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as PublicSongRow[];
+    for (const row of rows) songs.set(row.song_id, mapPublicSongRow(row));
+    if (rows.length < pageSize) return [...songs.values()];
+  }
+}
+
 export async function fetchPublicSongs(limit = 300): Promise<Song[]> {
   const { data, error } = await supabase
     .from('public_songs')

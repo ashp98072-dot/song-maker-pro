@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { loadVisitedSongsCache, mergeVisitedSongsIntoSongs } from '@/pwa/visitedSongsCache';
 import { clearAuthenticatedDirectorCache } from '@/features/director-session/utils/liveSessionAuth';
 import { AppContext } from './useApp';
+import { reconcilePublicCatalog } from './reconcilePublicCatalog';
 
 const STORAGE_KEY = 'worship-transpose-state';
 
@@ -46,6 +47,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>(saved.favorites ?? []);
   const [lists, setLists] = useState<SongList[]>(saved.lists ?? []);
   const userIdRef = useRef<string | null>(null);
+  const localEditsRef = useRef(new Set<string>());
   const [isAdmin, setIsAdmin] = useState(false);
   const [archivedSongIds, setArchivedSongIds] = useState<string[]>(() => {
     try { const ids: unknown = JSON.parse(localStorage.getItem('catalog-archives') || '[]');
@@ -69,6 +71,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const personalIds = new Set<string>();
+    let publicRefreshRunning = false;
+    let publicRefreshQueued = false;
 
     // --- Sincronización de Listas (Corregido para usar user_lists y JSON) ---
     const fetchCloudLists = async (userId: string) => {
@@ -115,25 +120,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     };
 
-    /** Community public_songs → shared Home catalog (does not overwrite local/cloud rows). */
+    /** Refresh shared records by ID while retaining personal copies and local edits. */
     const mergePublicSongsCatalog = async () => {
+      if (cancelled) return;
+      if (publicRefreshRunning) { publicRefreshQueued = true; return; }
+      publicRefreshRunning = true;
+      const userId = userIdRef.current;
       try {
-        const { fetchPublicSongs } = await import('@/features/community/publicSongsApi');
-        const { songDedupeKey } = await import(
-          '@/features/song-import/utils/normalizeImportedSong'
-        );
-        const publicSongs = await fetchPublicSongs(500);
-        if (!publicSongs.length) return;
-        setSongs((prev) => {
-          const ids = new Set(prev.map((s) => s.id));
-          const keys = new Set(prev.map((s) => songDedupeKey(s.title, s.artist)));
-          const incoming = publicSongs.filter(
-            (s) => !ids.has(s.id) && !keys.has(songDedupeKey(s.title, s.artist))
-          );
-          return incoming.length ? [...prev, ...incoming] : prev;
-        });
+        const { fetchAllPublicSongs } = await import('@/features/community/publicSongsApi');
+        const publicSongs = await fetchAllPublicSongs();
+        if (cancelled || userId !== userIdRef.current) return;
+        setSongs(prev => cancelled || userId !== userIdRef.current ? prev :
+          reconcilePublicCatalog(prev, publicSongs, new Set([...personalIds, ...localEditsRef.current])));
       } catch (err) {
         console.warn('public_songs hydrate failed:', err);
+      } finally {
+        publicRefreshRunning = false;
+        if (publicRefreshQueued && !cancelled) {
+          publicRefreshQueued = false;
+          void mergePublicSongsCatalog();
+        }
       }
     };
 
@@ -148,6 +154,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
 
         const cloudRows = data && !error && Array.isArray(data) ? data : [];
+        if (cancelled) return;
+        personalIds.clear();
+        for (const row of cloudRows) if (row.user_id === userIdRef.current) personalIds.add(row.song_id);
 
         // Guests / anon often hit RLS empty — public SEO RPC still has the catalog.
         if (!cloudRows.length) {
@@ -156,9 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const seoSongs = await fetchSongsViaSeoCatalog();
             if (seoSongs.length) {
               setSongs((prev) => {
-                const existingIds = new Set(prev.map((s) => s.id));
-                const incoming = seoSongs.filter((s) => !existingIds.has(s.id));
-                return incoming.length ? [...incoming, ...prev] : prev;
+                return cancelled ? prev : reconcilePublicCatalog(prev, seoSongs, localEditsRef.current);
               });
             }
           } catch (seoErr) {
@@ -170,6 +177,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setSongs(prev => {
             const cloudSongsMap = new Map<string, Tables<'user_songs'>>(cloudRows.map((us) => [us.song_id, us]));
             const updatedExisting = prev.map(originalSong => {
+              if (localEditsRef.current.has(originalSong.id)) return originalSong;
               const globalVersion = cloudSongsMap.get(originalSong.id);
               const adminOverride = appMap.get(originalSong.id);
               let next = originalSong;
@@ -297,6 +305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        personalIds.clear();
         clearAuthenticatedDirectorCache();
         setUserName('');
         setIsGuest(false);
@@ -351,8 +360,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    const refreshPublicCatalog = () => {
+      if (document.visibilityState === 'hidden' || navigator.onLine === false) return;
+      void mergePublicSongsCatalog();
+    };
+    window.addEventListener('focus', refreshPublicCatalog);
+    window.addEventListener('online', refreshPublicCatalog);
+    document.addEventListener('visibilitychange', refreshPublicCatalog);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('focus', refreshPublicCatalog);
+      window.removeEventListener('online', refreshPublicCatalog);
+      document.removeEventListener('visibilitychange', refreshPublicCatalog);
       window.clearTimeout(bootTimeout);
       authSubscription.unsubscribe();
       supabase.removeChannel(channel);
@@ -370,7 +390,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (isLoading) return;
     loadVisitedSongsCache().then((cached) => {
       if (!cached.length) return;
-      setSongs((prev) => mergeVisitedSongsIntoSongs(prev, cached));
+      setSongs((prev) => {
+        const existingIds = new Set(prev.map(song => song.id));
+        return mergeVisitedSongsIntoSongs(prev, cached.filter(song => !existingIds.has(song.id)));
+      });
     });
   }, [isLoading]);
 
@@ -394,6 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addSong = async (song: Song) => {
+    localEditsRef.current.add(song.id);
     const localSong: Song = { ...song, isNew: true };
     setSongs(prev => [localSong, ...prev.filter(s => s.id !== song.id)]);
 
@@ -418,6 +442,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSong = async (id: string, updatedFields: Partial<Song>) => {
+    localEditsRef.current.add(id);
     let mergedSong: Song | undefined;
     setSongs(prev =>
       prev.map(song => {
@@ -575,6 +600,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const importLibrary = (importedSongs: Song[], importedFavorites: string[], importedLists: SongList[], replaceExisting = false) => {
+    for (const song of importedSongs) localEditsRef.current.add(song.id);
     setSongs(prev => {
       const existing = new Set(prev.map(s => s.id));
       const newSongs = importedSongs.filter(s => !existing.has(s.id));
