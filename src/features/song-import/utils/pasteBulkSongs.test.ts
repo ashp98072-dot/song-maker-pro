@@ -23,7 +23,7 @@ describe('parsePastedSongChunk', () => {
     const song = parsePastedSongChunk('{title: Santo}\n{artist: Hillsong}\n{key: G}\n[G]Santo');
     expect(song?.title).toBe('Santo');
     expect(song?.artist).toBe('Hillsong');
-    expect(song?.chords).toContain('[G]Santo');
+    expect(song?.chords).toBe('G\nSanto');
   });
 
   it('parses plain title + chord lines', () => {

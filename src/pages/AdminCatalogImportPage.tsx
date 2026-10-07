@@ -332,7 +332,7 @@ export default function AdminCatalogImportPage() {
           <input
             ref={fileRef}
             type="file"
-            accept=".muf,.mufl,.pro,.chopro,.txt"
+            accept=".muf,.mufl,.pro,.chopro,.chordpro,.cho,.crd,.txt"
             multiple
             className="hidden"
             onChange={handleFiles}
