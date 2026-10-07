@@ -25,7 +25,7 @@ export function parseChordProDocument(text: string, filename?: string): Partial<
   const lines = text.split(/\r?\n/);
   let title = filename?.replace(/\.(pro|chopro|chordpro|cho|crd|txt)$/i, '') || 'Importada';
   let artist = '';
-  let originalKey = 'C';
+  let originalKey = '';
   let bpm: number | undefined;
   const body: string[] = [];
 

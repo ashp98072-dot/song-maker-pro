@@ -85,3 +85,6 @@ Después del despliegue, comprueba navegación directa a canciones, login, `/sit
 ### Actualizar canciones desde el catálogo administrativo
 
 Aplicar primero `supabase/migrations/20261007100000_admin_import_updates.sql`. En Importar catálogo, activar **Actualizar canciones existentes**, revisar letra/acordes/tono y seleccionar las filas (Todas permite seleccionar las omitidas previamente). Solo biblioteca actualiza la biblioteca del administrador; Publicar actualiza comunidad. Las coincidencias usan título y artista sin distinguir mayúsculas ni espacios exteriores. Varias coincidencias requieren revisión manual. Se conservan identificadores, atribución, enlaces y BPM cuando el archivo no los incluye. Las bibliotecas privadas de otras personas no se modifican.
+La revisión de importación sugiere tonalidad a partir de las líneas de acordes, con confianza y alternativas. Las sugerencias requieren confirmación; las tonalidades explícitas de ChordPro se conservan. Los archivos ChordPro sin tono dejan el campo vacío en la revisión administrativa y no pueden guardarse hasta confirmarlo. La heurística no analiza audio y puede equivocarse en modulaciones o armonías ambiguas.
+
+La pantalla incluye instrucciones para extraer ZIP en Windows y cargar hasta 20 archivos .chopro por lote. No requiere migración SQL.

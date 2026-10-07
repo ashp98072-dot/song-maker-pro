@@ -11,7 +11,7 @@ vi.mock('@/features/song-import/adminImport', () => ({saveAdminImportBatch:mocks
 vi.mock('sonner', () => ({toast:{success:vi.fn(),error:vi.fn()}}));
 import AdminCatalogImportPage from './AdminCatalogImportPage';
 
-const songs = (count: number) => Array.from({length:count},(_,i)=>({id:`imp-test-${i}`,title:`Prueba ${i}`,artist:'Autor',chords:'Texto de prueba'}));
+const songs = (count: number) => Array.from({length:count},(_,i)=>({id:`imp-test-${i}`,title:`Prueba ${i}`,artist:'Autor',originalKey:'C',chords:'Texto de prueba'}));
 function mount() {
   return render(<MemoryRouter initialEntries={['/import']}><Routes>
     <Route path="/import" element={<AdminCatalogImportPage />} />
@@ -69,5 +69,20 @@ it('keeps the existing ID when an administrator opts into updates', async () => 
   fireEvent.click(screen.getByRole('button',{name:'Solo biblioteca (1)'}));
   await waitFor(()=>expect(mocks.merge).toHaveBeenCalledWith([expect.objectContaining({id:'original-id'})],[],[],true));
   expect(mocks.save).toHaveBeenCalledWith(expect.any(Array),false,true);
+  cleanup();
+});
+
+it('requires confirmation before saving an estimated key', async () => {
+  mocks.admin=true; mocks.save.mockReset();
+  mocks.parse.mockResolvedValue({songs:[{...songs(1)[0],originalKey:'',chords:'Am F C G7 C F G7 C'}],errors:[]});
+  mocks.save.mockResolvedValue([{song_id:'imp-test-0',target_id:'imp-test-0',status:'imported',message:''}]);
+  const {container}=mount(); await upload(container);
+  expect(screen.getByLabelText('Tonalidad de Prueba 0')).toHaveValue('');
+  fireEvent.click(screen.getByRole('button',{name:'Solo biblioteca (1)'}));
+  expect(mocks.save).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'Usar sugerencia'}));
+  expect(screen.getByLabelText('Tonalidad de Prueba 0')).toHaveValue('C');
+  fireEvent.click(screen.getByRole('button',{name:'Solo biblioteca (1)'}));
+  await waitFor(()=>expect(mocks.save).toHaveBeenCalled());
   cleanup();
 });
