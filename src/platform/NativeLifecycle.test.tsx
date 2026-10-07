@@ -1,0 +1,43 @@
+import { act, cleanup, render } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ native: false, app: vi.fn(), network: vi.fn() }));
+vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => mocks.native } }));
+vi.mock('@capacitor/app', () => ({ App: { addListener: mocks.app } }));
+vi.mock('@capacitor/network', () => ({ Network: { addListener: mocks.network } }));
+import { NativeLifecycle } from './NativeLifecycle';
+beforeEach(() => { mocks.native = false; mocks.app.mockReset(); mocks.network.mockReset(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+it('does not register native plugins on the web', () => {
+  render(<NativeLifecycle />);
+  expect(mocks.app).not.toHaveBeenCalled();
+  expect(mocks.network).not.toHaveBeenCalled();
+});
+it('refreshes on native resume and reconnection and removes listeners', async () => {
+  mocks.native = true;
+  const removeApp = vi.fn(); const removeNetwork = vi.fn();
+  mocks.app.mockResolvedValue({ remove: removeApp });
+  mocks.network.mockResolvedValue({ remove: removeNetwork });
+  const dispatch = vi.spyOn(window, 'dispatchEvent');
+  const view = render(<NativeLifecycle />);
+  await act(async () => {});
+  mocks.app.mock.calls[0][1]({ isActive: false });
+  mocks.network.mock.calls[0][1]({ connected: false });
+  expect(dispatch).not.toHaveBeenCalled();
+  mocks.app.mock.calls[0][1]({ isActive: true });
+  mocks.network.mock.calls[0][1]({ connected: true });
+  expect(dispatch.mock.calls.map(([event]) => event.type)).toEqual(['focus', 'online']);
+  view.unmount();
+  expect(removeApp).toHaveBeenCalledOnce();
+  expect(removeNetwork).toHaveBeenCalledOnce();
+});
+it('removes a listener that finishes registering after unmount', async () => {
+  mocks.native = true;
+  const remove = vi.fn();
+  let finish: (value: { remove: typeof remove }) => void;
+  mocks.app.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  mocks.network.mockResolvedValue({ remove: vi.fn() });
+  const view = render(<NativeLifecycle />);
+  view.unmount();
+  await act(async () => { finish({ remove }); });
+  expect(remove).toHaveBeenCalledOnce();
+});

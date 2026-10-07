@@ -1,11 +1,12 @@
 import { registerSW } from 'virtual:pwa-register';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * registerType `autoUpdate`: Workbox-window llama **onNeedReload** cuando el nuevo SW toma control.
  * (`onNeedRefresh` solo aplica en modo `prompt`.)
  */
 export function registerPwaServiceWorker() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || Capacitor.isNativePlatform()) return;
 
   registerSW({
     immediate: true,
