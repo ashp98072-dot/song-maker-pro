@@ -202,3 +202,9 @@ Validación: 278 pruebas en 76 archivos; TypeScript y build/PWA pasan; lint con 
 El estado local inicial se carga mediante el inicializador de useState. Las funciones de lectura de listas/canciones y mezcla de catálogo se declaran dentro del efecto de autenticación que las utiliza. Se declara saved.isGuest, estable durante la vida del proveedor, sin recrear suscripciones en cada render. La implementación de consultas y mezcla se conserva.
 
 Validación: 278 pruebas en 76 archivos, TypeScript y build/PWA pasan; lint con 0 errores y 1 advertencia en DirectorSession. La comprobación conectada de cambio de usuario y reconexión sigue pendiente.
+
+## Vigésimo segundo bloque: cancelación de recuperación automática (2026-10-07)
+
+La recuperación automática comprueba su vigencia después de cada consulta asíncrona, incluida autenticación. Una operación cancelada no hidrata ni inicia una sesión. Se declaran las dependencias actuales del efecto y se estabiliza el contexto de respaldo sin proveedor. La clave de recuperación conserva la deduplicación de operaciones completadas.
+
+Tres pruebas cubren cancelación durante búsqueda y autenticación, y recuperación alternativa vigente. Validación: 281 pruebas en 77 archivos; TypeScript y build/PWA pasan; lint con 0 errores y 0 advertencias. Esto no sustituye revisar las supresiones históricas de lint ni validar reconexión entre dispositivos reales.

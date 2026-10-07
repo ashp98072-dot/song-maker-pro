@@ -1,3 +1,4 @@
+import { loadSessionRecovery } from '@/features/director-session/utils/loadSessionRecovery';
 import { useSessionPageHandlers } from '@/features/director-session/hooks/useSessionPageHandlers';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +15,6 @@ import {
   clearSessionRecoveryStorage,
   readStoredLiveSession,
   recoveryGenderShiftForPersist,
-  resolveLiveSessionForReconnect,
   writeStoredLiveSession,
   type SessionRecoveryMeta,
   type SessionRecoveryState,
@@ -163,6 +163,25 @@ function persistSnapshotsEqual(a: PersistSnapshot, b: PersistSnapshot): boolean 
   );
 }
 
+const EMPTY_SESSION_CONTEXT = {
+  connection: null,
+  liveIsDirector: false,
+  liveSessionCode: '',
+  liveIsFollower: false,
+  liveFollowerCode: '',
+  directorChannelJoin: 'idle' as DirectorChannelJoinState,
+  connectedCount: 0,
+  beginDirectorSession: () => {},
+  endDirectorSession: async () => {},
+  beginFollowerSession: () => {},
+  leaveFollowerSession: () => {},
+  registerPageHandlers: () => () => {},
+  updateBroadcastState: () => {},
+  scheduleBroadcast: () => {},
+  publishSharedSessionIfDirector: () => {},
+  publishFullSessionStateIfDirector: () => {},
+};
+
 export default function DirectorSession({
   songId,
   semitones,
@@ -221,24 +240,9 @@ export default function DirectorSession({
     scheduleBroadcast: globalScheduleBroadcast,
     publishSharedSessionIfDirector,
     publishFullSessionStateIfDirector,
-  } = liveSessionCtx ?? {
-    connection: null,
-    liveIsDirector: false,
-    liveSessionCode: '',
-    liveIsFollower: false,
-    liveFollowerCode: '',
-    directorChannelJoin: 'idle' as DirectorChannelJoinState,
-    connectedCount: 0,
-    beginDirectorSession: () => {},
-    endDirectorSession: async () => {},
-    beginFollowerSession: () => {},
-    leaveFollowerSession: () => {},
-    registerPageHandlers: () => () => {},
-    updateBroadcastState: () => {},
-    scheduleBroadcast: () => {},
-    publishSharedSessionIfDirector: () => {},
-    publishFullSessionStateIfDirector: () => {},
-  };
+  } = liveSessionCtx ?? EMPTY_SESSION_CONTEXT;
+
+  const joinWithCode = liveSessionCtx?.joinWithCode;
 
   const [joinCode, setJoinCode] = useState(initialJoinCode || followerCode || '');
   const [draftNote, setDraftNote] = useState('');
@@ -900,24 +904,18 @@ export default function DirectorSession({
     let cancelled = false;
     (async () => {
       try {
-        let recovery = await resolveLiveSessionForReconnect(codeCandidate);
-        let code = codeCandidate.trim().toUpperCase();
-
-        if (!recovery && initialJoinCode && initialJoinCode.length >= 4 && autoJoinFollower) {
-          recovery = await resolveLiveSessionForReconnect(initialJoinCode);
-          code = initialJoinCode.trim().toUpperCase();
-        }
-
-        if (cancelled || !recovery) {
-          if (!recovery && !cancelled && !isDirector && !isFollower) {
-            clearSessionRecoveryStorage();
-          }
+        const loaded = await loadSessionRecovery(
+          codeCandidate,
+          autoJoinFollower ? initialJoinCode : undefined,
+          () => cancelled,
+        );
+        if (cancelled || !loaded) return;
+        const { recovery, code, session } = loaded;
+        if (!recovery) {
+          if (!isDirector && !isFollower) clearSessionRecoveryStorage();
           return;
         }
 
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
         const isOwner = session?.user?.id === recovery.directorId;
         const role: 'director' | 'follower' = isOwner
           ? 'director'
@@ -967,8 +965,8 @@ export default function DirectorSession({
           beginDirectorSession({ code, origin, isNew: false });
           lastRecoveryKeyRef.current = recoveryKey;
         } else if (role === 'follower') {
-          if (liveSessionCtx) {
-            void liveSessionCtx.joinWithCode(code);
+          if (joinWithCode) {
+            void joinWithCode(code);
           } else {
             beginFollowerSession(code);
             setJoinCode(code);
@@ -987,8 +985,12 @@ export default function DirectorSession({
     initialJoinCode,
     autoJoinFollower,
     allowAutoReconnect,
-    effectivePageContext.songId,
-    effectivePageContext.listId,
+    effectivePageContext,
+    beginDirectorSession,
+    beginFollowerSession,
+    followerCode,
+    globalConnection?.role,
+    joinWithCode,
     isDirector,
     isFollower,
     joinCode,
