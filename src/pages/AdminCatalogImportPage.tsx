@@ -23,6 +23,7 @@ import {
   publishListAsCadena,
   type CommunityGenreId,
 } from '@/features/community';
+import { estimateSongKey } from '@/features/song-import/utils/estimateSongKey';
 import type { Song } from '@/types/music';
 import { saveAdminImportBatch } from '@/features/song-import/adminImport';
 import { songDedupeKey } from '@/features/song-import/utils/normalizeImportedSong';
@@ -34,6 +35,7 @@ type ReviewRow = {
   genre: CommunityGenreId;
   fileName?: string;
   expanded: boolean;
+  keySuggestion?: ReturnType<typeof estimateSongKey>;
 };
 
 type ImportMode = 'library' | 'publish' | 'cadena';
@@ -85,12 +87,15 @@ export default function AdminCatalogImportPage() {
     partials.forEach((partial, i) => {
       const song = normalizeImportedSong(partial, i);
       if (!song) return;
+      const missingKey = partial.originalKey === '' || (!partial.originalKey && !partial.key);
+      if (missingKey) { song.originalKey = ''; song.key = ''; }
       const key = songDedupeKey(song.title, song.artist);
       const duplicate = seen.has(key);
       seen.add(key);
       next.push({
         localId: `${song.id}-${i}-${Date.now()}`,
         song,
+        keySuggestion: missingKey ? estimateSongKey(song.chords) : null,
         selected: updateExisting || !duplicate,
         genre: defaultGenre,
         fileName: fileNames?.[i],
@@ -112,6 +117,7 @@ export default function AdminCatalogImportPage() {
       const errors: { file?: string; message: string }[] = [];
       if (files.length > 20) throw new Error('Selecciona como máximo 20 archivos por carga');
       for (const file of Array.from(files)) {
+        if (/\.zip$/i.test(file.name)) throw new Error('Extrae el ZIP primero y selecciona hasta 20 archivos .chopro de un lote');
         const holyrics = /\.mufl?$/i.test(file.name);
         const provider = getSongImportProvider(holyrics ? 'holyrics' : 'chordpro');
         if (!provider?.parseFiles) throw new Error('Formato no disponible');
@@ -204,6 +210,10 @@ export default function AdminCatalogImportPage() {
     if (importInFlight.current || parsing || !isAdmin || isGuest) return;
     if (!selected.length) {
       toast.error('Selecciona al menos una canción');
+      return;
+    }
+    if (selected.some(row => !/^[A-G][#b]?(?:m)?$/.test(row.song.originalKey))) {
+      toast.error('Confirma una tonalidad válida en todas las canciones seleccionadas (por ejemplo C, F# o Am)');
       return;
     }
     if (mode === 'cadena' && !cadenaName.trim()) {
@@ -310,6 +320,17 @@ export default function AdminCatalogImportPage() {
           Importa Holyrics (.muf / .mufl), ChordPro o pega varios cantos (sepáralos con ---), revisa y publica. Solo material
           propio o con licencia — sin scrapear la web.
         </p>
+        <details className="mt-3 text-sm text-muted-foreground">
+          <summary className="cursor-pointer">¿Tienes un ZIP? Cómo cargarlo en Windows</summary>
+          <ol className="list-decimal pl-5 mt-2 space-y-1">
+            <li>Haz clic derecho en el ZIP y elige Extraer todo → Extraer.</li>
+            <li>Abre la carpeta extraída y entra en un lote. Los casos dudosos están en para-revisar.</li>
+            <li>Pulsa Subir canciones, abre ese lote y selecciona sus archivos .chopro con Ctrl+A (máximo 20).</li>
+            <li>Revisa título, artista, letra y tonalidad. Confirma la sugerencia o escribe el tono.</li>
+            <li>Para actualizar las existentes, activa Actualizar canciones existentes y selecciona las filas.</li>
+            <li>Pulsa Publicar en comunidad. Cuando termine, continúa con el siguiente lote.</li>
+          </ol>
+        </details>
       </header>
 
       <fieldset disabled={!!busy || parsing} className="min-w-0">
@@ -523,12 +544,14 @@ export default function AdminCatalogImportPage() {
                         <label className="text-xs flex items-center gap-1.5">
                           <span className="text-muted-foreground">Tono</span>
                           <input
+                            aria-label={`Tonalidad de ${row.song.title}`}
+                            placeholder="Tono"
                             value={row.song.originalKey}
                             onChange={(e) => {
                               const v = e.target.value;
                               patchRow(row.localId, (r) => ({
                                 ...r,
-                                song: { ...r.song, originalKey: v, key: v },
+                                song: { ...r.song, originalKey: v, key: v, scaleMode: /m$/.test(v) ? 'minor' : 'major' },
                               }));
                             }}
                             className="w-16 h-8 px-2 rounded-lg bg-secondary border border-border text-sm"
@@ -552,6 +575,16 @@ export default function AdminCatalogImportPage() {
                             ))}
                           </select>
                         </label>
+                        {row.keySuggestion ? (
+                          <div className="text-xs text-amber-500">
+                            Estimación: {row.keySuggestion.key} · confianza {row.keySuggestion.confidence}.
+                            Alternativas: {row.keySuggestion.alternatives.join(', ')}.
+                            <button type="button" className="ml-2 underline" onClick={() => patchRow(row.localId, r => ({
+                              ...r, song: { ...r.song, originalKey: r.keySuggestion!.key, key: r.keySuggestion!.key,
+                                scaleMode: /m$/.test(r.keySuggestion!.key) ? 'minor' : 'major' },
+                            }))}>Usar sugerencia</button>
+                          </div>
+                        ) : !row.song.originalKey ? <span className="text-xs text-amber-500">Sin evidencia suficiente: indica el tono manualmente.</span> : null}
                         {row.fileName ? (
                           <span className="text-[10px] text-muted-foreground truncate max-w-[12rem]">
                             {row.fileName}

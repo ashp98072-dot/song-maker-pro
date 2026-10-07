@@ -19,3 +19,8 @@ describe('ChordPro import rendering format', () => {
     expect(song?.chords).toBe('C    G\nTexto de ejemplo');
   });
 });
+
+it('keeps a missing key unknown and preserves an explicit key', () => {
+  expect(parseChordProDocument('C G Am F')?.originalKey).toBe('');
+  expect(parseChordProDocument('{key: Dm}\nDm Gm A7')?.originalKey).toBe('Dm');
+});
