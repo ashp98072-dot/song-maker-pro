@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ admin: true, parse: vi.fn(), save: vi.fn(), merge: vi.fn() }));
-vi.mock('@/context/useApp', () => ({ useApp: () => ({isAdmin:mocks.admin,isGuest:false,songs:[],importLibrary:mocks.merge}) }));
+const mocks = vi.hoisted(() => ({ admin: true, parse: vi.fn(), save: vi.fn(), merge: vi.fn(), refresh: vi.fn() }));
+vi.mock('@/context/useApp', () => ({ useApp: () => ({isAdmin:mocks.admin,isGuest:false,songs:[],importLibrary:mocks.merge,refreshCatalogArchives:mocks.refresh}) }));
 vi.mock('@/features/song-import', async importOriginal => ({
   ...await importOriginal<typeof import('@/features/song-import')>(),
   getSongImportProvider: () => ({parseFiles:mocks.parse}),
@@ -84,5 +84,19 @@ it('requires confirmation before saving an estimated key', async () => {
   expect(screen.getByLabelText('Tonalidad de Prueba 0')).toHaveValue('C');
   fireEvent.click(screen.getByRole('button',{name:'Solo biblioteca (1)'}));
   await waitFor(()=>expect(mocks.save).toHaveBeenCalled());
+  cleanup();
+});
+
+it('opts into restoring archived songs only after a successful community update', async()=>{
+  mocks.admin=true;mocks.save.mockReset();mocks.refresh.mockReset();mocks.refresh.mockResolvedValue(undefined);
+  mocks.parse.mockResolvedValue({songs:[{...songs(1)[0],chords:'C G Am F'}],errors:[]});
+  mocks.save.mockResolvedValue([{song_id:'imp-test-0',target_id:'original-id',status:'updated',message:''}]);
+  const {container}=mount();
+  fireEvent.click(screen.getByRole('checkbox',{name:/Actualizar canciones existentes/}));
+  fireEvent.click(screen.getByRole('checkbox',{name:/Restaurar archivadas al actualizar/}));
+  await upload(container);
+  fireEvent.click(screen.getByRole('button',{name:'Publicar en comunidad (1)'}));
+  await waitFor(()=>expect(mocks.save).toHaveBeenCalledWith(expect.any(Array),true,true,true));
+  await waitFor(()=>expect(mocks.refresh).toHaveBeenCalled());
   cleanup();
 });

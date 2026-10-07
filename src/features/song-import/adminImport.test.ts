@@ -33,3 +33,11 @@ it('updates with explicit opt-in and keeps the server target ID', async () => {
   expect(rpc).toHaveBeenCalledWith('admin_import_songs', expect.objectContaining({p_songs:[expect.objectContaining({updateExisting:true})]}));
   expect(result[0].target_id).toBe('existing-song');
 });
+
+it('uses the atomic restore RPC only for opted-in community updates',async()=>{
+  rpc.mockResolvedValue({data:[{song_id:song.id,target_id:'existing',status:'updated',message:''}],error:null});
+  await saveAdminImportBatch([song],true,true,true);
+  expect(rpc).toHaveBeenLastCalledWith('admin_import_restore_songs',expect.any(Object));
+  await saveAdminImportBatch([song],false,true,true);
+  expect(rpc).toHaveBeenLastCalledWith('admin_import_songs',expect.any(Object));
+});

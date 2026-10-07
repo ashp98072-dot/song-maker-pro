@@ -45,7 +45,7 @@ type ImportMode = 'library' | 'publish' | 'cadena';
  * Rights: files/paste must be yours or licensed; no scraping.
  */
 export default function AdminCatalogImportPage() {
-  const { isAdmin, isGuest, songs, importLibrary, createList, setListSongs } = useApp();
+  const { isAdmin, isGuest, songs, importLibrary, createList, setListSongs, refreshCatalogArchives } = useApp();
   const fileRef = useRef<HTMLInputElement>(null);
   const importInFlight = useRef(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -57,6 +57,7 @@ export default function AdminCatalogImportPage() {
   const [pasteText, setPasteText] = useState('');
   const [showPaste, setShowPaste] = useState(false);
   const [cadenaName, setCadenaName] = useState('');
+  const [restoreArchived, setRestoreArchived] = useState(false);
   const [updateExisting, setUpdateExisting] = useState(false);
   const [busy, setBusy] = useState<ImportMode | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -231,7 +232,9 @@ export default function AdminCatalogImportPage() {
       for (let offset = 0; offset < selected.length; offset += 10) {
         const batch = selected.slice(offset, offset + 10);
         const batchSongs = batch.map(row => ({ ...row.song, genre: row.genre, isNew: true }));
-        const results = await saveAdminImportBatch(batchSongs, mode !== 'library', updateExisting);
+        const results = restoreArchived && updateExisting && mode !== 'library'
+          ? await saveAdminImportBatch(batchSongs, true, true, true)
+          : await saveAdminImportBatch(batchSongs, mode !== 'library', updateExisting);
         const imported: Song[] = [];
         results.forEach((result, index) => {
           const row = batch[index];
@@ -248,6 +251,7 @@ export default function AdminCatalogImportPage() {
           }
         });
         importLibrary(imported, [], [], updateExisting);
+        if (restoreArchived && updateExisting && mode !== 'library') await refreshCatalogArchives();
         setRows(prev => prev.filter(row => !succeeded.has(row.localId)));
         setProgress({ done: Math.min(offset + batch.length, selected.length), total: selected.length });
       }
@@ -411,6 +415,11 @@ export default function AdminCatalogImportPage() {
             onChange={e => setUpdateExisting(e.target.checked)} />
           Actualizar canciones existentes por título y artista (reemplaza letra, acordes y tono).
           Selecciona las canciones que quieras actualizar.
+        </label>
+        <label className="flex items-center gap-2 text-sm my-4">
+          <input type="checkbox" checked={restoreArchived} disabled={!updateExisting || !!busy || parsing}
+            onChange={e => setRestoreArchived(e.target.checked)} />
+          Restaurar archivadas al actualizar con acordes (solo al publicar en comunidad).
         </label>
         {rows.length > 0 ? (
           <div className="flex flex-wrap gap-2 items-center text-xs text-muted-foreground">

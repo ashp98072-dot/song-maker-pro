@@ -2,8 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Song } from '@/types/music';
 import { slugifySongTitle } from '@/utils/songSlug';
 
-export async function saveAdminImportBatch(songs: Song[], publish: boolean, updateExisting = false) {
-  const { data, error } = await supabase.rpc('admin_import_songs', {
+export async function saveAdminImportBatch(songs: Song[], publish: boolean, updateExisting = false, restoreArchived = false) {
+  const { data, error } = await supabase.rpc(restoreArchived && publish && updateExisting ? 'admin_import_restore_songs' : 'admin_import_songs', {
     p_publish: publish,
     p_songs: songs.map(song => ({
       id: song.id, title: song.title, artist: song.artist, chords: song.chords,
@@ -13,7 +13,7 @@ export async function saveAdminImportBatch(songs: Song[], publish: boolean, upda
     })),
   });
   if (error) throw new Error(error.code === 'PGRST202'
-    ? 'Falta habilitar la importación administrativa en la base de datos (migración admin_import_songs).'
+    ? restoreArchived ? 'Aplica la migración 20261007130000_restore_imported_archives para restaurar al importar.' : 'Falta habilitar la importación administrativa en la base de datos (migración admin_import_songs).'
     : error.message);
   if (updateExisting && data?.some(row => !row.target_id)) {
     throw new Error('Aplica la migración 20261007100000_admin_import_updates antes de actualizar canciones');
