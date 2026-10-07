@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode, useRef } from 'react';
+import React, { useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { AppState, Song, SongList } from '@/types/music';
 import { SAMPLE_SONGS } from '@/data/songs';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +47,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lists, setLists] = useState<SongList[]>(saved.lists ?? []);
   const userIdRef = useRef<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [archivedSongIds, setArchivedSongIds] = useState<string[]>(() => {
+    try { const ids: unknown = JSON.parse(localStorage.getItem('catalog-archives') || '[]');
+      return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
+    } catch { return []; }
+  });
+  const refreshCatalogArchives = useCallback(async () => {
+    const { data, error } = await supabase.rpc('catalog_archived_song_ids');
+    if (error) throw new Error('No se pudo cargar la limpieza del catálogo. Revisa la migración catalog_archive.');
+    const ids = (data ?? []).map(row => row.song_id);
+    setArchivedSongIds(ids);
+    try { localStorage.setItem('catalog-archives', JSON.stringify(ids)); } catch { /* optional offline cache */ }
+  }, []);
+  useEffect(() => {
+    const refresh = () => { void refreshCatalogArchives().catch(() => { /* retain offline cache or await migration */ }); };
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [refreshCatalogArchives]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -575,7 +594,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       login, loginAsGuest, logout, addSong, updateSong,
       toggleFavorite, isFavorite, createList, 
       deleteList, renameList, addSongToList, 
-      removeSongFromList, setListSongs, importLibrary 
+      removeSongFromList, setListSongs, importLibrary, archivedSongIds, refreshCatalogArchives
     }}>
       {children}
     </AppContext.Provider>

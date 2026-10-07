@@ -33,7 +33,8 @@ export default function HomePage() {
     if (s === 4) console.log('[RENDER] HomePage');
   }, []);
 
-  const { userName, songs } = useApp();
+  const { userName, songs: allSongs, archivedSongIds } = useApp();
+  const songs = useMemo(() => { const hidden = new Set(archivedSongIds ?? []); return allSongs.filter(song => !hidden.has(song.id)); }, [allSongs, archivedSongIds]);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const spectator = useSpectatorSession();

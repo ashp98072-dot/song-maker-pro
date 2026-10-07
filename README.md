@@ -88,3 +88,11 @@ Aplicar primero `supabase/migrations/20261007100000_admin_import_updates.sql`. E
 La revisión de importación sugiere tonalidad a partir de las líneas de acordes, con confianza y alternativas. Las sugerencias requieren confirmación; las tonalidades explícitas de ChordPro se conservan. Los archivos ChordPro sin tono dejan el campo vacío en la revisión administrativa y no pueden guardarse hasta confirmarlo. La heurística no analiza audio y puede equivocarse en modulaciones o armonías ambiguas.
 
 La pantalla incluye instrucciones para extraer ZIP en Windows y cargar hasta 20 archivos .chopro por lote. No requiere migración SQL.
+
+### Limpieza reversible del catálogo (administrador)
+
+Aplicar `supabase/migrations/20261007120000_catalog_archive.sql`. En Perfil → Limpiar catálogo, revisar posibles duplicadas (título y artista), canciones sin acordes detectados o archivadas. No hay selección automática: elegir hasta 200 y Archivar seleccionadas. Se ocultan de Inicio y del panel de cantos de Comunidad; los datos, las rutas directas, listas y favoritos se conservan. Restaurar seleccionadas revierte el archivado. El análisis corresponde al catálogo cargado, no garantiza haber descargado todas las filas del servidor. Otros dispositivos actualizan el archivado al abrir la aplicación o volver a su ventana; se conserva una copia de los IDs para uso offline. Requiere conexión para aplicar cambios.
+
+Las versiones con distinto contenido requieren revisión: contar más acordes es una recomendación para conservar, no una valoración musical. Sin acordes detectados tampoco demuestra que no los haya en un formato todavía no soportado. La migración solo crea la infraestructura; no archiva canciones automáticamente.
+
+Reconocimiento de acordes: puntuación y barras de repetición se conservan al transponer y convertir notación; por ejemplo `Am, G, C.`, `////G////` y `Intro: F C Dm A#`. No es necesario reimportar las canciones para aplicar esta corrección visual.

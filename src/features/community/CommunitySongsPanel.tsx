@@ -23,7 +23,7 @@ type Props = {
  * Browse public_songs: filter by genre/key/artist and copy into personal library.
  */
 export function CommunitySongsPanel({ search }: Props) {
-  const { songs, addSong, isGuest } = useApp();
+  const { songs, addSong, isGuest, archivedSongIds } = useApp();
   const [catalog, setCatalog] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [genre, setGenre] = useState<string | null>(null);
@@ -70,13 +70,13 @@ export function CommunitySongsPanel({ search }: Props) {
 
   const filtered = useMemo(
     () =>
-      filterCommunitySongs(catalog, {
+      filterCommunitySongs(catalog.filter(song => !(archivedSongIds ?? []).includes(song.id)), {
         search,
         genre,
         key: keyFilter,
         artist,
       }).slice(0, 120),
-    [catalog, search, genre, keyFilter, artist]
+    [catalog, search, genre, keyFilter, artist, archivedSongIds]
   );
 
   const libraryHas = (song: Song) =>

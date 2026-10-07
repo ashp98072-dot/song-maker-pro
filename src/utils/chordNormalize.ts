@@ -68,5 +68,5 @@ export function chordLookupCandidates(chord: string): string[] {
 export const CHORD_TOKEN_PATTERN =
   '[A-G][#b♯♭]?(?:(?:maj|min|m|dim|aug|sus|add|alt|ø)\\d*)*\\d*(?:[#b]\\d+)*(?:\\([^)]+\\))?(?:\\/[A-G][#b♯♭]?)?';
 
-export const CHORD_TOKEN_RE = new RegExp(`(${CHORD_TOKEN_PATTERN})`, 'g');
+export const CHORD_TOKEN_RE = new RegExp(`(?<![\\p{L}\\p{N}#♯♭])(${CHORD_TOKEN_PATTERN})(?![\\p{L}\\p{N}#♯♭])`, 'gu');
 export const CHORD_TOKEN_TEST = new RegExp(`^${CHORD_TOKEN_PATTERN}$`);

@@ -1,3 +1,4 @@
+import { CHORD_TOKEN_RE, CHORD_TOKEN_TEST } from './chordNormalize';
 const NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const NOTES_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
@@ -35,11 +36,7 @@ export function transposeChord(chord: string, semitones: number, useFlats: boole
 }
 
 export function transposeText(text: string, semitones: number, useFlats: boolean): string {
-  // Patrón ampliado: soporta bemoles (Bb, Eb, Ab, Db, Gb), sus2/sus4, add9/add11/add13,
-  // dim7, m7b5, m9, maj9, etc. Solo se transpone la nota base; los sufijos se conservan.
-  const chordRegex =
-    /\b([A-G][#b♯♭]?(?:(?:maj|min|m|dim|aug|sus|add|alt|ø)\d*)*\d*(?:[#b]\d+)*(?:\/[A-G][#b♯♭]?)?)\b/g;
-  return text.replace(chordRegex, (match) => transposeChord(match, semitones, useFlats));
+  return text.replace(CHORD_TOKEN_RE, match => transposeChord(match, semitones, useFlats));
 }
 
 export function getGenderTransposeSemitones(fromGender: string, toGender: string): number {
@@ -95,11 +92,13 @@ export function convertChordQuality(chord: string, toMinor: boolean): string {
 export function isChordLine(line: string): boolean {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith('[')) return false;
-  const tokens = trimmed.split(/\s+/);
-  const chordPattern =
-    /^[A-G][#b♯♭]?(?:(?:maj|min|m|dim|aug|sus|add|alt|ø)\d*)*\d*(?:[#b]\d+)*(?:\/[A-G][#b♯♭]?)?$/;
-  const chordCount = tokens.filter(t => chordPattern.test(t)).length;
-  return chordCount / tokens.length >= 0.5;
+  const content = trimmed.replace(/^(?:intro|coro|verso|puente|final|interludio)\s*:\s*/i, '');
+  const matches = [...content.matchAll(CHORD_TOKEN_RE)];
+  if (!matches.length) return false;
+  const remainder = content.replace(CHORD_TOKEN_RE, '').replace(/(?:x\d+|\d+x)/gi, '').replace(/[\s,.;:|/()-]+/g, '');
+  if (remainder === '') return true;
+  const tokens = content.split(/\s+/);
+  return tokens.filter(token => CHORD_TOKEN_TEST.test(token)).length / tokens.length >= 0.5;
 }
 
 export function isSectionLabel(line: string): boolean {

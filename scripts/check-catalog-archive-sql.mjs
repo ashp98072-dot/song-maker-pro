@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+const { PGlite } = await import(pathToFileURL(process.argv[2]).href);
+const db=new PGlite();
+const admin='00000000-0000-0000-0000-000000000001';
+const other='00000000-0000-0000-0000-000000000002';
+try {
+  await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
+    CREATE TABLE auth.users(id uuid PRIMARY KEY);
+    INSERT INTO auth.users VALUES ('${admin}'),('${other}');
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('app.uid',true),'')::uuid $$;
+    CREATE TABLE user_roles(user_id uuid,role text); INSERT INTO user_roles VALUES ('${admin}','admin');`);
+  await db.exec(await readFile(new URL('../supabase/migrations/20261007120000_catalog_archive.sql',import.meta.url),'utf8'));
+  const call=(ids,archive=true)=>db.query('SELECT admin_archive_catalog_songs($1::text[],$2)',[ids,archive]);
+  await db.exec('SET ROLE anon');
+  await assert.rejects(call(['a']),/permission denied/);
+  assert.equal((await db.query('SELECT * FROM catalog_archived_song_ids()')).rows.length,0);
+  await db.exec(`RESET ROLE; SET app.uid='${other}'; SET ROLE authenticated;`);
+  await assert.rejects(call(['a']),/Solo el administrador/);
+  await db.exec(`RESET ROLE; SET app.uid='${admin}'; SET ROLE authenticated;`);
+  await call(['a','a','b']);
+  assert.equal((await db.query('SELECT * FROM catalog_archived_song_ids()')).rows.length,2);
+  await assert.rejects(call([]),/Selecciona/);
+  await assert.rejects(call(Array(201).fill('x')),/Selecciona/);
+  await call(['a'],false);
+  assert.deepEqual((await db.query('SELECT * FROM catalog_archived_song_ids()')).rows.map(r=>r.song_id),['b']);
+  await db.exec('RESET ROLE; SET ROLE anon');
+  await assert.rejects(db.query('SELECT * FROM catalog_archived_songs'),/permission denied/);
+  console.log('Archive SQL passed: admin gate, public IDs only, limits, idempotence, restore.');
+} finally {await db.close();}
