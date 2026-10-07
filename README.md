@@ -81,3 +81,7 @@ Después del despliegue, comprueba navegación directa a canciones, login, `/sit
 - [Auditoría histórica](docs/runtime-audit/README.md)
 
 Última suite verificada (7 de octubre de 2026): 285 pruebas; TypeScript y build/PWA pasan; lint tiene 0 errores y 0 advertencias. Quedan pendientes la revisión de supresiones históricas de lint, la unificación de proveedores, la reconstrucción de una base nueva y las comprobaciones conectadas/móviles del plan.
+
+### Actualizar canciones desde el catálogo administrativo
+
+Aplicar primero `supabase/migrations/20261007100000_admin_import_updates.sql`. En Importar catálogo, activar **Actualizar canciones existentes**, revisar letra/acordes/tono y seleccionar las filas (Todas permite seleccionar las omitidas previamente). Solo biblioteca actualiza la biblioteca del administrador; Publicar actualiza comunidad. Las coincidencias usan título y artista sin distinguir mayúsculas ni espacios exteriores. Varias coincidencias requieren revisión manual. Se conservan identificadores, atribución, enlaces y BPM cuando el archivo no los incluye. Las bibliotecas privadas de otras personas no se modifican.

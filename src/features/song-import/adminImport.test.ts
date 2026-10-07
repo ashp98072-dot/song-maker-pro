@@ -26,3 +26,10 @@ describe('administrative import transport', () => {
     await expect(saveAdminImportBatch([song],false)).rejects.toThrow('incompleta');
   });
 });
+
+it('updates with explicit opt-in and keeps the server target ID', async () => {
+  rpc.mockResolvedValue({data:[{song_id:song.id,target_id:'existing-song',status:'updated',message:''}],error:null});
+  const result = await saveAdminImportBatch([song], true, true);
+  expect(rpc).toHaveBeenCalledWith('admin_import_songs', expect.objectContaining({p_songs:[expect.objectContaining({updateExisting:true})]}));
+  expect(result[0].target_id).toBe('existing-song');
+});

@@ -22,6 +22,7 @@ try {
     INSERT INTO user_roles VALUES ('${admin}', 'admin');
   `);
   await db.exec(await readFile(new URL('../supabase/migrations/20260929190000_admin_import_songs.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261007100000_admin_import_updates.sql', import.meta.url), 'utf8'));
   const song = { id:'imp-test', title:'Test', artist:'Author', chords:'Test lyrics', originalKey:'Am',
     scaleMode:'minor', originalGender:'male', genre:'adoracion', titleSlug:'test' };
   const call = async (songs, publish = false) => (await db.query(
@@ -46,6 +47,19 @@ try {
   assert.equal((await call([{...song,id:'imp-other',title:'Changed'}]))[0].status,'skipped');
   await assert.rejects(call(Array(51).fill(song)), /Lote demasiado grande/);
   await assert.rejects(call(null), /lista de canciones/);
+  const updated = await call([{...song,id:'imp-replacement',chords:'C\nUpdated',updateExisting:true}], true);
+  assert.equal(updated[0].status, 'updated');
+  assert.equal(updated[0].target_id, song.id);
+  await db.exec('RESET ROLE');
+  assert.equal((await db.query("SELECT chords FROM public_songs WHERE song_id = 'imp-test'")).rows[0].chords, 'C\nUpdated');
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM public_songs WHERE song_id = 'imp-replacement'")).rows[0].n, 0);
+  await db.exec('SET ROLE authenticated');
+  assert.equal((await call([{...song,id:'imp-replacement',updateExisting:true}], false))[0].target_id, song.id);
+  await db.exec('RESET ROLE');
+  await db.exec(`INSERT INTO public_songs(song_id,title,artist,title_slug) VALUES ('duplicate','Test','Author','duplicate');`);
+  await db.exec('SET ROLE authenticated');
+  assert.equal((await call([{...song,updateExisting:true}],true))[0].status,'error');
+  assert.equal((await call([{...song,id:'imp-other',title:'Other',updateExisting:true}],false))[0].status,'skipped');
   await db.exec('RESET ROLE; SET ROLE anon;');
   await assert.rejects(call([song]), /permission denied/);
   console.log('SQL checks passed: admin gate, grants, batch limit, duplicate skip, ownership and per-song rollback.');
