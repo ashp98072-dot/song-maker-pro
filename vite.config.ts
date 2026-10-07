@@ -167,6 +167,7 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
+    outDir: mode === 'android' ? 'dist-android' : 'dist',
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Worship Transpose</string>
+    <string name="title_activity_main">Worship Transpose</string>
+    <string name="package_name">com.worshiptranspose.app</string>
+    <string name="custom_url_scheme">com.worshiptranspose.app</string>
+</resources>
