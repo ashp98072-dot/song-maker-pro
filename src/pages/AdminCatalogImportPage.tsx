@@ -312,6 +312,7 @@ export default function AdminCatalogImportPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold mb-1">
           Admin
         </p>
+        <Link to="/admin/limpiar-catalogo" className="block text-sm text-gold mb-3">Revisar duplicadas y canciones sin acordes →</Link>
         <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
           <FileMusic className="w-6 h-6 text-gold" />
           Importar catálogo

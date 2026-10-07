@@ -1,3 +1,4 @@
+import { CHORD_TOKEN_RE } from './chordNormalize';
 // American (C D E F G A B) to Latin (Do Re Mi Fa Sol La Si) conversion
 
 const AMERICAN_TO_LATIN: Record<string, string> = {
@@ -22,9 +23,7 @@ export function americanToLatin(chord: string): string {
 }
 
 export function convertLineToLatin(line: string): string {
-  // Replace all chord tokens in a line
-  const chordRegex = /\b([A-G][#b♯♭]?(?:m(?:aj)?7?|dim|aug|sus[24]|add9|7|6|9|11|13|maj7|maj9)?(?:\/[A-G][#b♯♭]?)?)\b/g;
-  return line.replace(chordRegex, (match) => americanToLatin(match));
+  return line.replace(CHORD_TOKEN_RE, match => americanToLatin(match));
 }
 
 export function convertKeyToLatin(key: string): string {

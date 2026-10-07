@@ -6,7 +6,7 @@ import {
   calculateCapo,
   transposeChord,
 } from '@/utils/transpose';
-import { convertKeyToLatin } from '@/utils/notation';
+import { convertLineToLatin, convertKeyToLatin } from '@/utils/notation';
 
 describe('transposeChord', () => {
   it('transpone acordes mayores con sostenidos', () => {
@@ -156,4 +156,15 @@ describe('convertKeyToLatin', () => {
     expect(convertKeyToLatin('')).toBe('');
     expect(convertKeyToLatin('Do')).toBe('Do');
   });
+});
+
+it('recognizes punctuation, repeat bars and intro labels without treating lyrics as chords', () => {
+  for (const line of ['Am, G, Am, C.', 'F, E, D, C, A#, Am.', '////G////', '///G, D, Em, C, D,///', 'Intro: F C Dm A#']) expect(isChordLine(line)).toBe(true);
+  expect(isChordLine('A los buenos y a los malos.')).toBe(false);
+  expect(transposeText('F, E, D, C, A#, Am.',2,false)).toBe('G, F#, E, D, C, Bm.');
+  expect(transposeText('////G//// C/E',2,false)).toBe('////A//// D/F#');
+});
+
+it('converts punctuated and sharp chords completely to Latin', () => {
+  expect(convertLineToLatin('F, A#, Am. ////G//// C/E')).toBe('Fa, La#, Lam. ////Sol//// Do/Mi');
 });

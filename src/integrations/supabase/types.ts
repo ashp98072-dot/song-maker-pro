@@ -528,6 +528,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      catalog_archived_song_ids: { Args: Record<string, never>; Returns: { song_id: string }[] }
+      admin_archive_catalog_songs: { Args: { p_ids: string[]; p_archive: boolean }; Returns: undefined }
+
       admin_import_songs: {
         Args: { p_songs: Json; p_publish?: boolean }
         Returns: { song_id: string; status: string; message: string; target_id: string }[]

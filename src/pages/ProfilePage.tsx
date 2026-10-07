@@ -490,6 +490,7 @@ export default function ProfilePage() {
               </div>
             </Link>
           )}
+          {isOwn && isAdmin && <Link to="/admin/limpiar-catalogo" className="glass-card p-4 block text-gold">Limpiar catálogo: duplicadas y sin acordes</Link>}
           {isOwn && isAdmin && (
             <Link
               to="/admin/importar-catalogo"
