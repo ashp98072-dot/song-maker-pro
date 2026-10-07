@@ -45,3 +45,20 @@ describe('songSlug', () => {
     expect(getSongPathById('1778269978611')).toBe('/cancion/1778269978611');
   });
 });
+
+it('indexes a large catalog once rather than re-reading every title per route', () => {
+  let titleReads = 0;
+  const songs = Array.from({length:5000}, (_,i) => ({id:String(i),get title() { titleReads++; return 'Canción ' + i; }}));
+  expect(resolveSongIdFromRouteParam('cancion-4999',songs)).toBe('4999');
+  expect(resolveSongIdFromRouteParam('missing',songs)).toBeNull();
+  expect(getSongPathById('4999',songs)).toBe('/cancion/cancion-4999');
+  expect(titleReads).toBeLessThanOrEqual(5001);
+});
+it('rebuilds routes when an immutable catalog replacement changes titles or collisions', () => {
+  const original = [{id:'a',title:'Gloria'}];
+  expect(resolveSongIdFromRouteParam('gloria',original)).toBe('a');
+  const updated = [...original,{id:'b',title:'Gloria'}];
+  expect(resolveSongIdFromRouteParam('gloria-a',updated)).toBe('a');
+  expect(resolveSongIdFromRouteParam('gloria-b',updated)).toBe('b');
+  expect(resolveSongIdFromRouteParam('gloria',updated)).toBeNull();
+});
