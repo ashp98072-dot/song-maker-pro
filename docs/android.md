@@ -20,6 +20,16 @@ El botón Atrás de Android cierra primero diálogos/menús y pantalla completa,
 
 La compilación Android verifica la URL y clave pública Supabase antes de generar recursos. Rechaza JWT con rol administrativo o de otro proyecto. `.env.local` está ignorado por Git. Cambiar estas variables requiere recompilar el APK; editar canciones en Supabase no requiere recompilar.
 
+### Primera prueba en teléfono
+
+1. Transferir `app-debug.apk` al teléfono, abrirlo y autorizar la instalación desde esa fuente si Android lo solicita. Es un instalador de depuración para pruebas, no el paquete de Play Store.
+2. Entrar como invitado o con correo y contraseña. El retorno de Google todavía no está adaptado a Android.
+3. Abrir una canción, transponer y cambiar entre letra/acordes. Probar Atrás desde pantalla completa, desde un diálogo, desde una canción y desde el inicio.
+4. Cambiar a otra aplicación y regresar. Desconectar/reconectar Internet y comprobar el catálogo. Sin conexión, solo se debe esperar acceso a los datos ya guardados; no prometer catálogo completo recién instalado.
+5. Probar cierre y reapertura y registrar modelo de teléfono, versión Android y pasos de cualquier bloqueo. No compartir contraseñas, tokens ni claves al reportar problemas.
+
+Las funciones de micrófono, archivos y acceso Google aún no forman parte de esta validación inicial. La fase 2 se cierra después de comprobar arranque y navegación en un dispositivo; un APK compilado por sí solo no completa esa prueba.
+
 La compilación web sigue usando `npm run build` y `dist`; no cambiar la configuración de Vercel. No ejecutar `cap add android` otra vez: el proyecto nativo ya está versionado. Después de cambios en la interfaz, ejecutar `android:sync` antes de volver a compilar Android.
 
 ## Estado de esta entrega
