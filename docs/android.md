@@ -36,6 +36,8 @@ La compilación web sigue usando `npm run build` y `dist`; no cambiar la configu
 
 ## Estado de esta entrega
 
+Validación local del 8 de octubre de 2026: 321 pruebas de aplicación y 3 pruebas de configuración aprobadas, lint/typecheck y compilación web correctos. `assembleDebug` terminó con JDK 21 y SDK 36; se verificaron firma APK v2, identificador, SDK objetivo y presencia de la configuración pública Supabase dentro del paquete. No había dispositivos conectados, por lo que el arranque real sigue pendiente.
+
 - Identificador inicial: `com.worshiptranspose.app`. Confirmarlo antes de publicar; Play Store no permite cambiarlo para una app existente.
 - Nombre: Worship Transpose. Versión inicial de plantilla: 1.0, código 1.
 - `compileSdk` y `targetSdk`: 36; mínimo de la plantilla: 24.
