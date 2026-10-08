@@ -10,6 +10,8 @@ El proyecto usa Capacitor 8 y empaqueta la interfaz Vite en `dist-android`. No c
 4. Ejecutar `npm run android:sync`: genera iconos PWA, comprueba tipos, compila la interfaz y copia recursos/plugins a Android.
 5. Ejecutar `npm run android:open`, esperar la sincronización Gradle y seleccionar un teléfono o emulador. Usar Run para instalar una versión de depuración.
 
+En la configuración de Gradle de Android Studio, seleccionar también JDK 21. El script PowerShell configura Java solo para su proceso; no cambia el JDK seleccionado por el IDE. Si se usa el JDK portátil de esta máquina, está en `../.android-tools/jdk21/` dentro de su carpeta de versión.
+
 ### APK de prueba desde PowerShell
 
 Con las herramientas instaladas, ejecutar `./scripts/build-android-debug.ps1`. Busca un JDK 21 portátil en `../.android-tools/jdk21`, después `JAVA_HOME` y finalmente Java de Android Studio. Valida que sea Java 21: versiones recientes de Android Studio pueden incluir Java 25, incompatible con el Gradle actual. Se pueden indicar `-JdkPath` y `-SdkPath` si están en otras carpetas. No cambia las variables del sistema permanentemente. Primero compila/sincroniza la interfaz y después ejecuta Gradle; el resultado es `android/app/build/outputs/apk/debug/app-debug.apk`.
