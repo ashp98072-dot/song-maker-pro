@@ -373,6 +373,14 @@ export default function ContinuousSetlistPage() {
   const [songViewPreference, setSongViewPreference] = useSongViewPreference();
   const isLyricsOnlyPreference = songViewPreference === 'lyrics-only';
   const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const close = (event: KeyboardEvent) => {
+      if (!event.defaultPrevented && event.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [isFullscreen]);
   const [showSession, setShowSession] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   /** Expande ventana virtual al índice remoto antes de scroll (follower sync). */
@@ -2970,6 +2978,7 @@ export default function ContinuousSetlistPage() {
   const continuousPage = (
     <div
       className={rootClass}
+      data-native-fullscreen={isFullscreen ? 'true' : undefined}
       data-continuous-setlist
     >
       <SessionOriginMismatchDialog

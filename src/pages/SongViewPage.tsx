@@ -862,7 +862,7 @@ export default function SongViewPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+      if (!e.defaultPrevented && e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
       if (e.key === 'F11') { e.preventDefault(); setIsFullscreen(f => !f); }
     };
     window.addEventListener('keydown', handler);
@@ -2109,6 +2109,7 @@ export default function SongViewPage() {
   const fullscreenOverlay = isFullscreen ? (
     <div
       ref={fullscreenScrollRef}
+      data-native-fullscreen="true"
       className={`fixed inset-0 z-[100] overflow-auto ${
         teleprompterSheet
           ? 'stage-surface bg-background text-foreground p-4 sm:p-8'

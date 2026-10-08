@@ -43,6 +43,7 @@ import { ChunkLoadErrorBoundary } from "@/components/ChunkLoadErrorBoundary";
 import { AppDebugHost } from "@/debug/AppDebugHost";
 import { getRenderDiagStage } from "@/renderDiag";
 import { isPublicAppPath } from "@/utils/publicAppPaths";
+import { AndroidBackNavigation } from '@/platform/AndroidBackNavigation';
 
 const SongViewPage = lazy(() => import("@/pages/SongViewPage"));
 const ContinuousSetlistPage = lazy(() => import("@/pages/ContinuousSetlistPage"));
@@ -287,6 +288,7 @@ function ProductionApp() {
         <Sonner />
         <AppProvider>
           <BrowserRouter>
+            <AndroidBackNavigation />
             <AppDebugHost>
             <ScrollToTop />
             <AuthManager>
