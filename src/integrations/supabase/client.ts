@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getSupabaseEnvConfig } from '@/config/env';
+import { Capacitor } from '@capacitor/core';
 
 const config = getSupabaseEnvConfig();
 
@@ -11,6 +12,7 @@ const authOptions = {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    ...(Capacitor.isNativePlatform() ? { flowType: 'pkce' as const, detectSessionInUrl: false } : {}),
   },
 } as const;
 

@@ -53,3 +53,15 @@ La clave de firma de producción se generará y resguardará en la fase de publi
 
 Requisitos de Capacitor: https://capacitorjs.com/docs/getting-started/environment-setup
 Flujo de trabajo: https://capacitorjs.com/docs/basics/workflow
+# Acceso con Google en Android
+
+En Supabase → Authentication → URL Configuration → Redirect URLs, añadir exactamente
+`com.worshiptranspose.app://auth/callback`. Conservar los retornos web existentes.
+No cambiar el callback de Google Cloud: Google vuelve a Supabase y Supabase devuelve
+el código a la app. Android utiliza PKCE y conserva el verificador en su almacenamiento.
+
+Instalar el APK nuevo y empezar un acceso nuevo desde la app. El navegador seguro
+se abre para elegir la cuenta y el enlace devuelve el control a Android. No reutilizar
+un enlace antiguo con `bad_oauth_state`. Probar éxito, cancelación y reintento tanto
+con la app abierta como después de cerrarla. La configuración remota y el acceso
+con una cuenta real requieren verificación antes de dar este flujo por terminado.
