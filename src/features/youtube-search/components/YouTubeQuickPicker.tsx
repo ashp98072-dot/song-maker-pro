@@ -15,6 +15,9 @@ import {
   getProviderDisplayName,
 } from '@/features/youtube-search/api/getSearchProvider';
 import { ytDiagLog } from '@/features/youtube-search/ytDiagnostic';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { toast } from 'sonner';
 
 function ResultSkeleton() {
   return (
@@ -63,6 +66,15 @@ export function YouTubeQuickPicker({
   const safeResults = Array.isArray(results) ? results : [];
   const defaultQuery = buildYouTubeSearchQuery(songTitle ?? '', songArtist);
   const configured = getConfiguredSearchProvider();
+  const openYouTube = async () => {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query.trim() || defaultQuery)}`;
+    try {
+      if (Capacitor.isNativePlatform()) await Browser.open({ url });
+      else window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      toast.error('No se pudo abrir YouTube. Inténtalo de nuevo.');
+    }
+  };
   const providerLabel = activeProvider
     ? getProviderDisplayName(activeProvider)
     : getProviderDisplayName(configured);
@@ -159,6 +171,11 @@ export function YouTubeQuickPicker({
           {error && !loading && (
             <div className="text-center py-8 px-3 space-y-3">
               <p className="text-sm text-red-400">{error}</p>
+              <button type="button" onClick={() => { void openYouTube(); }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-secondary">
+                <Youtube className="w-4 h-4" /> Buscar en YouTube
+              </button>
+              <p className="text-sm text-muted-foreground">Copia el enlace del video y pégalo en el campo YouTube de la canción.</p>
               <button
                 type="button"
                 onClick={retry}

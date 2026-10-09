@@ -47,6 +47,7 @@ describe('YouTubeQuickPicker', () => {
     );
     await waitFor(() => {
       expect(screen.getByText(/network fail/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Buscar en YouTube' })).toBeInTheDocument();
     });
   });
 });
