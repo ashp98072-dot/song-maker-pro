@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/useApp';
 import Navbar from '@/components/Navbar';
 import MobileBottomTabBar from '@/components/MobileBottomTabBar';
@@ -51,6 +51,10 @@ export default function AppLayout() {
         </>
       )}
       <Outlet />
+      <footer className="px-4 py-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+        <Link to="/privacidad" className="hover:underline">Privacidad</Link>
+        <Link to="/eliminar-cuenta" className="hover:underline">Eliminar cuenta</Link>
+      </footer>
       {!isGuest && <UsageTutorial />}
       <MobileBottomTabBar />
     </main>
