@@ -1007,7 +1007,7 @@ export default function ContinuousSetlistPage() {
       hideControls,
       input: {
         songId: currentSong.id,
-        semitones: effectiveSemitones,
+        semitones: customSemitones,
         viewMode: 'continuous',
         genderShift:
           genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',
@@ -1036,7 +1036,7 @@ export default function ContinuousSetlistPage() {
     currentSong?.id,
     entries.length,
     hideControls,
-    effectiveSemitones,
+    customSemitones,
     genderShift,
     visibility.currentSongIndex,
     visibility.currentSection,
@@ -3124,7 +3124,7 @@ export default function ContinuousSetlistPage() {
           <SimpleLiveSyncPanel
             compact={simpleLive?.role !== 'idle'}
             songId={currentSong?.id ?? visibility.currentSongId ?? ''}
-            semitones={currentSong ? effectiveSemitones : 0}
+            semitones={currentSong ? customSemitones : 0}
             viewMode="continuous"
             genderShift={genderShift || 'original'}
             currentIndex={visibility.currentSongIndex}
@@ -3228,7 +3228,7 @@ export default function ContinuousSetlistPage() {
           currentSong
             ? {
                 songId: currentSong.id,
-                semitones: effectiveSemitones,
+                semitones: customSemitones,
                 viewMode: 'continuous',
                 genderShift:
                   genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',

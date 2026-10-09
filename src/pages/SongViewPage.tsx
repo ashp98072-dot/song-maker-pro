@@ -2586,7 +2586,7 @@ export default function SongViewPage() {
             {FEATURES.SIMPLE_LIVE_SYNC ? (
               <SimpleLiveSyncPanel
                 songId={song.id}
-                semitones={effectiveSemitones}
+                semitones={customSemitones}
                 viewMode={viewMode}
                 genderShift={genderShift}
                 currentIndex={listSongIndex >= 0 ? listSongIndex : 0}
@@ -2665,7 +2665,7 @@ export default function SongViewPage() {
         song
           ? {
               songId: song.id,
-              semitones: effectiveSemitones,
+              semitones: customSemitones,
               viewMode,
               genderShift:
                 genderShift === 'male' || genderShift === 'female' ? genderShift : 'original',

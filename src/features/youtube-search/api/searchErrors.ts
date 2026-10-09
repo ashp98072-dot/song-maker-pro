@@ -74,7 +74,7 @@ export function formatSearchErrorForUser(error: unknown): string | null {
   }
 
   if (isNetworkFetchFailure(error)) {
-    return 'No se pudo conectar con YouTube. Comprueba tu red y las restricciones HTTP referrer de la API key en Google Cloud.';
+    return 'No se pudo conectar con el servicio de búsqueda. Reintenta o busca directamente en YouTube y pega el enlace del video.';
   }
 
   return msg || 'No se pudo buscar videos en YouTube';
