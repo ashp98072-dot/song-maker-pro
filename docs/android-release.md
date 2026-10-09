@@ -63,3 +63,11 @@ Fuentes revisadas el 9 de octubre de 2026:
 - https://support.google.com/googleplay/android-developer/answer/14151465
 - https://support.google.com/googleplay/android-developer/answer/10281818
 - https://developer.android.com/studio/publish/app-signing
+
+## Comando de publicación en Windows
+
+Después de crear y respaldar la clave en Android Studio y configurar las cuatro variables ANDROID_UPLOAD_*, ejecutar:
+
+./scripts/build-android-release.ps1 -VersionCode 1 -VersionName 1.0
+
+El script comprueba credenciales, Java 21 y SDK, sincroniza la app, genera bundleRelease y verifica la firma con jarsigner. No crea claves, no muestra contraseñas y no sube el archivo a Google Play. La clave de carga aún está pendiente de creación por Walter.

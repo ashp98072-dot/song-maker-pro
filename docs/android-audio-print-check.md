@@ -35,3 +35,7 @@ Pruebas pendientes en teléfono:
 La compilación y firma del APK no confirman resultados en un dispositivo real.
 Documentación del flujo de impresión:
 https://developer.android.com/training/printing/html-docs
+
+## Resultado comunicado por Walter
+
+El 9 de octubre de 2026 Walter confirmó que funciona el APK actualizado con las mejoras del afinador y registros vocales, tras solicitarle comprobar micrófono y PDF. Esta confirmación cubre el uso normal; no acredita todavía los casos de permiso revocado, cancelación o canciones largas.
