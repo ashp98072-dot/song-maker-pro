@@ -21,6 +21,8 @@ import {
 } from '@/features/vocal-test/vocalTestMath';
 import { getRegisterInfo } from '@/utils/vocalRange';
 import { microphoneErrorMessage } from '@/utils/microphoneError';
+import { VocalRangeMap } from './VocalRangeMap';
+import { latinPitchLabel } from '@/features/tuner/tunerFeedback';
 
 type Mode = 'keyboard' | 'microphone';
 type MicPhase = 'idle' | 'low' | 'high' | 'done';
@@ -283,6 +285,10 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
 
   const micDisplayLow = micLow ?? (micPhase === 'high' || micPhase === 'done' ? lowMidi : null);
   const micDisplayHigh = micHigh ?? (micPhase === 'done' ? highMidi : null);
+  const mapLow = mode === 'microphone' ? micDisplayLow : lowMidi;
+  const mapHigh = mode === 'microphone' ? micDisplayHigh : highMidi;
+  const mapRegister = mapLow != null && mapHigh != null && canClassifyRange(mapLow, mapHigh)
+    ? matchClosestRegister(mapLow, mapHigh).id : undefined;
 
   return (
     <div className={className} data-vocal-range-test>
@@ -471,6 +477,7 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
             <p className="text-3xl font-display font-bold text-gold tabular-nums mt-1">
               {liveNote ?? '—'}
             </p>
+            {liveNote && <p className="text-sm text-muted-foreground">{latinPitchLabel(liveNote)}</p>}
             <p className="text-[11px] text-muted-foreground mt-1 font-mono">
               Grave: {micDisplayLow != null ? midiNoteLabel(micDisplayLow) : '—'} · Agudo:{' '}
               {micDisplayHigh != null ? midiNoteLabel(micDisplayHigh) : '—'}
@@ -530,7 +537,7 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
       {matched ? (
         <div className="mt-5 rounded-2xl border border-gold/40 bg-gold/5 p-4 text-center space-y-2">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-            Registro sugerido
+            Registro orientativo
           </p>
           <p className="text-2xl font-display font-bold text-gold">{matched.label}</p>
           <p className="text-xs text-muted-foreground">
@@ -561,6 +568,11 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
           </Link>
         </div>
       ) : null}
+      <VocalRangeMap
+        low={mapLow}
+        high={mapHigh}
+        selected={mapRegister}
+      />
     </div>
   );
 }
