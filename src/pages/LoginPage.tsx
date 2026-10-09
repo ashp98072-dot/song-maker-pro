@@ -7,6 +7,9 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { NATIVE_AUTH_REDIRECT } from '@/platform/nativeAuth';
 
 const credentialsSchema = z.object({
   email: z.string().trim().email({ message: 'Correo inválido' }).max(255),
@@ -48,10 +51,12 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const native = Capacitor.isNativePlatform();
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: native ? NATIVE_AUTH_REDIRECT : `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: native,
           queryParams: { 
             access_type: 'offline', 
             prompt: 'select_account' 
@@ -59,6 +64,10 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
+      if (native) {
+        if (!data.url) throw new Error('No se recibió el enlace de acceso');
+        await Browser.open({ url: data.url });
+      }
     } catch (error: unknown) {
       toast.error('Error al conectar con Google: ' + errorMessage(error, 'Error desconocido'));
     }

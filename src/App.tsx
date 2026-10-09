@@ -44,6 +44,7 @@ import { AppDebugHost } from "@/debug/AppDebugHost";
 import { getRenderDiagStage } from "@/renderDiag";
 import { isPublicAppPath } from "@/utils/publicAppPaths";
 import { AndroidBackNavigation } from '@/platform/AndroidBackNavigation';
+import { NativeAuthCallback } from '@/platform/NativeAuthCallback';
 
 const SongViewPage = lazy(() => import("@/pages/SongViewPage"));
 const ContinuousSetlistPage = lazy(() => import("@/pages/ContinuousSetlistPage"));
@@ -289,6 +290,7 @@ function ProductionApp() {
         <AppProvider>
           <BrowserRouter>
             <AndroidBackNavigation />
+            <NativeAuthCallback />
             <AppDebugHost>
             <ScrollToTop />
             <AuthManager>
