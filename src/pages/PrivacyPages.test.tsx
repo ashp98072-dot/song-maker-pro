@@ -13,7 +13,7 @@ describe('public privacy and deletion paths', () => {
   it('offers a manual request without claiming immediate deletion', () => {
     render(<MemoryRouter><DeleteAccountPage /></MemoryRouter>);
     expect(screen.getByRole('link', { name: 'Preparar correo de eliminación' }).getAttribute('href'))
-      .toContain('mailto:worhisptranspose@gmail.com?subject=');
+      .toContain('mailto:worshiptranspose@gmail.com?subject=');
     expect(screen.getByText(/Preparar el correo no envía/)).toBeInTheDocument();
   });
   it('links the policy to account deletion', () => {

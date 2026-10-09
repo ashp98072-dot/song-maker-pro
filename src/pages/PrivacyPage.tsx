@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-export const PRIVACY_CONTACT = 'worhisptranspose@gmail.com';
+export const PRIVACY_CONTACT = 'worshiptranspose@gmail.com';
 
 export default function PrivacyPage() {
   return <article className="container max-w-3xl px-4 py-8 space-y-5">
