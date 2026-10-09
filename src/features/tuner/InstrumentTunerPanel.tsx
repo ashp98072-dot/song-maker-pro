@@ -15,6 +15,7 @@ import {
   type TunerString,
 } from '@/features/tuner/tunerMath';
 import { playReferenceTone, stopReferenceTone } from '@/features/tuner/referenceTone';
+import { microphoneErrorMessage } from '@/utils/microphoneError';
 
 const SMOOTH = 0.28;
 const STABLE_FRAMES = 3;
@@ -162,6 +163,7 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
   const [refNote, setRefNote] = useState<string | null>(null);
 
   const audioRef = useRef<AudioContext | null>(null);
+  const sessionRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -213,6 +215,7 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
   }, [instrumentId, a4, mode]);
 
   const stop = useCallback(() => {
+    sessionRef.current += 1;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = 0;
     analyserRef.current?.disconnect();
@@ -330,11 +333,21 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
 
   const start = async () => {
     setError(null);
+    stop();
+    const session = sessionRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
+      if (session !== sessionRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       const ctx = new AudioContext();
+      audioRef.current = ctx;
+      await ctx.resume();
+      if (session !== sessionRef.current) return;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 4096;
@@ -351,9 +364,11 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
       levelRef.current = 0;
       setListening(true);
       rafRef.current = requestAnimationFrame(tick);
-    } catch {
-      setError('No se pudo acceder al micrófono. Revisa los permisos del navegador.');
-      stop();
+    } catch (error) {
+      if (session === sessionRef.current) {
+        setError(microphoneErrorMessage(error));
+        stop();
+      }
     }
   };
 

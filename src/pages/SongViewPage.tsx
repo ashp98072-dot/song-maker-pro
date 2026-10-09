@@ -2088,13 +2088,15 @@ export default function SongViewPage() {
   };
 
   const handlePdf = () => {
-    generateSongPdf(
+    void generateSongPdf(
       song,
       displayKey || displayOriginalKey,
       effectiveSemitones,
       effectiveShowChords,
       useFlats
-    );
+    ).catch((error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'No se pudo abrir la impresión.');
+    });
   };
 
   const lyricFontBoost = teleprompterFontBoost(viewMode);
