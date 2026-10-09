@@ -488,7 +488,7 @@ export default function SongViewPage() {
     displayCapoPlayAs,
   } = useTransposeEngine({
     song,
-    vocalRegister,
+    vocalRegister: isFollowerSpectator ? '' : vocalRegister,
     genderShift,
     customSemitones,
     modeSwapped,

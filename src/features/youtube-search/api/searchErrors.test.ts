@@ -8,7 +8,7 @@ import {
 describe('searchErrors', () => {
   it('maps Failed to fetch to friendly message', () => {
     const msg = formatSearchErrorForUser(new TypeError('Failed to fetch'));
-    expect(msg).toContain('No se pudo conectar con YouTube');
+    expect(msg).toContain('No se pudo conectar con el servicio de búsqueda');
   });
 
   it('parses quota exceeded', () => {
@@ -26,3 +26,4 @@ describe('searchErrors', () => {
     expect(isNetworkFetchFailure(new TypeError('Failed to fetch'))).toBe(true);
   });
 });
+
