@@ -9,8 +9,36 @@ Correo indicado: worshiptranspose@gmail.com. Verificar recepción antes de publi
 - https://worshiptranspose.com/eliminar-cuenta
 
 La solicitud de eliminación es manual por correo, no un borrado automático.
-El responsable debe revisar el buzón y completar solicitudes verificadas. No se ha
-eliminado ninguna cuenta ni modificado la base de datos durante esta revisión.
+El responsable debe revisar el buzón y completar solicitudes verificadas.
+
+## Avances comprobados el 9 de octubre de 2026
+
+- El responsable eliminó dos cuentas que habían solicitado eliminación. Las capturas
+  mostraron ausencia de sus registros en las tablas revisadas: profiles, user_songs,
+  user_lists, user_favorites, user_song_settings, user_roles, public_songs, public_lists,
+  public_list_comments, live_sessions y catalog_archived_songs. user_follows estaba vacía.
+- En Storage se observó únicamente el bucket avatars. Se eliminaron dos imágenes
+  pendientes de una cuenta y se comprobó su carpeta vacía; no se encontró carpeta de
+  la otra cuenta en la raíz. No se observó un bucket song-pdfs en ese proyecto.
+- El responsable guardó un registro privado de las solicitudes en Google Sheets.
+  Este documento no incluye los identificadores de las cuentas eliminadas.
+- Se generó un AAB de release firmado y se verificó su firma. No se ha subido a Play.
+- El responsable confirmó funcionamiento del micrófono y PDF en el APK actualizado.
+  Las capturas posteriores mostraron el permiso en «No permitir» en Android y el
+  mensaje de micrófono no autorizado tanto en el afinador como en la medición del
+  rango vocal. También se observó el diálogo nativo de solicitud del permiso.
+  El responsable confirmó que una canción abre con el permiso denegado y que el
+  afinador y el rango vocal vuelven a detectar notas al conceder nuevamente el
+  permiso. No se probó revocación durante una captura de audio activa.
+- La prueba de importación detectó que el escáner enviaba PDF directamente al OCR
+  de imágenes. Se corrigió para leer texto del PDF y renderizar páginas sin texto
+  antes del OCR. La extracción del PDF adjunto de dos páginas se verificó localmente,
+  incluyendo acordes B y F#. Falta probar esta corrección en el teléfono, PDF de
+  páginas escaneadas y cancelación del selector. No dar estas pruebas por aprobadas.
+
+Estas comprobaciones cubren los datos mostrados en producción. No sustituyen un ensayo
+con una cuenta de prueba que ejercite PDF, seguimiento y demás funciones, ni verifican
+la retención de backups o logs externos.
 
 ## Procedimiento operativo de eliminación
 
@@ -74,7 +102,7 @@ fusionado del AAB final y probar permitir, rechazar y revocar micrófono en un t
 - Probar micrófono, cámara/selector de archivos y audio local en Android real.
 - Revisar derechos de canciones/contenido público, moderación y denuncias.
 - Revisar donaciones PayPal y política de pagos antes de distribuir en Play.
-- AAB firmado, versión, ficha, clasificación y pruebas exigidas por la cuenta.
+- Revisar versión del AAB firmado, ficha, clasificación y pruebas exigidas por la cuenta.
 
 Referencias: https://support.google.com/googleplay/android-developer/answer/13327111
 y https://support.google.com/googleplay/android-developer/answer/10144311
