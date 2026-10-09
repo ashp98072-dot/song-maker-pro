@@ -1,7 +1,7 @@
 # Privacidad y preparación para Play Store
 
 Responsable indicado por el usuario: Walter Villagran.
-Correo indicado: worhisptranspose@gmail.com. Verificar recepción antes de publicar.
+Correo indicado: worshiptranspose@gmail.com. Verificar recepción antes de publicar.
 
 ## URLs después del despliegue
 
