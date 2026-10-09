@@ -20,6 +20,7 @@ import {
   type VocalTestMethod,
 } from '@/features/vocal-test/vocalTestMath';
 import { getRegisterInfo } from '@/utils/vocalRange';
+import { microphoneErrorMessage } from '@/utils/microphoneError';
 
 type Mode = 'keyboard' | 'microphone';
 type MicPhase = 'idle' | 'low' | 'high' | 'done';
@@ -191,7 +192,11 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
+      streamRef.current = stream;
       const ctx = new AudioContext();
+      audioRef.current = ctx;
+      await ctx.resume();
+      if (session !== sessionRef.current) return;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 4096;
@@ -205,9 +210,9 @@ export function VocalRangeTestPanel({ className = '' }: { className?: string }) 
       setMicPhase(phase);
       setListening(true);
       rafRef.current = requestAnimationFrame(tick);
-    } catch {
+    } catch (error) {
       if (session === sessionRef.current) {
-        setMicError('No se pudo acceder al micrófono.');
+        setMicError(microphoneErrorMessage(error));
         stopMic();
       }
     }

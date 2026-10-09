@@ -1,7 +1,10 @@
 import { Song } from '@/types/music';
 import { transposeText, isChordLine, isSectionLabel } from '@/utils/transpose';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
-export function generateSongPdf(
+const SongPrint = registerPlugin<{ print(options: { html: string; title: string }): Promise<void> }>('SongPrint');
+
+export async function generateSongPdf(
   song: Song,
   currentKey: string,
   semitones: number,
@@ -11,7 +14,7 @@ export function generateSongPdf(
   const lines = song.chords.split('\n');
   
   let html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>${song.title} - ${song.artist}</title>
+<title>${escapeHtml(song.title)} - ${escapeHtml(song.artist)}</title>
 <style>
   @media print { @page { margin: 1.5cm; } }
   body { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #111; max-width: 700px; margin: 0 auto; padding: 20px; }
@@ -19,15 +22,15 @@ export function generateSongPdf(
   .title { font-size: 22px; font-weight: bold; margin: 0; font-family: Georgia, serif; }
   .artist { font-size: 14px; color: #555; margin: 4px 0; }
   .key-info { font-size: 12px; color: #777; margin-top: 8px; }
-  .section { font-weight: bold; font-size: 14px; margin-top: 20px; margin-bottom: 4px; color: #333; text-transform: uppercase; letter-spacing: 1px; }
+  .section { font-weight: bold; font-size: 14px; margin-top: 20px; margin-bottom: 4px; color: #333; text-transform: uppercase; letter-spacing: 1px; break-after: avoid; }
   .chord-line { color: #b45309; font-weight: bold; white-space: pre; }
   .lyric-line { white-space: pre; }
   .footer { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 8px; font-size: 10px; color: #999; text-align: center; }
 </style></head><body>
 <div class="header">
-  <p class="title">${song.title}</p>
-  <p class="artist">${song.artist}</p>
-  <p class="key-info">Tono: ${currentKey || song.originalKey} · ${song.scaleMode === 'minor' ? 'Menor' : 'Mayor'} · ${song.originalGender === 'male' ? '♂ Hombre' : '♀ Mujer'}</p>
+  <p class="title">${escapeHtml(song.title)}</p>
+  <p class="artist">${escapeHtml(song.artist)}</p>
+  <p class="key-info">Tono: ${escapeHtml(currentKey || song.originalKey)} · ${song.scaleMode === 'minor' ? 'Menor' : 'Mayor'} · ${song.originalGender === 'male' ? '♂ Hombre' : '♀ Mujer'}</p>
 </div>`;
 
   for (const line of lines) {
@@ -45,6 +48,11 @@ export function generateSongPdf(
 
   html += `<div class="footer">Generado con Worship Transpose</div></body></html>`;
 
+  if (Capacitor.getPlatform() === 'android') {
+    await SongPrint.print({ html, title: `${song.title} - ${song.artist}` });
+    return;
+  }
+
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
@@ -52,6 +60,9 @@ export function generateSongPdf(
     win.addEventListener('load', () => {
       setTimeout(() => { win.print(); }, 300);
     });
+  } else {
+    URL.revokeObjectURL(url);
+    throw new Error('Permite abrir la ventana de impresión e inténtalo de nuevo.');
   }
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
