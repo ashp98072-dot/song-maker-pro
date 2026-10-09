@@ -1,9 +1,5 @@
 import type { YouTubeSearchProvider } from '@/features/youtube-search/types';
-import {
-  getYouTubeApiKey,
-  hasYouTubeApiKey,
-  logYouTubeApiKeyDiagnostics,
-} from '@/features/youtube-search/api/getYouTubeApiKey';
+
 import { youtubeSearchLog } from '@/features/youtube-search/api/devLog';
 
 /** Mock solo en dev y con VITE_YOUTUBE_SEARCH_MODE=mock explícito. */
@@ -14,20 +10,19 @@ export function isMockSearchForced(): boolean {
   );
 }
 
-/** Con API key válida → solo YouTube Data API (sin Piped automático). */
+/** Las búsquedas oficiales pasan por el servidor; mock solo en desarrollo. */
 export function shouldUseYouTubeDataApiOnly(): boolean {
-  return hasYouTubeApiKey() && !isMockSearchForced();
+  return !isMockSearchForced();
 }
 
 export function getConfiguredSearchProvider(): YouTubeSearchProvider {
   if (isMockSearchForced()) return 'mock';
-  if (hasYouTubeApiKey()) return 'youtube-api';
-  if (import.meta.env.VITE_YOUTUBE_SEARCH_MODE === 'piped') return 'piped';
-  return 'piped';
+  return 'youtube-api';
+
 }
 
 export function logSearchProviderSelection(): void {
-  logYouTubeApiKeyDiagnostics();
+
   const provider = getConfiguredSearchProvider();
   youtubeSearchLog('provider selected', provider);
 }
@@ -44,3 +39,5 @@ export function getProviderDisplayName(provider: YouTubeSearchProvider): string 
       return provider;
   }
 }
+
+

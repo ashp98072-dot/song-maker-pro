@@ -3,10 +3,10 @@ import {
   getConfiguredSearchProvider,
   isMockSearchForced,
   logSearchProviderSelection,
-  shouldUseYouTubeDataApiOnly,
+
 } from '@/features/youtube-search/api/getSearchProvider';
-import { searchViaYouTubeDataApi } from '@/features/youtube-search/api/youtubeDataApi';
-import { searchViaPiped } from '@/features/youtube-search/api/pipedProvider';
+import { Capacitor } from '@capacitor/core';
+
 import { youtubeSearchLog, youtubeSearchError } from '@/features/youtube-search/api/devLog';
 import { formatSearchErrorForUser } from '@/features/youtube-search/api/searchErrors';
 import {
@@ -67,35 +67,21 @@ async function executeSearch(
     return { results: getMockResults(trimmed), provider: 'mock' };
   }
 
-  if (shouldUseYouTubeDataApiOnly()) {
-    try {
-      const results = await searchViaYouTubeDataApi(trimmed, signal);
-      youtubeSearchLog('success', { provider: 'youtube-api', count: results.length });
-      return { results, provider: 'youtube-api' };
-    } catch (e) {
-      if (signal.aborted) throw e;
-      youtubeSearchError('youtube-api failed', e);
-      rethrowSearchError(e);
-    }
-  }
-
-  const configured = getConfiguredSearchProvider();
-  youtubeSearchLog('using piped (no API key)', { mode: import.meta.env.VITE_YOUTUBE_SEARCH_MODE });
-
   try {
-    const results = await searchViaPiped(trimmed, signal);
-    youtubeSearchLog('success', { provider: 'piped', count: results.length });
-    return { results, provider: 'piped' };
-  } catch (e) {
-    if (signal.aborted) throw e;
-    youtubeSearchError('piped failed', e);
-    rethrowSearchError(e);
+    const base = Capacitor.isNativePlatform() ? 'https://worshiptranspose.com' : '';
+    const response = await fetch(`${base}/api/youtube-search?q=${encodeURIComponent(trimmed)}`, { signal });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'No se pudo buscar videos en YouTube.');
+    return { results: normalizeResults(body.results), provider: 'youtube-api' };
+  } catch (error) {
+    if (signal.aborted) throw error;
+    youtubeSearchError('server search failed', error);
+    rethrowSearchError(error);
   }
 }
-
 /**
  * Búsqueda con caché, deduplicación de requests en vuelo.
- * Con VITE_YOUTUBE_API_KEY → solo YouTube Data API (sin fallback Piped).
+ * La clave privada permanece en el servidor de Vercel.
  */
 export async function searchYouTubeVideos(
   query: string,
@@ -140,3 +126,4 @@ export async function searchYouTubeVideoList(
   const { results } = await searchYouTubeVideos(query, signal);
   return results;
 }
+
