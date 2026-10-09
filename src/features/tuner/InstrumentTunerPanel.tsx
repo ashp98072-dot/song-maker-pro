@@ -16,11 +16,11 @@ import {
 } from '@/features/tuner/tunerMath';
 import { playReferenceTone, stopReferenceTone } from '@/features/tuner/referenceTone';
 import { microphoneErrorMessage } from '@/utils/microphoneError';
+import { IN_TUNE_CENTS, latinPitchLabel, tuningInstruction } from './tunerFeedback';
 
 const SMOOTH = 0.28;
 const STABLE_FRAMES = 3;
 const LOST_FRAMES = 12;
-const IN_TUNE_CENTS = 5;
 const HOLD_MS = 600;
 
 type Mode = 'instrument' | 'chromatic';
@@ -313,7 +313,7 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
     if (!chromatic && targetNote != null && centsNow != null) {
       const now = performance.now();
       const h = holdRef.current;
-      if (Math.abs(centsNow) < IN_TUNE_CENTS) {
+      if (Math.abs(centsNow) <= IN_TUNE_CENTS) {
         if (h && h.note === targetNote) {
           if (now - h.since > HOLD_MS && !tunedRef.current.has(targetNote)) {
             tunedRef.current.add(targetNote);
@@ -411,13 +411,19 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gold">Afinador</p>
           <h3 className="text-lg font-bold font-display text-foreground leading-none mt-0.5">
-            Precisión PRO
+            Afina paso a paso
           </h3>
         </div>
         <span className="text-[10px] font-mono px-2 py-1 rounded-md border border-border text-muted-foreground">
           A4 = {a4} Hz
         </span>
       </div>
+
+      <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+        {mode === 'instrument'
+          ? 'Elige tu instrumento y una cuerda. Tócala sola, sin pisar trastes; ajusta poco a poco hasta llegar al centro.'
+          : 'Detecta cualquier nota. La aguja indica si está por debajo o por encima de la nota más cercana.'}
+      </p>
 
       {/* mode */}
       <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 mb-3">
@@ -458,7 +464,7 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
       {/* calibration */}
       <div className="flex items-center justify-center gap-3 mb-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-          Calibración
+          Referencia La4
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -499,8 +505,12 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
         }`}
       >
         <TunerGauge cents={hasTune ? cents : null} active={signalOk} inTune={!!inTune} />
+        <div className="flex justify-between text-[11px] text-muted-foreground mb-2 px-2">
+          <span>Bajo · subir ↑</span><span>Centro · afinado</span><span>Alto · bajar ↓</span>
+        </div>
 
-        <div className="-mt-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Nota detectada</p>
           <p
             className={`text-5xl font-display font-bold tabular-nums leading-none ${
               inTune ? 'text-green-500' : 'text-gold'
@@ -511,6 +521,17 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
               {noteLabel.match(/\d/)?.[0] ?? ''}
             </span>
           </p>
+          {noteLabel !== '—' && <p className="text-sm text-muted-foreground mt-1">{latinPitchLabel(noteLabel)}</p>}
+          <p className={`text-sm font-semibold mt-3 ${inTune ? 'text-green-500' : 'text-foreground'}`}>
+            {!listening ? 'Activa el micrófono para comenzar'
+              : signalOk && !hasTune ? 'Elige una cuerda para comparar esta nota'
+              : tuningInstruction(hasTune ? cents : null, mode === 'instrument')}
+          </p>
+          {mode === 'instrument' && (lockedString || matchedNote) && (
+            <p className="text-xs text-gold mt-1">
+              Objetivo: {lockedString?.note ?? matchedNote} · {latinPitchLabel(lockedString?.note ?? matchedNote!)}
+            </p>
+          )}
           <p
             className={`text-sm font-mono font-bold mt-1 ${
               !hasTune
@@ -525,8 +546,8 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
             {!hasTune
               ? listening
                 ? 'Toca una nota con claridad…'
-                : 'Activa el micrófono'
-              : `${cents! > 0 ? '+' : ''}${cents!.toFixed(0)} cents${inTune ? ' · afinado' : ''}`}
+                : 'Ajusta poco a poco, sin tensar de golpe'
+              : `${cents! > 0 ? '+' : ''}${cents!.toFixed(0)} cents respecto al objetivo`}
           </p>
           <p className="text-[11px] text-muted-foreground font-mono mt-0.5 h-4">
             {hz != null && signalOk
@@ -542,6 +563,9 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
             style={{ width: `${Math.round(level * 100)}%` }}
           />
         </div>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Nivel del micrófono · 100 cents = 1 semitono
+        </p>
       </div>
 
       {/* string chips */}
@@ -549,10 +573,10 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
         <>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-              {lockedString ? `Fijado · ${lockedString.note}` : 'Auto · cuerda más cercana'}
+              {lockedString ? `Cuerda elegida · ${lockedString.note}` : 'Auto · elige la cuerda más cercana'}
             </span>
             <span className="text-[10px] font-mono text-muted-foreground">
-              {tuned.length}/{instrument.strings.length} afinadas
+              {tuned.length}/{instrument.strings.length} confirmadas
               {tuned.length > 0 && (
                 <button
                   type="button"
@@ -598,7 +622,7 @@ export function InstrumentTunerPanel({ className = '' }: { className?: string })
                           : 'border-border text-muted-foreground'
                   }`}
                 >
-                  {s.label} {s.note}
+                  {s.label} {s.note}<span className="block text-[10px] font-normal mt-0.5">{latinPitchLabel(s.note)}</span>
                   {isTuned && <Check className="inline w-3 h-3 ml-1 align-middle" />}
                 </button>
               );

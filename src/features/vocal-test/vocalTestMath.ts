@@ -15,8 +15,8 @@ export type SingerVocalProfile = {
   updatedAt: number;
 };
 
-/** Typical singing span for the guided keyboard (G2–C6). */
-export const KEYBOARD_MIDI_LOW = 43;
+/** Guided keyboard includes the app's lowest reference register (F2–C6). */
+export const KEYBOARD_MIDI_LOW = 41;
 export const KEYBOARD_MIDI_HIGH = 84;
 
 /** Minimum measured span (semitones) to classify a register. */
