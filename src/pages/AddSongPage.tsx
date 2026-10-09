@@ -8,6 +8,7 @@ import { findInvalidBrackets } from '@/utils/chordValidator';
 import { normalizeTitle } from '@/utils/textNormalize';
 import { Wand2, Camera, Loader2, Globe, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { scanSongFile } from '@/utils/scanSongFile';
 
 const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const QUICK_CHORDS = ['C', 'G', 'Am', 'F', 'D', 'Em', 'B7'];
@@ -81,21 +82,21 @@ export default function AddSongPage() {
 
   const handleOCRScan = async (file: File) => {
     setIsScanning(true);
-    toast.info('📷 Escaneando imagen... esto puede tomar unos segundos');
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    toast.info(isPdf ? 'Leyendo PDF... esto puede tomar unos segundos' : 'Escaneando imagen... esto puede tomar unos segundos');
     try {
-      const { createWorker } = await import('tesseract.js');
-      const worker = await createWorker('spa+eng');
-      const { data: { text } } = await worker.recognize(file);
-      await worker.terminate();
+      const text = await scanSongFile(file);
       if (text.trim()) {
         setSmartPasteText(text);
-        toast.success('✅ Texto extraído correctamente. Presiona "Detectar Acordes" para procesarlo.');
+        toast.success('Texto extraído. Revisa los acordes antes de pulsar "Detectar Acordes"; el escaneo puede confundir letras y números.');
       } else {
-        toast.error('No se pudo extraer texto de la imagen');
+        toast.error('No se encontró texto en el archivo. Prueba con una imagen más clara o un PDF con texto seleccionable.');
       }
     } catch (err) {
       console.error('OCR error:', err);
-      toast.error('Error al escanear. Intenta con una imagen más clara.');
+      toast.error(isPdf
+        ? 'No se pudo leer el PDF. Comprueba que no esté protegido y que tenga como máximo 20 páginas.'
+        : 'No se pudo escanear la imagen. Comprueba tu conexión e intenta con una imagen más clara.');
     } finally {
       setIsScanning(false);
     }
