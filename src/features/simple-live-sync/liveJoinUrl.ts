@@ -20,7 +20,8 @@ export function parseJoinCodeFromPath(pathname: string): string | null {
 
 export function parseJoinCodeFromSearch(search: string): string | null {
   const params = new URLSearchParams(search.startsWith('?') ? search : `?${search}`);
-  const raw = params.get('join') || params.get('codigo') || params.get('code');
+  // OAuth reserves `code`; a fallback auth redirect must never join a live session.
+  const raw = params.get('join') || params.get('codigo');
   if (!raw) return null;
   const code = normalizeSessionCode(raw);
   return code.length >= 4 ? code : null;
