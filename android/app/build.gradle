@@ -1,5 +1,27 @@
 apply plugin: 'com.android.application'
 
+// Upload credentials belong to the build environment, never to source control.
+def uploadVariables = ['ANDROID_UPLOAD_STORE_FILE', 'ANDROID_UPLOAD_STORE_PASSWORD',
+                       'ANDROID_UPLOAD_KEY_ALIAS', 'ANDROID_UPLOAD_KEY_PASSWORD']
+def uploadCredentials = uploadVariables.collectEntries { [(it): System.getenv(it)] }
+def uploadReady = uploadCredentials.values().every { it != null && !it.trim().isEmpty() }
+def releaseCode = providers.gradleProperty('releaseVersionCode').getOrElse('1').toInteger()
+def releaseName = providers.gradleProperty('releaseVersionName').getOrElse('1.0')
+if (releaseCode < 1 || releaseName.trim().isEmpty()) {
+    throw new GradleException('La versión Android debe tener código positivo y nombre no vacío.')
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }) {
+        if (!uploadReady) {
+            throw new GradleException('Configura las cuatro variables ANDROID_UPLOAD_* para firmar la publicación. Consulta docs/android-release.md.')
+        }
+        if (!file(uploadCredentials.ANDROID_UPLOAD_STORE_FILE).isFile()) {
+            throw new GradleException('No se encontró el archivo de la clave de carga Android.')
+        }
+    }
+}
+
 android {
     namespace = "com.worshiptranspose.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +29,8 @@ android {
         applicationId "com.worshiptranspose.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode releaseCode
+        versionName releaseName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +38,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (uploadReady) {
+            upload {
+                storeFile file(uploadCredentials.ANDROID_UPLOAD_STORE_FILE)
+                storePassword uploadCredentials.ANDROID_UPLOAD_STORE_PASSWORD
+                keyAlias uploadCredentials.ANDROID_UPLOAD_KEY_ALIAS
+                keyPassword uploadCredentials.ANDROID_UPLOAD_KEY_PASSWORD
+            }
+        }
+    }
     buildTypes {
         release {
+            if (uploadReady) { signingConfig signingConfigs.upload }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
