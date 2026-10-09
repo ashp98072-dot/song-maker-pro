@@ -29,6 +29,8 @@ import AddSongPage from "@/pages/AddSongPage";
 import CommunityLibraryPage from "@/pages/CommunityLibraryPage";
 import CommunityChainDetailPage from "@/pages/CommunityChainDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import DeleteAccountPage from "@/pages/DeleteAccountPage";
 import ChordLibraryPage from "@/pages/ChordLibraryPage";
 import TunerPage from "@/pages/TunerPage";
 import VocalRangeTestPage from "@/pages/VocalRangeTestPage";
@@ -326,6 +328,8 @@ function ProductionApp() {
                   <Route path="/comunidad" element={<CommunityLibraryPage />} />
                   <Route path="/comunidad/cadena/:slug" element={<CommunityChainDetailPage />} />
                   <Route path="/perfil" element={<ProfilePage />} />
+                  <Route path="/privacidad" element={<PrivacyPage />} />
+                  <Route path="/eliminar-cuenta" element={<DeleteAccountPage />} />
                   <Route path="/perfil/:userId" element={<ProfilePage />} />
                   <Route path="/acordes" element={<ChordLibraryPage />} />
                   <Route path="/afinador" element={<TunerPage />} />

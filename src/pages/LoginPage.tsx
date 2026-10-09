@@ -1,7 +1,7 @@
 import { errorMessage } from '@/utils/errorMessage';
 import { Music, Mail, Lock, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/useApp';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -262,6 +262,10 @@ export default function LoginPage() {
         >
           Continuar como invitado
         </button>
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+          <Link to="/privacidad" className="underline">Privacidad</Link>
+          <Link to="/eliminar-cuenta" className="underline">Eliminar cuenta</Link>
+        </div>
       </motion.div>
     </div>
   );

@@ -215,6 +215,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container px-3 sm:px-4 py-4 sm:py-6 max-w-3xl animate-in fade-in">
+      {isOwn && <Link to="/eliminar-cuenta" className="block text-sm text-gold underline mb-4">Solicitar eliminación de mi cuenta</Link>}
       {routeUserId && (
         <button
           type="button"
