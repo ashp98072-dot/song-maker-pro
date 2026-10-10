@@ -12,6 +12,9 @@ import {
 import { fetchFollowingIds, fetchProfilesByIds, type ProfileLite } from '@/features/profile/profileApi';
 import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { supabase } from '@/integrations/supabase/client';
+import { useApp } from '@/context/useApp';
+import { ModerationActions } from '@/features/community/ModerationActions';
+import { useCommunityRefresh } from '@/features/community/useCommunityRefresh';
 
 type HubTab = 'cantos' | 'all' | 'following';
 
@@ -26,6 +29,8 @@ function tabFromParams(raw: string | null): HubTab {
  * Pestaña Siguiendo: cadenas de músicos que sigues.
  */
 export default function CommunityLibraryPage() {
+  const { isAdmin } = useApp();
+  const refresh = useCommunityRefresh();
   const [params, setParams] = useSearchParams();
   const tab = tabFromParams(params.get('tab'));
   const [search, setSearch] = useState('');
@@ -85,7 +90,7 @@ export default function CommunityLibraryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refresh]);
 
   const sourceLists = tab === 'following' ? followingLists : publicLists;
 
@@ -117,6 +122,7 @@ export default function CommunityLibraryPage() {
           Explora cantos públicos y cadenas compartidas. Copia a tu biblioteca con un toque.
         </p>
       </motion.div>
+      <div className="flex flex-wrap gap-4 text-sm mb-4"><Link to="/comunidad/seguridad" className="text-gold underline">Reglas y usuarios bloqueados</Link>{isAdmin && <Link to="/admin/comunidad" className="text-gold underline">Revisar reportes</Link>}</div>
 
       <div className="sticky top-[var(--app-chrome-top,3.5rem)] z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 mb-3 sm:mb-5 bg-background/95 backdrop-blur-sm border-b border-border/60 sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:static sm:z-auto">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -264,6 +270,7 @@ export default function CommunityLibraryPage() {
                       )}{' '}
                       · {cadena.song_count} canciones
                     </p>
+                    <ModerationActions kind="list" targetId={cadena.id} ownerId={cadena.owner_id} />
                     <Link
                       to={`/comunidad/cadena/${cadena.slug}`}
                       className="text-xs text-muted-foreground mt-2 line-clamp-2 block"

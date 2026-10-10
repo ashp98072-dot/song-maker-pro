@@ -27,8 +27,8 @@ Fuente: https://support.google.com/googleplay/android-developer/answer/10281818?
 | Información personal: nombre, correo, ID de usuario | Autenticación y perfil en Supabase; acceso con Google opcional | Revisar todos los métodos de alta y campos reales |
 | Fotos | Foto de perfil opcional subida a avatars | Confirmar tratamiento público y proveedores |
 | Archivos y documentos | PDF adjuntos y contenido de biblioteca sincronizado | Distinguir adjunto subido de PDF leído localmente por el escáner |
-| Otro contenido generado por usuarios | Canciones, listas, comentarios y perfil público | Revisar categorías del formulario y visibilidad por función |
-| Actividad en la app | Favoritos, seguimiento, búsquedas de videos y sesiones compartidas | Determinar categorías exactas, retención y compartición |
+| Otro contenido generado por usuarios | Canciones, listas, comentarios, perfil público y reportes con copia del contenido | Revisar categorías del formulario y visibilidad por función |
+| Actividad en la app | Favoritos, seguimiento, bloqueos, aceptación de reglas, búsquedas de videos y sesiones compartidas | Determinar categorías exactas, retención y compartición |
 | Información financiera / historial de compras | SDK PayPal y aportaciones opcionales | Revisar datos enviados por el SDK; no afirmar ausencia por no guardar tarjetas |
 | Identificadores / datos técnicos | Servicios Google, YouTube, Supabase, Vercel y PayPal | Comprobar SDK, registros y configuración efectiva |
 | Audio | Afinador y rango vocal analizados localmente; ensayo guardado localmente | No contar procesamiento exclusivamente local como recopilación; revisar servicios externos por separado |

@@ -1,8 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Song } from '@/types/music';
 import { slugifySongTitle } from '@/utils/songSlug';
+import { ensureCommunityRules } from '@/features/community/moderationApi';
 
 export async function saveAdminImportBatch(songs: Song[], publish: boolean, updateExisting = false, restoreArchived = false) {
+  if (publish && !await ensureCommunityRules()) throw new Error('Publicación cancelada');
   const { data, error } = await supabase.rpc(restoreArchived && publish && updateExisting ? 'admin_import_restore_songs' : 'admin_import_songs', {
     p_publish: publish,
     p_songs: songs.map(song => ({

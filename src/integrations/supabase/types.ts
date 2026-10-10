@@ -528,6 +528,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      community_unavailable_song_ids: { Args: Record<string, never>; Returns: string[] }
+      community_rules_status: { Args: Record<string, never>; Returns: boolean }
+      community_accept_rules: { Args: Record<string, never>; Returns: undefined }
+      community_set_block: { Args: { p_user_id: string; p_block: boolean }; Returns: undefined }
+      community_my_blocks: { Args: Record<string, never>; Returns: { user_id: string; display_name: string; created_at: string }[] }
+      community_report: { Args: { p_kind: string; p_target_id: string; p_reason: string; p_details?: string }; Returns: undefined }
+      community_admin_reports: { Args: Record<string, never>; Returns: { id: string; reporter_id: string; target_user_id: string; kind: string; target_id: string; reason: string; details: string; snapshot: Json; status: string; resolution: string; created_at: string; resolved_at: string | null }[] }
+      community_admin_resolve: { Args: { p_report_id: string; p_action: string; p_note?: string }; Returns: undefined }
       catalog_song_corrections_read: { Args: { p_offset?: number }; Returns: { song_id: string; chords: string }[] }
       admin_correct_catalog_song: { Args: { p_song_id: string; p_chords: string }; Returns: undefined }
       admin_import_restore_songs: { Args: { p_songs: Json; p_publish?: boolean }; Returns: { song_id: string; status: string; message: string; target_id: string }[] }

@@ -114,10 +114,23 @@ export async function loadSeoCatalog(opts?: { withChords?: boolean }): Promise<S
     ? 'song_id,title,artist,chords,created_at'
     : 'song_id,title,artist,created_at';
 
+  // Service-role table reads bypass RLS. Never prerender withdrawn content.
+  let unavailable: Set<string>;
+  try {
+    const response = await fetch(`${cfg.url}/rest/v1/rpc/community_unavailable_song_ids`, {
+      method: 'POST', headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}`, 'Content-Type': 'application/json' }, body: '{}',
+    });
+    const ids: unknown = JSON.parse(await response.text());
+    if (!response.ok || !Array.isArray(ids) || ids.some(id => typeof id !== 'string')) throw new Error('moderation_unavailable');
+    unavailable = new Set(ids);
+  } catch {
+    return { songs: [], source: 'empty', hasUrl: cfg.hasUrl, hasServiceRole: cfg.hasServiceRole, hasAnonKey: cfg.hasAnonKey, error: 'moderation_unavailable' };
+  }
+
   const primary = await restSelect(cfg.url, cfg.key, select);
   if (primary.ok && primary.rows.length > 0) {
     return {
-      songs: primary.rows,
+      songs: primary.rows.filter(song => !unavailable.has(song.id)),
       source: cfg.usingServiceRole ? 'service_role' : 'anon',
       hasUrl: cfg.hasUrl,
       hasServiceRole: cfg.hasServiceRole,
@@ -129,7 +142,7 @@ export async function loadSeoCatalog(opts?: { withChords?: boolean }): Promise<S
   const rpc = await rpcCatalog(cfg.url, cfg.key);
   if (rpc.ok && rpc.rows.length > 0) {
     return {
-      songs: rpc.rows,
+      songs: rpc.rows.filter(song => !unavailable.has(song.id)),
       source: 'rpc',
       hasUrl: cfg.hasUrl,
       hasServiceRole: cfg.hasServiceRole,

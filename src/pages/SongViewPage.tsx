@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/useApp';
+import { PublicSongModeration } from '@/features/community/PublicSongModeration';
 import { useState, useMemo, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Heart, Plus, ChevronUp, Play, Pause, Share2, X, Maximize, Minimize, Printer, Edit2, Save, Mic, User, Users as UsersIcon, ListMusic, Type } from 'lucide-react';
 import { encodeShareConfig, decodeShareConfig } from '@/utils/transpose';
@@ -173,7 +174,7 @@ export default function SongViewPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { songs, toggleFavorite, isFavorite, lists, addSongToList, createList, updateSong, saveSongCorrection, isAdmin } = useApp();
+  const { songs, toggleFavorite, isFavorite, lists, addSongToList, createList, updateSong, saveSongCorrection, isAdmin, unavailableSongIds } = useApp();
   const seedSong =
     (location.state as { seedSong?: Song } | null)?.seedSong &&
     typeof (location.state as { seedSong?: Song }).seedSong?.id === 'string'
@@ -2007,6 +2008,9 @@ export default function SongViewPage() {
     });
   }, [song?.id, songViewPreference, isFullscreen]);
 
+  if (song && (unavailableSongIds ?? []).includes(song.id)) {
+    return <div className="container px-4 py-12 text-center space-y-4"><p>Este canto no está disponible en Comunidad para tu cuenta.</p><button onClick={() => navigate('/comunidad')} className="text-gold underline">Volver a Comunidad</button></div>;
+  }
   if (!song) {
     // Only block on overlay when we cannot resolve a song from the URL either.
     if (
@@ -2390,6 +2394,7 @@ export default function SongViewPage() {
                 {!mobileTeleprompter && (
                   <p className="text-muted-foreground">{song.artist}</p>
                 )}
+                {!mobileTeleprompter && <PublicSongModeration songId={song.id} />}
               </div>
               {!mobileTeleprompter && (
               <div className="flex gap-2">

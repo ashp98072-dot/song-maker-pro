@@ -1,0 +1,53 @@
+import { render, screen, fireEvent, act, waitFor, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+const rpc = vi.hoisted(() => vi.fn());
+vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc } }));
+vi.mock('@/context/useApp', () => ({ useApp: () => ({ userName: 'Reader', isGuest: true }) }));
+vi.mock('@/components/Navbar', () => ({ default: () => null }));
+vi.mock('@/components/MobileBottomTabBar', () => ({ default: () => null }));
+vi.mock('@/pwa/VisitedSongsRegistrar', () => ({ default: () => null }));
+vi.mock('@/pwa/SetlistOfflinePrefetcher', () => ({ default: () => null }));
+vi.mock('@/pwa/PwaInstallBanner', () => ({ PwaInstallBanner: () => null }));
+vi.mock('@/config/features', () => ({ FEATURES: { SIMPLE_LIVE_SYNC: true } }));
+vi.mock('@/features/director-session/context/SpectatorSessionContext', () => ({ SpectatorSessionProvider: ({ children }: { children: ReactNode }) => children }));
+vi.mock('@/features/simple-live-sync', () => ({ SimpleLiveSyncProvider: ({ children }: { children: ReactNode }) => children, SimpleLiveResumeBanner: () => null }));
+import AppLayout from '@/components/AppLayout';
+import { CommunityRulesDialog } from './CommunityRules';
+import { ensureCommunityRules } from './moderationApi';
+beforeEach(() => rpc.mockReset().mockImplementation(async (name: string) => ({ data: name === 'community_rules_status' ? false : null, error: null })));
+afterEach(cleanup);
+it('hosts the rules request in the real application layout', async () => {
+  render(<MemoryRouter initialEntries={['/comunidad']}><AppLayout /></MemoryRouter>);
+  let result!: Promise<boolean>;
+  await act(async () => { result = ensureCommunityRules(); });
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  await act(async () => { fireEvent.click(screen.getByText('Cancelar')); expect(await result).toBe(false); });
+});
+it('requires explicit acceptance and records it before continuing', async () => {
+  render(<MemoryRouter><CommunityRulesDialog /></MemoryRouter>);
+  let result!: Promise<boolean>;
+  await act(async () => { result = ensureCommunityRules(); });
+  expect(screen.getByText('Aceptar y continuar')).toBeDisabled();
+  fireEvent.click(screen.getByLabelText('He leído y acepto las reglas de Comunidad.'));
+  await act(async () => { fireEvent.click(screen.getByText('Aceptar y continuar')); expect(await result).toBe(true); });
+  expect(rpc).toHaveBeenCalledWith('community_accept_rules');
+});
+it('cancellation stops publishing without recording acceptance', async () => {
+  render(<MemoryRouter><CommunityRulesDialog /></MemoryRouter>);
+  let result!: Promise<boolean>;
+  await act(async () => { result = ensureCommunityRules(); });
+  await act(async () => { fireEvent.click(screen.getByText('Cancelar')); expect(await result).toBe(false); });
+  expect(rpc).not.toHaveBeenCalledWith('community_accept_rules');
+});
+it('does not continue on acceptance failure', async () => {
+  rpc.mockImplementation(async (name: string) => ({ data: false, error: name === 'community_accept_rules' ? { message: 'offline' } : null }));
+  render(<MemoryRouter><CommunityRulesDialog /></MemoryRouter>);
+  await act(async () => { void ensureCommunityRules(); });
+  fireEvent.click(screen.getByLabelText('He leído y acepto las reglas de Comunidad.'));
+  fireEvent.click(screen.getByText('Aceptar y continuar'));
+  await waitFor(() => expect(rpc).toHaveBeenCalledWith('community_accept_rules'));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Cancelar'));
+});

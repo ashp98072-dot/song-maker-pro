@@ -37,6 +37,9 @@ import VocalRangeTestPage from "@/pages/VocalRangeTestPage";
 import BackupPage from "@/pages/BackupPage";
 import AdminCatalogCleanupPage from "@/pages/AdminCatalogCleanupPage";
 import AdminCatalogImportPage from "@/pages/AdminCatalogImportPage";
+import AdminCommunityPage from "@/pages/AdminCommunityPage";
+import CommunitySafetyPage from "@/pages/CommunitySafetyPage";
+import { CommunityRulesDialog } from "@/features/community/CommunityRules";
 import DonatePage from "@/pages/DonatePage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import NotFound from "./pages/NotFound.tsx";
@@ -75,6 +78,7 @@ function LayoutShellNoNavbar() {
   return (
     <main className="min-h-screen bg-background">
       <Outlet />
+      <CommunityRulesDialog />
     </main>
   );
 }
@@ -326,6 +330,8 @@ function ProductionApp() {
                   />
                   <Route path="/agregar" element={<AddSongPage />} />
                   <Route path="/comunidad" element={<CommunityLibraryPage />} />
+                  <Route path="/comunidad/seguridad" element={<CommunitySafetyPage />} />
+                  <Route path="/admin/comunidad" element={<AdminCommunityPage />} />
                   <Route path="/comunidad/cadena/:slug" element={<CommunityChainDetailPage />} />
                   <Route path="/perfil" element={<ProfilePage />} />
                   <Route path="/privacidad" element={<PrivacyPage />} />

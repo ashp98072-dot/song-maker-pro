@@ -3,6 +3,7 @@ import type { Gender, ScaleMode, Song } from '@/types/music';
 import { slugifySongTitle } from '@/utils/songSlug';
 import { matchesSearch, normalizeText } from '@/utils/textNormalize';
 import { normalizeGenreId, type CommunityGenreId } from '@/features/community/genres';
+import { ensureCommunityRules } from './moderationApi';
 
 export type PublicSongRow = {
   id: string;
@@ -65,6 +66,7 @@ export function mapPublicSongRow(row: PublicSongRow): Song {
     key: row.suggested_key || row.original_key || undefined,
     genre: normalizeGenreId(row.genre),
     createdAt: row.created_at,
+    communityOwnerId: row.uploader_id,
   };
 }
 
@@ -174,6 +176,8 @@ export async function publishSongToPublicLibrary(
   }
 
   const titleSlug = slugifySongTitle(song.title);
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Publicación cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   const payload = {
     song_id: song.id,
     title: song.title,

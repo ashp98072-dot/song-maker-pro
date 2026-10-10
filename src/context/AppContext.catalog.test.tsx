@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Song } from '@/types/music';
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), rpc: vi.fn() }));
 vi.mock('@/data/songs', () => ({ SAMPLE_SONGS: [] }));
+vi.mock('@/features/community/moderationApi', () => ({ ensureCommunityRules: async () => true, MODERATION_CHANGED: 'community-moderation-changed' }));
 vi.mock('@/features/community/publicSongsApi', () => ({ fetchAllPublicSongs: mocks.fetch }));
 vi.mock('@/utils/songSlug', () => ({ fetchSongsViaSeoCatalog: async () => [] }));
 vi.mock('@/pwa/visitedSongsCache', () => ({ loadVisitedSongsCache: async () => [], mergeVisitedSongsIntoSongs: (songs: Song[]) => songs }));
@@ -76,4 +77,11 @@ it('keeps a just-saved correction when an earlier refresh finishes late', async 
   await screen.findByText('Fixed');
   await act(async () => resolveRead({ data: [], error: null }));
   expect(screen.getByText('Fixed')).toBeInTheDocument();
+});
+it('removes blocked or moderated songs from a cached library after a moderation change', async () => {
+  render(<AppProvider><Probe /></AppProvider>);
+  await screen.findByText('Original');
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'community_unavailable_song_ids' ? [song.id] : [], error: null }));
+  act(() => window.dispatchEvent(new Event('community-moderation-changed')));
+  await waitFor(() => expect(screen.queryByText('Original')).not.toBeInTheDocument());
 });

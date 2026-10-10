@@ -9,6 +9,7 @@ import { clearAuthenticatedDirectorCache } from '@/features/director-session/uti
 import { AppContext } from './useApp';
 import { reconcilePublicCatalog } from './reconcilePublicCatalog';
 import { applyCatalogCorrections, fetchCatalogCorrections, type CatalogCorrection } from './catalogCorrections';
+import { ensureCommunityRules, MODERATION_CHANGED } from '@/features/community/moderationApi';
 
 const STORAGE_KEY = 'worship-transpose-state';
 
@@ -52,6 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const correctionsRef = useRef<CatalogCorrection[]>([]);
   const correctionRevisionRef = useRef(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [unavailableSongIds, setUnavailableSongIds] = useState<string[]>([]);
   const [archivedSongIds, setArchivedSongIds] = useState<string[]>(() => {
     try { const ids: unknown = JSON.parse(localStorage.getItem('catalog-archives') || '[]');
       return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
@@ -133,9 +135,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const { fetchAllPublicSongs } = await import('@/features/community/publicSongsApi');
         const [publicResult, correctionsResult] = await Promise.allSettled([fetchAllPublicSongs(), fetchCatalogCorrections()]);
+        const { data: unavailable, error: unavailableError } = await supabase.rpc('community_unavailable_song_ids');
         if (publicResult.status === 'rejected') console.warn('Catálogo público no disponible:', publicResult.reason);
         if (correctionsResult.status === 'rejected') console.warn('Correcciones del catálogo no disponibles:', correctionsResult.reason);
         if (cancelled || userId !== userIdRef.current) return;
+        if (!unavailableError) setUnavailableSongIds(unavailable ?? []);
         if (correctionsResult.status === 'fulfilled' && correctionRevision === correctionRevisionRef.current) correctionsRef.current = correctionsResult.value;
         const publicSongs = publicResult.status === 'fulfilled' ? publicResult.value : [];
         setSongs(prev => cancelled || userId !== userIdRef.current ? prev :
@@ -228,6 +232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const applyIdentity = (session: { user?: { id: string; email?: string; user_metadata?: Record<string, unknown> } } | null) => {
+      if ((session?.user?.id ?? null) !== userIdRef.current) setUnavailableSongIds([]);
       if (session?.user) {
         const meta = session.user.user_metadata ?? {};
         const name =
@@ -374,6 +379,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener('focus', refreshPublicCatalog);
     window.addEventListener('online', refreshPublicCatalog);
+    window.addEventListener(MODERATION_CHANGED, refreshPublicCatalog);
     document.addEventListener('visibilitychange', refreshPublicCatalog);
     const correctionRefreshTimer = window.setInterval(refreshPublicCatalog, 60_000);
 
@@ -382,6 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       window.clearInterval(correctionRefreshTimer);
       window.removeEventListener('focus', refreshPublicCatalog);
       window.removeEventListener('online', refreshPublicCatalog);
+      window.removeEventListener(MODERATION_CHANGED, refreshPublicCatalog);
       document.removeEventListener('visibilitychange', refreshPublicCatalog);
       window.clearTimeout(bootTimeout);
       authSubscription.unsubscribe();
@@ -452,6 +459,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const saveSongCorrection = async (id: string, chords: string) => {
+    if (!await ensureCommunityRules()) throw new Error('Corrección cancelada');
     const { error } = await supabase.rpc('admin_correct_catalog_song', { p_song_id: id, p_chords: chords });
     if (error) throw new Error('No se pudo guardar la corrección del catálogo. Revisa la conexión y la migración de correcciones.');
     correctionRevisionRef.current += 1;
@@ -634,7 +642,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{ 
-      isGuest, userName, songs, favorites, lists, isLoading, isAdmin,
+      isGuest, userName, songs: songs.filter(song => !unavailableSongIds.includes(song.id)), favorites, lists, isLoading, isAdmin, unavailableSongIds,
       login, loginAsGuest, logout, addSong, updateSong, saveSongCorrection,
       toggleFavorite, isFavorite, createList, 
       deleteList, renameList, addSongToList, 

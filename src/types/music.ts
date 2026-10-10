@@ -75,6 +75,7 @@ export interface Song {
   isPopular?: boolean;
   isNew?: boolean;
   createdAt?: string;
+  communityOwnerId?: string;
 }
 
 export interface SongList {

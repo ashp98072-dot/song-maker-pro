@@ -52,7 +52,7 @@ ${urls
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, s-maxage=60',
       'X-Seo-Song-Count': String(songs.length),
       'X-Seo-Source': catalog.source,
       ...(catalog.hasServiceRole ? {} : { 'X-Seo-Hint': 'set SUPABASE_SERVICE_ROLE_KEY or apply seo_song_catalog RPC' }),

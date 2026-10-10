@@ -163,7 +163,7 @@ export default async function handler(req: Request) {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400',
+      'Cache-Control': 'no-store',
       'X-Robots-Tag': 'index,follow',
       'X-Seo-Song-Count': String(catalog.length),
       'X-Seo-Source': catalogResult.source,

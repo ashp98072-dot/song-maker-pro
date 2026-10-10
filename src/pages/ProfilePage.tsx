@@ -32,6 +32,7 @@ import {
 import { ProfileAvatar } from '@/features/profile/ProfileAvatar';
 import { fetchPublicLists, type PublicListRow } from '@/features/community';
 import { TUTORIAL_EVENT } from '@/features/onboarding/onboardingState';
+import { ModerationActions } from '@/features/community/ModerationActions';
 
 export default function ProfilePage() {
   const { userId: routeUserId } = useParams();
@@ -303,6 +304,7 @@ export default function ProfilePage() {
                 <h1 className="text-2xl font-bold font-display text-foreground truncate">
                   {profile.displayName}
                 </h1>
+                {!isOwn && targetId && <ModerationActions kind="user" targetId={targetId} ownerId={targetId} onBlocked={() => navigate('/comunidad')} />}
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
                   <button
                     type="button"
@@ -492,6 +494,7 @@ export default function ProfilePage() {
             </Link>
           )}
           {isOwn && isAdmin && <Link to="/admin/limpiar-catalogo" className="glass-card p-4 block text-gold">Limpiar catálogo: duplicadas y sin acordes</Link>}
+          {isOwn && isAdmin && <Link to="/admin/comunidad" className="glass-card p-4 block text-gold">Moderación de Comunidad</Link>}
           {isOwn && isAdmin && (
             <Link
               to="/admin/importar-catalogo"

@@ -14,6 +14,8 @@ import { findLibraryDuplicate } from '@/features/song-import';
 import { CatalogFilterBar } from '@/features/song-discovery/CatalogFilterBar';
 import { getSongPath } from '@/utils/songSlug';
 import type { Song } from '@/types/music';
+import { ModerationActions } from './ModerationActions';
+import { useCommunityRefresh } from './useCommunityRefresh';
 
 type Props = {
   search: string;
@@ -23,7 +25,7 @@ type Props = {
  * Browse public_songs: filter by genre/key/artist and copy into personal library.
  */
 export function CommunitySongsPanel({ search }: Props) {
-  const { songs, addSong, isGuest, archivedSongIds } = useApp();
+  const { songs, addSong, isGuest, archivedSongIds, unavailableSongIds } = useApp();
   const [catalog, setCatalog] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [genre, setGenre] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export function CommunitySongsPanel({ search }: Props) {
   const [artist, setArtist] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
+  const refresh = useCommunityRefresh();
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +54,7 @@ export function CommunitySongsPanel({ search }: Props) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refresh]);
 
   const facets = useMemo(() => {
     const keys = new Set<string>();
@@ -70,13 +73,13 @@ export function CommunitySongsPanel({ search }: Props) {
 
   const filtered = useMemo(
     () =>
-      filterCommunitySongs(catalog.filter(song => !(archivedSongIds ?? []).includes(song.id)), {
+      filterCommunitySongs(catalog.filter(song => !(archivedSongIds ?? []).includes(song.id) && !(unavailableSongIds ?? []).includes(song.id)), {
         search,
         genre,
         key: keyFilter,
         artist,
       }).slice(0, 120),
-    [catalog, search, genre, keyFilter, artist, archivedSongIds]
+    [catalog, search, genre, keyFilter, artist, archivedSongIds, unavailableSongIds]
   );
 
   const libraryHas = (song: Song) =>
@@ -227,6 +230,7 @@ export function CommunitySongsPanel({ search }: Props) {
                     {song.originalKey ? ` · ${song.originalKey}` : ''}
                     {song.genre ? ` · ${genreLabel(song.genre)}` : ''}
                   </p>
+                  <ModerationActions kind="song" targetId={song.id} ownerId={song.communityOwnerId} />
                 </div>
                 {owned ? (
                   <span className="shrink-0 h-9 px-2.5 rounded-lg bg-secondary text-[11px] font-semibold text-muted-foreground inline-flex items-center gap-1">

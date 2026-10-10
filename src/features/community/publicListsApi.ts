@@ -2,6 +2,7 @@ import type { Json } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import type { Song } from '@/types/music';
 import { getUserSemitones } from '@/utils/userTranspositions';
+import { ensureCommunityRules } from './moderationApi';
 import {
   buildListSlug,
   parseListSongsJson,
@@ -120,6 +121,8 @@ export async function publishListAsCadena(
   }
 
   const ownerName = await resolveOwnerName(authData.user.id);
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Publicación cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   const snapshots: PublicListSongSnapshot[] = input.songs.map((s) =>
     songToSnapshot(s, getUserSemitones(s.id))
   );
@@ -167,6 +170,8 @@ export async function updatePublicListMeta(
   }
 
   const name = input.name.trim().slice(0, 120);
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Edición cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   if (!name) return { ok: false, error: 'El nombre no puede estar vacío' };
 
   const { error } = await supabase
@@ -197,6 +202,8 @@ export async function updatePublicListSongs(
   if (!songs.length) {
     return { ok: false, error: 'La cadena no puede quedar vacía. Elimínala si ya no la necesitas.' };
   }
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Edición cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
 
   const { error } = await supabase
     .from('public_lists')
@@ -273,6 +280,8 @@ export async function postListComment(
   }
 
   const authorName = await resolveOwnerName(authData.user.id);
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Comentario cancelado' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   const { data, error } = await supabase
     .from('public_list_comments')
     .insert({
