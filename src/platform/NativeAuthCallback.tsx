@@ -23,10 +23,10 @@ export function NativeAuthCallback() {
         if (url.searchParams.has('error') || !code) throw new Error('OAuth callback failed');
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error || !data.session) throw new Error('OAuth exchange failed');
-        if (!disposed) navigate('/', { replace: true });
+        if (!disposed) navigate(url.searchParams.get('recovery') === '1' ? '/auth/restablecer' : '/', { replace: true });
       } catch {
         if (!disposed) {
-          toast.error('No se pudo completar el acceso con Google. Inténtalo de nuevo.');
+          toast.error('No se pudo validar el enlace de acceso. Solicita uno nuevo o vuelve a intentarlo.');
           navigate('/login', { replace: true });
         }
       }

@@ -1,5 +1,5 @@
 import { act, cleanup, render, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ add: vi.fn(), launch: vi.fn(), exchange: vi.fn(), close: vi.fn(), error: vi.fn() }));
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => true } }));
@@ -30,4 +30,12 @@ it('rejects unrelated URLs and handles OAuth errors without exchanging', async (
   await act(async () => mocks.add.mock.calls[0][1]({ url: 'com.worshiptranspose.app://auth/callback?error=denied' }));
   expect(mocks.error).toHaveBeenCalledOnce();
   expect(mocks.exchange).not.toHaveBeenCalled();
+});
+it('returns password recovery to the reset form instead of home', async () => {
+  const url = 'com.worshiptranspose.app://auth/callback?recovery=1&code=reset';
+  mocks.launch.mockResolvedValue({ url });
+  function Location() { return <div data-testid="location">{useLocation().pathname}</div>; }
+  const view = render(<MemoryRouter><NativeAuthCallback /><Location /></MemoryRouter>);
+  await waitFor(() => expect(view.getByTestId('location')).toHaveTextContent('/auth/restablecer'));
+  expect(mocks.exchange).toHaveBeenCalledWith('reset');
 });
