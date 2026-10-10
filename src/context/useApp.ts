@@ -4,6 +4,7 @@ import type { AppState, Song, SongList } from '@/types/music';
 interface AppContextType extends AppState {
   isLoading: boolean;
   isAdmin: boolean;
+  unavailableSongIds: string[];
   archivedSongIds: string[];
   refreshCatalogArchives: () => Promise<void>;
   login: (name: string) => void;

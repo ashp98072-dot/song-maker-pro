@@ -17,6 +17,7 @@ import { FollowerJoinAwaitingOverlay } from '@/features/director-session/compone
 import { SimpleLiveSyncProvider, SimpleLiveResumeBanner } from '@/features/simple-live-sync';
 import { isPublicAppPath } from '@/utils/publicAppPaths';
 import { UsageTutorial } from '@/features/onboarding/UsageTutorial';
+import { CommunityRulesDialog } from '@/features/community/CommunityRules';
 
 export default function AppLayout() {
   const { userName, isGuest } = useApp();
@@ -51,9 +52,11 @@ export default function AppLayout() {
         </>
       )}
       <Outlet />
+      <CommunityRulesDialog />
       <footer className="px-4 py-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
         <Link to="/privacidad" className="hover:underline">Privacidad</Link>
         <Link to="/eliminar-cuenta" className="hover:underline">Eliminar cuenta</Link>
+        <Link to="/comunidad/seguridad" className="hover:underline">Reglas de Comunidad</Link>
       </footer>
       {!isGuest && <UsageTutorial />}
       <MobileBottomTabBar />

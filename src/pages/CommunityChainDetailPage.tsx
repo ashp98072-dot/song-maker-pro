@@ -36,8 +36,11 @@ import { getSongPath } from '@/utils/songSlug';
 import { buildSongListSearch } from '@/features/song-view/utils/songListNav';
 import { supabase } from '@/integrations/supabase/client';
 import { clearManualExitContinuous } from '@/features/director-session/utils/continuousExitGuard';
+import { ModerationActions } from '@/features/community/ModerationActions';
+import { useCommunityRefresh } from '@/features/community/useCommunityRefresh';
 
 export default function CommunityChainDetailPage() {
+  const refresh = useCommunityRefresh();
   const { slug } = useParams();
   const navigate = useNavigate();
   const { songs, addSong, createList, setListSongs, isGuest, userName, lists } = useApp();
@@ -100,7 +103,7 @@ export default function CommunityChainDetailPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refresh]);
 
   const isOwner = !!(list && userId && list.owner_id === userId);
 
@@ -392,6 +395,7 @@ export default function CommunityChainDetailPage() {
       </Link>
 
       <div className="mb-6">
+        <ModerationActions kind="list" targetId={list.id} ownerId={list.owner_id} />
         <div className="flex items-center gap-2 text-gold mb-2">
           <ListMusic className="w-5 h-5" />
           <span className="text-xs font-bold uppercase tracking-wide">Cadena pública</span>
@@ -693,6 +697,7 @@ export default function CommunityChainDetailPage() {
                       </span>
                     </div>
                     <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{c.body}</p>
+                    <ModerationActions kind="comment" targetId={c.id} ownerId={c.user_id} />
                   </div>
                 </div>
               </div>

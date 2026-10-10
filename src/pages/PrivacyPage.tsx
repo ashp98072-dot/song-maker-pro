@@ -16,6 +16,12 @@ export default function PrivacyPage() {
     <p>Tu perfil y las canciones o listas que publiques en Comunidad pueden ser visibles para otros usuarios.
       En las sesiones compartimos la canción, el tono y los ajustes necesarios con los participantes.
       No publiques datos personales dentro de letras o archivos que quieras compartir.</p>
+    <h2 className="text-xl font-semibold">Moderación de Comunidad</h2>
+    <p>Guardamos tu aceptación de las reglas, los bloqueos y los reportes que envíes. Los reportes incluyen el motivo,
+      detalles y una copia del contenido reportado para que el administrador pueda revisarlo. Los reportes no se muestran
+      públicamente en Comunidad. Los reportes se conservan mientras estén pendientes o sostengan una retirada o suspensión;
+      una vez resueltos sin medidas activas, se depuran al revisar el panel si han pasado 90 días. Al eliminar una cuenta,
+      se eliminan sus bloqueos, aceptación y reportes asociados como denunciante o persona reportada.</p>
     <h2 className="text-xl font-semibold">Micrófono y archivos del dispositivo</h2>
     <p>El afinador y la prueba de voz analizan audio en tu dispositivo cuando activas la función.
       No enviamos ese audio al servidor. Las grabaciones de ensayo se guardan localmente y puedes

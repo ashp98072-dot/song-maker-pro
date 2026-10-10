@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { ensureCommunityRules } from '@/features/community/moderationApi';
 
 export type PublicProfile = {
   userId: string;
@@ -88,6 +89,7 @@ async function saveProfileRow(payload: {
 export async function ensureOwnProfile(displayName?: string): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return;
+  if (!await ensureCommunityRules()) return;
 
   const name =
     displayName?.trim() ||
@@ -121,6 +123,8 @@ export async function updateOwnProfile(input: {
   }
 
   const displayName = input.displayName.trim().slice(0, 60);
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Edición cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   if (!displayName) return { ok: false, error: 'El nombre no puede estar vacío' };
 
   const payload: {
@@ -163,6 +167,8 @@ export async function uploadAvatar(file: File): Promise<
   if (!file.type.startsWith('image/')) {
     return { ok: false, error: 'El archivo debe ser una imagen' };
   }
+  try { if (!await ensureCommunityRules()) return { ok: false, error: 'Publicación de foto cancelada' }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No se pudieron aceptar las reglas' }; }
   if (file.size > 2 * 1024 * 1024) {
     return { ok: false, error: 'Máximo 2 MB' };
   }

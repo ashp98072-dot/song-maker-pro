@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc } }));
+vi.mock('@/features/community/moderationApi', () => ({ ensureCommunityRules: async () => true }));
 import { saveAdminImportBatch } from './adminImport';
 import { normalizeImportedSong } from './utils/normalizeImportedSong';
 const song = normalizeImportedSong({ title: 'Prueba', chords: 'Letra de prueba' })!;
