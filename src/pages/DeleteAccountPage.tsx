@@ -13,6 +13,8 @@ export default function DeleteAccountPage() {
       <li>Verificaremos que eres titular de la cuenta. Si usas otro correo, coordinaremos la verificación antes de borrar los datos.</li>
       <li>Te confirmaremos la eliminación por correo una vez completada. Preparar el correo no envía la solicitud ni elimina datos.</li>
     </ol>
+    <p>Completaremos la eliminación dentro de 7 días naturales desde que verifiquemos
+      que eres titular de la cuenta y te confirmaremos el resultado por correo.</p>
     <p>Se eliminarán tu cuenta, perfil, canciones y listas asociadas, favoritos, ajustes,
       relaciones de seguimiento y fotos/PDF subidos. Exporta antes la biblioteca que quieras conservar.
       Las descargas o copias en otros dispositivos deben borrarse allí. Los registros y copias de

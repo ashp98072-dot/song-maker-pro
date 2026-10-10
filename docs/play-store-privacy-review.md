@@ -1,7 +1,8 @@
 # Privacidad y preparación para Play Store
 
 Responsable indicado por el usuario: Walter Villagran.
-Correo indicado: worshiptranspose@gmail.com. Verificar recepción antes de publicar.
+Correo indicado: worshiptranspose@gmail.com. El responsable confirmó recepción y
+respuesta de mensajes el 10 de octubre de 2026.
 
 ## URLs después del despliegue
 
@@ -10,6 +11,8 @@ Correo indicado: worshiptranspose@gmail.com. Verificar recepción antes de publi
 
 La solicitud de eliminación es manual por correo, no un borrado automático.
 El responsable debe revisar el buzón y completar solicitudes verificadas.
+Plazo acordado el 10 de octubre de 2026: completar la eliminación dentro de 7 días
+naturales desde la verificación del titular y confirmar el resultado por correo.
 
 ## Avances comprobados el 9 de octubre de 2026
 
@@ -33,8 +36,12 @@ El responsable debe revisar el buzón y completar solicitudes verificadas.
 - La prueba de importación detectó que el escáner enviaba PDF directamente al OCR
   de imágenes. Se corrigió para leer texto del PDF y renderizar páginas sin texto
   antes del OCR. La extracción del PDF adjunto de dos páginas se verificó localmente,
-  incluyendo acordes B y F#. Falta probar esta corrección en el teléfono, PDF de
-  páginas escaneadas y cancelación del selector. No dar estas pruebas por aprobadas.
+  incluyendo acordes B y F#. Tras el despliegue, el responsable confirmó en la web
+  la importación del PDF con texto y el procesamiento de acordes. También confirmó
+  que cancelar el selector sin elegir archivo conserva el texto y permite seguir
+  usando la aplicación en la web. Falta probar esta corrección en el teléfono y PDF
+  de páginas escaneadas.
+  No dar estas pruebas pendientes por aprobadas.
 
 Estas comprobaciones cubren los datos mostrados en producción. No sustituyen un ensayo
 con una cuenta de prueba que ejercite PDF, seguimiento y demás funciones, ni verifican
@@ -96,7 +103,7 @@ fusionado del AAB final y probar permitir, rechazar y revocar micrófono en un t
 
 ## Pendientes antes de envío
 
-- Verificar buzón y nombre que coincida con la ficha del desarrollador.
+- Comprobar que el nombre y correo coincidan con la ficha del desarrollador.
 - Ensayar solicitud/eliminación completa de la cuenta de prueba.
 - Confirmar conservación de backups/logs y concretar procedimiento de respuesta.
 - Probar micrófono, cámara/selector de archivos y audio local en Android real.
