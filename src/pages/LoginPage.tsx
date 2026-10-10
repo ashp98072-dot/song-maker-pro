@@ -234,6 +234,7 @@ export default function LoginPage() {
             {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
           </button>
         </form>
+        {mode === 'login' && <Link to="/auth/recuperar" className="text-gold underline text-sm">Olvidé mi contraseña</Link>}
 
         <div className="w-full flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />

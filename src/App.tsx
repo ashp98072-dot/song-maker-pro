@@ -20,6 +20,7 @@ import AppLayout from "@/components/AppLayout";
 import ScrollToTop from "@/components/ScrollToTop";
 import LoginPage from "@/pages/LoginPage";
 import AuthCallback from "@/pages/AuthCallback";
+import PasswordRecoveryPage from '@/pages/PasswordRecoveryPage';
 import HomePage from "@/pages/HomePage";
 import JoinLivePage from "@/pages/JoinLivePage";
 import FavoritesPage from "@/pages/FavoritesPage";
@@ -304,6 +305,8 @@ function ProductionApp() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/auth/v1/callback" element={<AuthCallback />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/auth/recuperar" element={<PasswordRecoveryPage />} />
+                <Route path="/auth/restablecer" element={<PasswordRecoveryPage reset />} />
 
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<HomePage />} />
