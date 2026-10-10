@@ -5,7 +5,7 @@ export const PRIVACY_CONTACT = 'worshiptranspose@gmail.com';
 export default function PrivacyPage() {
   return <article className="container max-w-3xl px-4 py-8 space-y-5">
     <h1 className="text-2xl font-bold">Política de privacidad de Worship Transpose</h1>
-    <p>Actualizada el 9 de octubre de 2026. Responsable: Walter Villagran.
+    <p>Actualizada el 10 de octubre de 2026. Responsable: Walter Villagran.
       Contacto: <a className="text-gold underline" href={`mailto:${PRIVACY_CONTACT}`}>{PRIVACY_CONTACT}</a>.</p>
     <h2 className="text-xl font-semibold">Cuenta y biblioteca</h2>
     <p>Para crear una cuenta utilizamos tu correo, identificador de usuario y nombre de perfil.
@@ -30,7 +30,8 @@ export default function PrivacyPage() {
       <a className="text-gold underline" href="https://www.youtube.com/t/terms" target="_blank" rel="noreferrer">Condiciones de YouTube</a></p>
     <h2 className="text-xl font-semibold">Conservación y eliminación</h2>
     <p>Conservamos los datos de tu cuenta mientras utilizas el servicio o hasta que solicites eliminarlos.
-      La solicitud se tramita manualmente después de verificar que eres titular de la cuenta.
+      La solicitud se tramita manualmente y completamos la eliminación dentro de 7 días naturales
+      desde que verificamos que eres titular de la cuenta.
       Incluye el perfil, biblioteca personal, favoritos, listas, ajustes, relaciones de seguimiento
       y archivos subidos asociados. Los archivos que descargaste y copias en otros dispositivos
       deben borrarse allí; las copias de seguridad y registros de los proveedores pueden persistir
