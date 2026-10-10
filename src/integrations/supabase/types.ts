@@ -528,6 +528,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      catalog_song_corrections_read: { Args: { p_offset?: number }; Returns: { song_id: string; chords: string }[] }
+      admin_correct_catalog_song: { Args: { p_song_id: string; p_chords: string }; Returns: undefined }
       admin_import_restore_songs: { Args: { p_songs: Json; p_publish?: boolean }; Returns: { song_id: string; status: string; message: string; target_id: string }[] }
 
       catalog_archived_song_ids: { Args: Record<string, never>; Returns: { song_id: string }[] }

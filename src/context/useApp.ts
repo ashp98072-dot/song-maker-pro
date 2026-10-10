@@ -11,6 +11,7 @@ interface AppContextType extends AppState {
   logout: () => void;
   addSong: (song: Song) => void;
   updateSong: (id: string, updatedSong: Partial<Song>) => void;
+  saveSongCorrection: (id: string, chords: string) => Promise<void>;
   toggleFavorite: (songId: string) => void;
   isFavorite: (songId: string) => boolean;
   createList: (name: string) => Promise<string | null>;

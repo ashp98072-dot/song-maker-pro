@@ -173,7 +173,7 @@ export default function SongViewPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { songs, toggleFavorite, isFavorite, lists, addSongToList, createList, updateSong, isAdmin } = useApp();
+  const { songs, toggleFavorite, isFavorite, lists, addSongToList, createList, updateSong, saveSongCorrection, isAdmin } = useApp();
   const seedSong =
     (location.state as { seedSong?: Song } | null)?.seedSong &&
     typeof (location.state as { seedSong?: Song }).seedSong?.id === 'string'
@@ -388,14 +388,21 @@ export default function SongViewPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(song?.chords || '');
+  const [savingCorrection, setSavingCorrection] = useState(false);
 
-  useEffect(() => { if (song) setEditedContent(song.chords); }, [song]);
+  useEffect(() => { if (song && !isEditing) setEditedContent(song.chords); }, [song, isEditing]);
 
-  const handleSaveCorrection = () => {
-    if (song) {
-      updateSong(song.id, { chords: editedContent });
+  const handleSaveCorrection = async () => {
+    if (!song || savingCorrection) return;
+    setSavingCorrection(true);
+    try {
+      await saveSongCorrection(song.id, editedContent);
       setIsEditing(false);
       toast.success("Letra y notas actualizadas");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo guardar la corrección');
+    } finally {
+      setSavingCorrection(false);
     }
   };
 
@@ -2389,7 +2396,7 @@ export default function SongViewPage() {
                 {isAdmin && isEditing ? (
                   <>
                     <button onClick={() => setIsEditing(false)} className="p-2 rounded-lg border border-border text-red-500 hover:bg-red-50 transition-colors"><X className="w-5 h-5" /></button>
-                    <button onClick={handleSaveCorrection} className="p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"><Save className="w-5 h-5" /></button>
+                    <button onClick={handleSaveCorrection} disabled={savingCorrection} className="p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"><Save className="w-5 h-5" /></button>
                   </>
                 ) : isAdmin ? (
                   <button onClick={() => setIsEditing(true)} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-gold transition-colors" title="Corregir letra/notas"><Edit2 className="w-5 h-5" /></button>
