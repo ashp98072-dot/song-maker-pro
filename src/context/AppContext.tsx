@@ -8,6 +8,7 @@ import { loadVisitedSongsCache, mergeVisitedSongsIntoSongs } from '@/pwa/visited
 import { clearAuthenticatedDirectorCache } from '@/features/director-session/utils/liveSessionAuth';
 import { AppContext } from './useApp';
 import { reconcilePublicCatalog } from './reconcilePublicCatalog';
+import { applyCatalogCorrections, fetchCatalogCorrections, type CatalogCorrection } from './catalogCorrections';
 
 const STORAGE_KEY = 'worship-transpose-state';
 
@@ -48,6 +49,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lists, setLists] = useState<SongList[]>(saved.lists ?? []);
   const userIdRef = useRef<string | null>(null);
   const localEditsRef = useRef(new Set<string>());
+  const correctionsRef = useRef<CatalogCorrection[]>([]);
+  const correctionRevisionRef = useRef(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [archivedSongIds, setArchivedSongIds] = useState<string[]>(() => {
     try { const ids: unknown = JSON.parse(localStorage.getItem('catalog-archives') || '[]');
@@ -126,12 +129,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (publicRefreshRunning) { publicRefreshQueued = true; return; }
       publicRefreshRunning = true;
       const userId = userIdRef.current;
+      const correctionRevision = correctionRevisionRef.current;
       try {
         const { fetchAllPublicSongs } = await import('@/features/community/publicSongsApi');
-        const publicSongs = await fetchAllPublicSongs();
+        const [publicResult, correctionsResult] = await Promise.allSettled([fetchAllPublicSongs(), fetchCatalogCorrections()]);
+        if (publicResult.status === 'rejected') console.warn('Catálogo público no disponible:', publicResult.reason);
+        if (correctionsResult.status === 'rejected') console.warn('Correcciones del catálogo no disponibles:', correctionsResult.reason);
         if (cancelled || userId !== userIdRef.current) return;
+        if (correctionsResult.status === 'fulfilled' && correctionRevision === correctionRevisionRef.current) correctionsRef.current = correctionsResult.value;
+        const publicSongs = publicResult.status === 'fulfilled' ? publicResult.value : [];
         setSongs(prev => cancelled || userId !== userIdRef.current ? prev :
-          reconcilePublicCatalog(prev, publicSongs, new Set([...personalIds, ...localEditsRef.current])));
+          applyCatalogCorrections(reconcilePublicCatalog(prev, publicSongs, new Set([...personalIds, ...localEditsRef.current])), correctionsRef.current));
       } catch (err) {
         console.warn('public_songs hydrate failed:', err);
       } finally {
@@ -336,9 +344,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (!exists) {
                 const newSong = cloudRowToSong(updatedSong);
                 toast.success(`✨ Nueva canción: ${newSong.title}`);
-                return [newSong, ...prev];
+                return applyCatalogCorrections([newSong, ...prev], correctionsRef.current);
               }
-              return prev.map((s) =>
+              return applyCatalogCorrections(prev.map((s) =>
                 s.id === songId
                   ? {
                       ...s,
@@ -353,7 +361,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                           : undefined) || s.youtubeUrl,
                     }
                   : s
-              );
+              ), correctionsRef.current);
             });
           }
         }
@@ -367,9 +375,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     window.addEventListener('focus', refreshPublicCatalog);
     window.addEventListener('online', refreshPublicCatalog);
     document.addEventListener('visibilitychange', refreshPublicCatalog);
+    const correctionRefreshTimer = window.setInterval(refreshPublicCatalog, 60_000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(correctionRefreshTimer);
       window.removeEventListener('focus', refreshPublicCatalog);
       window.removeEventListener('online', refreshPublicCatalog);
       document.removeEventListener('visibilitychange', refreshPublicCatalog);
@@ -439,6 +449,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('AddSong sync falló:', err);
     }
+  };
+
+  const saveSongCorrection = async (id: string, chords: string) => {
+    const { error } = await supabase.rpc('admin_correct_catalog_song', { p_song_id: id, p_chords: chords });
+    if (error) throw new Error('No se pudo guardar la corrección del catálogo. Revisa la conexión y la migración de correcciones.');
+    correctionRevisionRef.current += 1;
+    correctionsRef.current = [...correctionsRef.current.filter(row => row.song_id !== id), { song_id: id, chords }];
+    setSongs(prev => applyCatalogCorrections(prev, correctionsRef.current));
   };
 
   const updateSong = async (id: string, updatedFields: Partial<Song>) => {
@@ -617,7 +635,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{ 
       isGuest, userName, songs, favorites, lists, isLoading, isAdmin,
-      login, loginAsGuest, logout, addSong, updateSong,
+      login, loginAsGuest, logout, addSong, updateSong, saveSongCorrection,
       toggleFavorite, isFavorite, createList, 
       deleteList, renameList, addSongToList, 
       removeSongFromList, setListSongs, importLibrary, archivedSongIds, refreshCatalogArchives
