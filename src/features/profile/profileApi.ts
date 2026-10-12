@@ -83,7 +83,7 @@ async function saveProfileRow(payload: {
   }
 
   // The deployed primary key also references auth.users: use the account ID.
-  const { error } = await supabase.from('profiles').insert({ ...payload, id: payload.user_id });
+  const { error } = await supabase.from('profiles').upsert({ ...payload, id: payload.user_id }, { onConflict: 'id' });
   return { error: error as unknown as Error | null };
 }
 
