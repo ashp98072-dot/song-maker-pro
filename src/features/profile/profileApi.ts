@@ -82,9 +82,8 @@ async function saveProfileRow(payload: {
     return { error: error as unknown as Error | null };
   }
 
-  // Some deployed schemas have no default for the profile primary key.
-  // Keep this row ID separate from the account ID and never replace existing IDs.
-  const { error } = await supabase.from('profiles').insert({ id: crypto.randomUUID(), ...payload });
+  // The deployed primary key also references auth.users: use the account ID.
+  const { error } = await supabase.from('profiles').insert({ ...payload, id: payload.user_id });
   return { error: error as unknown as Error | null };
 }
 
